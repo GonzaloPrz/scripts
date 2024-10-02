@@ -81,8 +81,9 @@ models_dict = {
     'xgb':xgboost
     }
 
-data_dir = Path(Path.home(),'data','MCI_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','MCI_classifier')
-results_dir = Path(Path.home(),'results','MCI_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results','MCI_classifier')
+project_name = 'MCI_classifier'
+data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
+results_dir = Path(str(data_dir).replace('data','results'))
 
 y_labels = ['target']
 

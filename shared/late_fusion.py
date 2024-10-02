@@ -39,11 +39,12 @@ else:
 
 n_seeds_train = 10
 n_seeds_test = 1
-y_label = 'group'
+y_label = 'target'
 hyp_opt = True
 n_boot = 100
+project_name = 'tell_classifier'
 
-results_dir = Path(Path.home(),'results','tell_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','results','tell_classifier')
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
 best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{kfold_folder}_hyp_opt.csv' if hyp_opt else f'best_classifiers_{kfold_folder}_no_hyp_opt.csv'))
 

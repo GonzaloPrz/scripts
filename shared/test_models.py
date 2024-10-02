@@ -41,7 +41,7 @@ boot_train = 0
 
 n_seeds_test = 1
 
-data_dir = Path(Path.home(),'data','tell_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','gonza','data','tell_classifier')
+data_dir = Path(Path.home(),'data','tell_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','tell_classifier')
 save_dir = Path(str(data_dir).replace('data','results'))    
 
 tasks = ['MOTOR_LIBRE']
@@ -59,7 +59,7 @@ models_dict = {'lr': LogisticRegression,
 
 metrics_names = ['roc_auc','accuracy','f1','recall','norm_cross_entropy']
 
-random_seeds_test = [1]
+random_seeds_test = np.arange(n_seeds_test)
 
 n_models = 10
 

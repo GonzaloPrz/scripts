@@ -41,7 +41,7 @@ scoring = 'roc_auc'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
-results_dir = Path(Path.home(),'results','tell_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','gonza','results','tell_classifier')
+results_dir = Path(Path.home(),'results','tell_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results','tell_classifier')
 for task in tasks:
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir() and 'psycholinguistic' != folder.name]
     for dimension in dimensions:
