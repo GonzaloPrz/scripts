@@ -1,0 +1,16 @@
+import pandas as pd
+from pathlib import Path
+
+tasks = ['MOTOR_LIBRE']
+
+for task in tasks:
+    data = pd.read_excel(Path(Path(__file__).parent,'data',f'data_{task}.xlsx'))
+    data_augmented = pd.read_excel(Path(Path(__file__).parent,'data',f'data_{task}_augmented.xlsx'))
+    columns = data_augmented.columns
+    for col in columns:
+        if 'pitch-analysis' in col or '___' in col:
+            data_augmented[col.replace('pitch-analysis','pitch').replace('___','__')] = data_augmented[col]
+            data_augmented.drop(columns=[col], inplace=True)
+    all_data = pd.concat([data, data_augmented], ignore_index=True)
+    all_data.to_excel(Path(Path(__file__).parent,'data',f'data_{task}_merged.xlsx'), index=False)
+

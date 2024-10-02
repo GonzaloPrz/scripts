@@ -1,0 +1,10 @@
+import pandas as pd
+from pathlib import Path
+
+data = pd.read_excel(Path(Path(__file__).parent, 'data','data.xlsx'))
+
+tasks = data.task.unique()
+
+for task in tasks:
+    task_data = data[data.task == task].reset_index(drop=True)
+    task_data.to_excel(Path(Path(__file__).parent, 'data', f'data_{task}.xlsx'), index=False)
