@@ -21,6 +21,8 @@ from utils import *
 from expected_cost.ec import *
 from psrcal import *
 
+project_name = 'MCI_classifier'
+
 l2ocv = False
 
 n_seeds_train = 10
@@ -31,7 +33,7 @@ else:
     n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 
-y_labels = ['group']
+y_labels = ['target']
 hyp_opt_list = [True]
 feature_selection_list = [True]
 bootstrap_list = [True]
@@ -44,7 +46,7 @@ n_seeds_test = 1
 data_dir = Path(Path.home(),'data','tell_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','tell_classifier')
 save_dir = Path(str(data_dir).replace('data','results'))    
 
-tasks = ['MOTOR_LIBRE']
+tasks = ['fas','animales','fas__animales','grandmean']
 
 scaler_name = 'StandardScaler'
 

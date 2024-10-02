@@ -42,13 +42,19 @@ n_seeds_test = 1
 y_label = 'target'
 hyp_opt = True
 n_boot = 100
-project_name = 'tell_classifier'
+project_name = 'MCI_classifier'
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
 best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{kfold_folder}_hyp_opt.csv' if hyp_opt else f'best_classifiers_{kfold_folder}_no_hyp_opt.csv'))
 
-single_dimensions = [dimension for dimension in best_classifiers.dimension.unique() if '_' not in dimension and 'psycholinguistic' != dimension]
+dimensions = best_classifiers.dimension.unique()
+single_dimensions = list()
+
+for dimension in dimensions:
+    single_dimensions += dimension.split('__')
+
+single_dimensions = np.unique(single_dimensions)
 
 tasks = best_classifiers.task.unique()
 hyp_opt_list = [True]

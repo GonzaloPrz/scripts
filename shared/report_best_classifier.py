@@ -9,7 +9,8 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-tasks = ['MOTOR_LIBRE']
+tasks = ['fas','animales','fas__animales','grandmeam']
+project_name = 'MCI_classifier'
 
 best_classifiers = pd.DataFrame(columns=['task','dimension','model_type','random_seed_test',
                                          'AUC_bootstrap_dev',#'AUC_oob_dev',
@@ -35,15 +36,15 @@ y_label = 'group'
 feature_selection = True
 bootstrap = True
 
-random_seeds_test = [1]
+random_seeds_test = np.arange(n_seeds_test)
 
 scoring = 'roc_auc'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
-results_dir = Path(Path.home(),'results','tell_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results','tell_classifier')
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 for task in tasks:
-    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir() and 'psycholinguistic' != folder.name]
+    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
         path = Path(results_dir,task,dimension,'StandardScaler',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
