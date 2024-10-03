@@ -44,7 +44,7 @@ scoring = 'roc_auc'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 for task in tasks:
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:

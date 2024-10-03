@@ -43,7 +43,7 @@ boot_train = 0
 
 n_seeds_test = 1
 
-data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
+data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','data',project_name)
 save_dir = Path(str(data_dir).replace('data','results'))    
 
 tasks = ['fas','animales','fas__animales','grandmean']

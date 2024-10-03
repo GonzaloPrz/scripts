@@ -47,14 +47,14 @@ for ndim in range(2,len(single_dimensions)+1):
 n_iter = 50
 n_iter_features = 50
 
-scaler_name = 'no_scaling'
+scaler_name = 'StandardScaler'
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler()
 elif scaler_name == 'MinMaxScaler':
     scaler = MinMaxScaler()
 else:
     scaler = None
-imputer = None
+imputer = KNNImputer()
 
 cmatrix = None
 feature_importance = True 
