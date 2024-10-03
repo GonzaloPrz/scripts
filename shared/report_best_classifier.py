@@ -33,7 +33,7 @@ else:
 
 hyp_opt = True
 n_seeds_test = 1
-y_label = 'group'
+y_label = 'target'
 
 feature_selection = True
 bootstrap = True
