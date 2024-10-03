@@ -14,14 +14,14 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier 
 
-sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts','scripts_generales')))
+sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 from utils import *
 
 from expected_cost.ec import *
 from psrcal import *
 
-project_name = 'GeroApathy'
+project_name = 'MCI_classifier'
 
 l2ocv = False
 
@@ -33,7 +33,7 @@ else:
     n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 
-y_labels = ['AES_Total_Score','Well_Being_Total_Score_V']
+y_labels = ['target']
 hyp_opt_list = [True]
 feature_selection_list = [True]
 bootstrap_list = [True]
@@ -46,7 +46,7 @@ n_seeds_test = 1
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 save_dir = Path(str(data_dir).replace('data','results'))    
 
-tasks = ['Fugu']
+tasks = ['fas','animales','fas__animales','grandmean']
 
 scaler_name = 'no_scaling'
 if scaler_name == 'StandardScaler':
@@ -126,7 +126,7 @@ for task in tasks:
                             except:
                                 pass
 
-                        mod = Model(models_dict[model_name](**params),scaler())
+                        mod = Model(models_dict[model_name](**params),scaler,imputer)
                         metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(mod,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test)
 
                         result_append = params.copy()
