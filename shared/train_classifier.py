@@ -34,8 +34,8 @@ from expected_cost.utils import *
 tasks = ['fas','animales','fas__animales','grandmean'] 
 
 single_dimensions = [
-                     'psycholinguistic'
-                     #'talking-intervals','psycholinguistic__osv'
+                     'psycholinguistic',
+                     'talking-intervals','psycholinguistic__osv'
                      ]
 
 dimensions = single_dimensions
@@ -46,8 +46,16 @@ for ndim in range(2,len(single_dimensions)+1):
 
 n_iter = 50
 n_iter_features = 50
-scaler_name = 'StandardScaler'
-scaler = MinMaxScaler() if scaler_name == 'minmax' else StandardScaler()
+
+scaler_name = 'no_scaling'
+if scaler_name == 'StandardScaler':
+    scaler = StandardScaler()
+elif scaler_name == 'MinMaxScaler':
+    scaler = MinMaxScaler()
+else:
+    scaler = None
+imputer = None
+
 cmatrix = None
 feature_importance = True 
 shuffle_labels = False
@@ -114,10 +122,6 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
     y = data[y_label]
 
     #impute mising data
-    imputer = KNNImputer(n_neighbors=5)
-    data = pd.DataFrame(imputer.fit_transform(data[features]),columns=features)
-    data[id_col] = ID
-
     for hyp_tuning,model in itertools.product(hyp_tuning_list,models_dict.keys()):        
         print(model)
         held_out = True if hyp_tuning else held_out_default
@@ -224,7 +228,7 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists():
                 continue
 
-            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc',problem_type='clf')        
+            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc',problem_type='clf')        
         
             metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 
