@@ -76,20 +76,18 @@ for task in tasks:
             if best is None:
                 continue
             print(best['model_type'])
-            AUC_bootstrap = f'[ {best[f'inf_roc_auc_bootstrap'].round(2)}, {best[f"mean_roc_auc_bootstrap"].round(2)}, {best[f"sup_roc_auc_bootstrap"].round(2)}]'
+            AUC_bootstrap = f'[ {best[f"inf_roc_auc_bootstrap"].round(2)}, {best[f"mean_roc_auc_bootstrap"].round(2)}, {best[f"sup_roc_auc_bootstrap"].round(2)}]'
             
             accuracy_bootstrap = f'[ {best["inf_accuracy_bootstrap"].round(2)}, {best["mean_accuracy_bootstrap"].round(2)}, {best["sup_accuracy_bootstrap"].round(2)}]'
-        
-            AUC_oob = f'[ {best[f'inf_roc_auc_oob'].round(2)}, {best[f"mean_roc_auc_oob"].round(2)}, {best[f"sup_roc_auc_oob"].round(2)}]'
-        
+                
             accuracy_oob = f'[ {best["inf_accuracy_oob"].round(2)}, {best["mean_accuracy_oob"].round(2)}, {best["sup_accuracy_oob"].round(2)}]'
 
             AUC_bootstrap_test = 'NA'
             accuracy_bootstrap_test = 'NA'
-            if Path(best_file.parent,f'best_10_{best['model_type']}_test.csv').exists():
+            if Path(best_file.parent,f'best_10_{best["model_type"]}_test.csv').exists():
                 
-                best_test = pd.read_csv(Path(best_file.parent,f'best_10_{best['model_type']}_test.csv')).loc[0,:]
-                AUC_bootstrap_test = f'[ {best_test[f'inf_roc_auc_bootstrap_test'].round(2)}, {best_test[f"mean_roc_auc_bootstrap_test"].round(2)}, {best_test[f"sup_roc_auc_bootstrap_test"].round(2)}]'
+                best_test = pd.read_csv(Path(best_file.parent,f'best_10_{best["model_type"]}_test.csv')).loc[0,:]
+                AUC_bootstrap_test = f'[ {best_test[f"inf_roc_auc_bootstrap_test"].round(2)}, {best_test[f"mean_roc_auc_bootstrap_test"].round(2)}, {best_test[f"sup_roc_auc_bootstrap_test"].round(2)}]'
             
                 accuracy_bootstrap_test = f'[ {best_test["inf_accuracy_bootstrap_test"].round(2)}, {best_test["mean_accuracy_bootstrap_test"].round(2)}, {best_test["sup_accuracy_bootstrap_test"].round(2)}]'
             
