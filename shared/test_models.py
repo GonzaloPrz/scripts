@@ -48,9 +48,14 @@ save_dir = Path(str(data_dir).replace('data','results'))
 
 tasks = ['Fugu']
 
-scaler_name = 'StandardScaler'
-
-scaler = StandardScaler if scaler_name == 'StandardScaler' else MinMaxScaler
+scaler_name = 'no_scaling'
+if scaler_name == 'StandardScaler':
+    scaler = StandardScaler()
+elif scaler_name == 'MinMaxScaler':
+    scaler = MinMaxScaler()
+else:
+    scaler = None
+imputer = None
 
 models_dict = {'lr': LogisticRegression,
                'svc': SVC, 

@@ -1,9 +1,9 @@
 import pandas as pd
 from pathlib import Path
 
-project = 'MCI_classifier'
+project_name = 'MCI_classifier'
 
-data_dir = Path(Path.home(),'data',project) if 'Users/gp' in str(Path.home()) else Path(Path.home(),'D:','CNC_Audio','gonza','data',project)
+data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path(Path.home(),'D:','CNC_Audio','gonza','data',project_name)
 
 df = pd.read_excel(Path(data_dir,'features_mod.xlsx'))
 

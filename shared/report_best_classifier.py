@@ -20,6 +20,8 @@ best_classifiers = pd.DataFrame(columns=['task','dimension','model_type','random
 
 pd.options.mode.copy_on_write = True 
 
+scaler_name = 'no_scaler'
+
 l2ocv = False
 n_seeds_train = 10
 
@@ -47,7 +49,7 @@ for task in tasks:
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
-        path = Path(results_dir,task,dimension,'StandardScaler',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
         path = Path(str(path).replace('feature_selection','')) if not feature_selection else path 
         path = Path(str(path).replace('bootstrap','')) if not bootstrap else path
         for random_seed_test in random_seeds_test:

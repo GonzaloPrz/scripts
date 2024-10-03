@@ -24,7 +24,7 @@ from random import randint as randint_random
 
 #sys.path.append(str(Path(Path.home() / 'Doctorado' / 'Codigo' / 'machine_learning')))
 
-sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts','scripts_generales')))
+sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 from utils import *
 
