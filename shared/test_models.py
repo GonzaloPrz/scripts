@@ -21,7 +21,7 @@ from utils import *
 from expected_cost.ec import *
 from psrcal import *
 
-project_name = 'MCI_classifier'
+project_name = 'GeroApathy'
 
 l2ocv = False
 
@@ -33,7 +33,7 @@ else:
     n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 
-y_labels = ['target']
+y_labels = ['AES_Total_Score','Well_Being_Total_Score_V']
 hyp_opt_list = [True]
 feature_selection_list = [True]
 bootstrap_list = [True]
@@ -43,10 +43,10 @@ boot_train = 0
 
 n_seeds_test = 1
 
-data_dir = Path(Path.home(),'data','tell_classifier') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','tell_classifier')
+data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 save_dir = Path(str(data_dir).replace('data','results'))    
 
-tasks = ['fas','animales','fas__animales','grandmean']
+tasks = ['Fugu']
 
 scaler_name = 'StandardScaler'
 

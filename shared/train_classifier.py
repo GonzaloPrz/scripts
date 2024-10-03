@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import math 
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LogisticRegression as LR
@@ -23,7 +24,7 @@ from random import randint as randint_random
 
 #sys.path.append(str(Path(Path.home() / 'Doctorado' / 'Codigo' / 'machine_learning')))
 
-sys.path.append(r'C:\Users\CNC Audio\gonza\scripts\scripts_generales')
+sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts','scripts_generales')))
 
 from utils import *
 
@@ -32,7 +33,10 @@ from expected_cost.utils import *
 
 tasks = ['fas','animales','fas__animales','grandmean'] 
 
-single_dimensions = ['talking-intervals','psycholinguistic__osv']
+single_dimensions = [
+                     'psycholinguistic'
+                     #'talking-intervals','psycholinguistic__osv'
+                     ]
 
 dimensions = single_dimensions
 
@@ -176,9 +180,23 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
         elif model == 'xgb':
             hyperp[model] = hyperp[model].astype({'n_estimators':int,'max_depth':int})
 
-        feature_sets = [np.unique(np.random.choice(features,len(features),replace=True)) for _ in range(n_iter_features)]
-        feature_sets.append(features)
+        num_comb = 0
+
+        for k in range(np.min((int(np.sqrt(data.shape[0]*(1-test_size))),len(features)-2))):
+            num_comb += math.comb(len(features),k+1)
+
+        feature_sets = list()
         
+        if n_iter_features > num_comb:
+            for k in range(np.min((int(np.sqrt(data.shape[0]*(1-test_size)))-1,len(features)-2))):
+                for comb in itertools.combinations(features,k+1):
+                    feature_sets.append(list(comb))
+            n_iter_features = len(feature_sets)
+        else:
+            feature_sets = [np.unique(np.random.choice(features,np.sqrt(data.shape[0]*(1-test_size)),replace=True)) for _ in range(n_iter_features)]
+        
+        feature_sets.append(features)
+            
         for random_seed_test in random_seeds_test:
                                                                                                                                                                                                                                                                                                                             
             if test_size > 0:
