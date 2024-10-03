@@ -60,7 +60,7 @@ for task in tasks:
                 
                 df = pd.read_csv(file)
                 df = df.sort_values(by=f'{extremo}_{scoring}_bootstrap',ascending=ascending).reset_index(drop=True)
-                print(f'{file.stem.split('_')[-1]}:{df.loc[0,f'{extremo}_{scoring}_bootstrap']}')
+                print(f'{file.stem.split("_")[-1]}:{df.loc[0,f"{extremo}_{scoring}_bootstrap"]}')
                 if best is None:
                     best = df.loc[0,:]
 
