@@ -197,7 +197,7 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
                     feature_sets.append(list(comb))
             n_iter_features = len(feature_sets)
         else:
-            feature_sets = [np.unique(np.random.choice(features,np.sqrt(data.shape[0]*(1-test_size)),replace=True)) for _ in range(n_iter_features)]
+            feature_sets = [np.unique(np.random.choice(features,int(np.sqrt(data.shape[0]*(1-test_size))),replace=True)) for _ in range(n_iter_features)]
         
         feature_sets.append(features)
             
