@@ -38,8 +38,8 @@ l2ocv = False
 exp_ft = False
 n_boot = 100
 
-n_iter = 50
-n_iter_features = 50
+n_iter = 1
+n_iter_features = 1
 feature_sample_ratio = .5 
 
 scaler_name = 'StandardScaler'
@@ -49,6 +49,7 @@ elif scaler_name == 'MinMaxScaler':
     scaler = MinMaxScaler
 else:
     scaler = None
+
 imputer = KNNImputer
 
 project_name = 'GERO_Ivo'
@@ -228,7 +229,7 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 if Path(path_to_save_final,f'all_performances_{model}.csv').exists():
                     continue
                 
-                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring=scoring,problem_type='reg')        
+                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=False,scoring=scoring,problem_type='reg')        
 
                 metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 

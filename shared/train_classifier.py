@@ -35,7 +35,7 @@ tasks = ['fas','animales','fas__animales','grandmean']
 
 single_dimensions = [
                      'psycholinguistic',
-                     'talking-intervals','psycholinguistic__osv'
+                     'talking-intervals'
                      ]
 
 dimensions = single_dimensions
@@ -44,8 +44,8 @@ for ndim in range(2,len(single_dimensions)+1):
     for dimension in itertools.combinations(single_dimensions,ndim):
         dimensions.append('__'.join(dimension))
 
-n_iter = 50
-n_iter_features = 50
+n_iter = 5
+n_iter_features = 5
 
 feature_sample_ratio = .5 
 scaler_name = 'StandardScaler'
@@ -226,11 +226,12 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
                 path_to_save_final = path_to_save
 
             path_to_save_final.mkdir(parents=True,exist_ok=True)
-            
-            if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists():
-                continue
+            assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=False,scoring='roc_auc',problem_type='clf')        
+            #if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists():
+            #    continue
+
+            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc',problem_type='clf')        
         
             metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 

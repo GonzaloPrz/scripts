@@ -9,7 +9,9 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-tasks = ['fas','animales','fas__animales','grandmean']
+tasks = ['fas','animales','fas__animales',
+         #'grandmean'
+         ]
 project_name = 'MCI_classifier'
 
 best_classifiers = pd.DataFrame(columns=['task','dimension','model_type','random_seed_test',
@@ -35,7 +37,7 @@ hyp_opt = True
 n_seeds_test = 1
 y_label = 'target'
 
-feature_selection = True
+feature_selection = False
 bootstrap = True
 
 random_seeds_test = np.arange(n_seeds_test)

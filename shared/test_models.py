@@ -35,7 +35,7 @@ else:
 
 y_labels = ['target']
 hyp_opt_list = [True]
-feature_selection_list = [True]
+feature_selection_list = [False]
 bootstrap_list = [True]
 
 boot_test = 100
@@ -77,7 +77,6 @@ ascending = True if 'norm' in scoring else False
 
 for task in tasks:
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
-    #dimensions = ['talking-intervals','voice-quality','voice-quality_talking-intervals']
     for dimension in dimensions:
         print(task,dimension)
         for y_label,hyp_opt,feature_selection,bootstrap in itertools.product(y_labels,hyp_opt_list,feature_selection_list,bootstrap_list):
@@ -105,12 +104,11 @@ for task in tasks:
 
                     print(model_name)
                     
-                    if Path(file.parent,f'best_{n_models}_{model_name}_test.csv').exists():
-                        continue
+                    #if Path(file.parent,f'best_{n_models}_{model_name}_test.csv').exists():
+                    #    continue
                     
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     results = results.sort_values(by=[f'{extremo}_{scoring}_bootstrap'],ascending=ascending).reset_index(drop=True)
-                    #selected_features = pd.read_csv(Path(file.parent,file.stem.replace('conf_int','selected_features') + '.csv'))
                     results_test = pd.DataFrame()
                     
                     for r, row in tqdm.tqdm(results.iloc[:n_models,].iterrows()):
