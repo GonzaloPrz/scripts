@@ -53,7 +53,17 @@ imputer = KNNImputer
 
 project_name = 'GERO_Ivo'
 
-dimensions = ['properties','valid_responses']
+single_dimensions = [
+                     'properties',
+                     'speech_timing',
+                     ]
+
+dimensions = single_dimensions
+
+for ndim in range(2,len(single_dimensions)+1):
+    for dimension in itertools.combinations(single_dimensions,ndim):
+        dimensions.append('__'.join(dimension))
+
 id_col = 'Codigo'
 
 tasks = ['fas__animales','grandmean',
@@ -215,8 +225,8 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
 
                 path_to_save_final.mkdir(parents=True,exist_ok=True)
                 
-                #if Path(path_to_save_final,f'all_performances_{model}.csv').exists():
-                #    continue
+                if Path(path_to_save_final,f'all_performances_{model}.csv').exists():
+                    continue
                 
                 models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring=scoring,problem_type='reg')        
 
@@ -228,7 +238,7 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 with open(Path(path_to_save_final,f'metrics_bootstrap_{model}.pkl'),'wb') as f:
                     pickle.dump(metrics_bootstrap,f)
 
-                pd.DataFrame(metrics_bootstrap_json).to_csv(Path(path_to_save_final,f'metrics_bootstrap_best_model_{model}_{best_model_index}.csv'))
+                pd.DataFrame(metrics_bootstrap_json).to_csv(Path(path_to_save_final,f'metrics_bootstrap_best_model_{model}.csv'))
 
                 if Path(path_to_save_final,'X_dev.pkl').exists() == False:
                     with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
