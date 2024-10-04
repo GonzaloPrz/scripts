@@ -124,7 +124,7 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
 
         ID = data[id_col]
         
-        features = [col for col in data.columns if any([f'{t}_' in col for t in task.split('__')])]
+        features = [col for col in data.columns if any([f'{t}_' in col for t in task.split('__')]) and isinstance(data[col][0],(float,int))]
                 
         for model in models_dict.keys():        
             print(model)
