@@ -101,5 +101,11 @@ for task in tasks:
                                                                         'accuracy_bootstrap_holdout':accuracy_bootstrap_test,
                                                                         })
 
-filename_to_save = f'best_classifiers_{kfold_folder}_hyp_opt.csv' if hyp_opt else f'best_classifiers_{kfold_folder}_no_hyp_opt.csv'
+filename_to_save = f'best_classifiers_{kfold_folder}_{scaler_name}_no_hyp_opt_no_feature_selection.csv'
+
+if hyp_opt:
+    filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
+if feature_selection:
+    filename_to_save = filename_to_save.replace('no_feature_selection','feature_selection')
+    
 best_classifiers.to_csv(Path(results_dir,filename_to_save),index=False)

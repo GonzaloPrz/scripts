@@ -65,7 +65,7 @@ models_dict = {'lr': LogisticRegression,
                'lda': LinearDiscriminantAnalysis
                }
 
-metrics_names = ['roc_auc','accuracy','f1','recall','norm_cross_entropy']
+metrics_names = ['roc_auc','accuracy','f1','recall']
 
 random_seeds_test = np.arange(n_seeds_test)
 

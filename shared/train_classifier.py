@@ -229,7 +229,7 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists():
                 continue
 
-            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc',problem_type='clf')        
+            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=False,scoring='roc_auc',problem_type='clf')        
         
             metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 
