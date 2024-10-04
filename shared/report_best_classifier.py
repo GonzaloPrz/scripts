@@ -9,7 +9,7 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-tasks = ['fas','animales','fas__animales','grandmeam']
+tasks = ['fas','animales','fas__animales','grandmean']
 project_name = 'MCI_classifier'
 
 best_classifiers = pd.DataFrame(columns=['task','dimension','model_type','random_seed_test',
@@ -107,5 +107,5 @@ if hyp_opt:
     filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
 if feature_selection:
     filename_to_save = filename_to_save.replace('no_feature_selection','feature_selection')
-    
+
 best_classifiers.to_csv(Path(results_dir,filename_to_save),index=False)
