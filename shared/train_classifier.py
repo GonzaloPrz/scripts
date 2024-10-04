@@ -46,15 +46,15 @@ for ndim in range(2,len(single_dimensions)+1):
 
 n_iter = 50
 n_iter_features = 50
-
+feature_sample_ratio = .5 
 scaler_name = 'StandardScaler'
 if scaler_name == 'StandardScaler':
-    scaler = StandardScaler()
+    scaler = StandardScaler
 elif scaler_name == 'MinMaxScaler':
-    scaler = MinMaxScaler()
+    scaler = MinMaxScaler
 else:
     scaler = None
-imputer = KNNImputer()
+imputer = KNNImputer
 
 cmatrix = None
 feature_importance = True 
@@ -67,12 +67,6 @@ l2ocv = False
 n_boot = 100
 
 test_size = .3
-
-config = {'n_iter':n_iter,
-          'test_size':test_size,
-          'bootstrap':n_boot,
-          'n_feature_sets': n_iter_features,
-          'cmatrix':str(cmatrix)}
 
 n_seeds_test_ = 1
 n_seeds_train = 10
@@ -147,6 +141,13 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
                         
         path_to_save.mkdir(parents=True,exist_ok=True)
 
+        config = {'n_iter':n_iter,
+          'test_size':test_size,
+          'bootstrap':n_boot,
+          'n_feature_sets': n_iter_features,
+          'feature_sample_ratio':feature_sample_ratio,
+          'cmatrix':str(cmatrix)}
+        
         hyperp = {'lr': pd.DataFrame({'C': 1},index=[0]),
                             'lda':pd.DataFrame({'solver':'lsqr'},index=[0]),
                             'knn': pd.DataFrame({'n_neighbors':5},index=[0]),
@@ -186,13 +187,13 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
 
         num_comb = 0
 
-        for k in range(np.min((int(np.sqrt(data.shape[0]*(1-test_size))),len(features)-2))):
+        for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size))-1,len(features)-1))):
             num_comb += math.comb(len(features),k+1)
 
         feature_sets = list()
         
         if n_iter_features > num_comb:
-            for k in range(np.min((int(np.sqrt(data.shape[0]*(1-test_size)))-1,len(features)-2))):
+            for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size))-1,len(features)-1))):
                 for comb in itertools.combinations(features,k+1):
                     feature_sets.append(list(comb))
             n_iter_features = len(feature_sets)

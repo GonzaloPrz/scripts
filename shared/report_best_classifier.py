@@ -20,7 +20,7 @@ best_classifiers = pd.DataFrame(columns=['task','dimension','model_type','random
 
 pd.options.mode.copy_on_write = True 
 
-scaler_name = 'no_scaling'
+scaler_name = 'StandardScaler'
 
 l2ocv = False
 n_seeds_train = 10

@@ -48,11 +48,12 @@ save_dir = Path(str(data_dir).replace('data','results'))
 
 tasks = ['fas','animales','fas__animales','grandmean']
 
-scaler_name = 'no_scaling'
+scaler_name = 'StandardScaler'
+
 if scaler_name == 'StandardScaler':
-    scaler = StandardScaler()
+    scaler = StandardScaler
 elif scaler_name == 'MinMaxScaler':
-    scaler = MinMaxScaler()
+    scaler = MinMaxScaler
 else:
     scaler = None
 imputer = None
