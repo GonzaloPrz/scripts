@@ -22,12 +22,6 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
-from expected_cost.ec import *
-from expected_cost.utils import *
-
-import scipy
-#Parámetros
-
 cmatrix = None
 feature_importance = True 
 shuffle_labels = False
@@ -38,8 +32,8 @@ l2ocv = False
 exp_ft = False
 n_boot = 100
 
-n_iter = 1
-n_iter_features = 1
+n_iter = 50
+n_iter_features = 50
 feature_sample_ratio = .5 
 
 scaler_name = 'StandardScaler'
@@ -52,11 +46,13 @@ else:
 
 imputer = KNNImputer
 
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 
-single_dimensions = [
-                     'properties',
-                     'speech_timing',
+y_labels = ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']
+
+single_dimensions = ['voice-quality',
+                    'pitch',
+                     'talking_intervals',
                      ]
 
 dimensions = single_dimensions
@@ -65,12 +61,9 @@ for ndim in range(2,len(single_dimensions)+1):
     for dimension in itertools.combinations(single_dimensions,ndim):
         dimensions.append('__'.join(dimension))
 
-id_col = 'Codigo'
+id_col = 'id'
 
-tasks = ['fas__animales','grandmean',
-         'animales','fas',
-         #'letra_f','letra_a','letra_s'
-         ] 
+tasks = ['Fugu']
 
 test_size = 0.3
 
@@ -99,26 +92,26 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 
 results_dir = Path(str(data_dir).replace('data','results'))
 
-neuro_data = pd.read_excel(Path(data_dir,f'Neuropsico_features_GERO.xlsx'))
+neuro_data = pd.read_excel(Path(data_dir,f'nps_data_filtered_no_missing.xlsx'))
 
-scoring = 'mean_absolute_error'
+scoring = 'r2_score'
 
 extremo = 'sup' if 'error' in scoring else 'inf'
 
 ascending = True if 'error' in scoring else False
 
+data_features = pd.read_csv(Path(data_dir,'features_data.csv')) #CHANGE THIS LINE
+
 for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensions):
-    data_features = pd.read_excel(Path(data_dir,f'{dimension}_fas_animales.xlsx'))
-    
-    #y_labels = [col for col in neuro_data.columns if col != 'Grupo' and col != id_col]
-    y_labels = ['MMSE_Total_Score']
     held_out = True if hyp_tuning else held_out_default
     for y_label in y_labels:
-        data = pd.merge(data_features,neuro_data,on='Codigo',how='inner')
+        data = pd.merge(data_features,neuro_data,on=id_col,how='inner')
 
         print(task,y_label)
         if shuffle_labels:
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
+
+        data = data.dropna(subset=[y_label])
 
         y = data[y_label]
 
@@ -226,10 +219,10 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
 
                 path_to_save_final.mkdir(parents=True,exist_ok=True)
                 
-                if Path(path_to_save_final,f'all_performances_{model}.csv').exists():
-                    continue
+                #if Path(path_to_save_final,f'all_performances_{model}.csv').exists():
+                #   continue
                 
-                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=False,scoring=scoring,problem_type='reg')        
+                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring=scoring,problem_type='reg')        
 
                 metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 
@@ -241,23 +234,22 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
 
                 pd.DataFrame(metrics_bootstrap_json).to_csv(Path(path_to_save_final,f'metrics_bootstrap_best_model_{model}.csv'))
 
-                if Path(path_to_save_final,'X_dev.pkl').exists() == False:
-                    with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
-                        pickle.dump(y_dev_bootstrap,f)
-                    with open(Path(path_to_save_final,f'IDs_dev_bootstrap.pkl'),'wb') as f:
-                        pickle.dump(IDs_dev_bootstrap,f)
-                    with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
-                        pickle.dump(X_train,f)
-                    with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                        pickle.dump(y_train,f)
-                    with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
-                        pickle.dump(ID_train,f)
-                    with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
-                        pickle.dump(X_test,f)
-                    with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                        pickle.dump(y_test,f)
-                    with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                        pickle.dump(ID_test,f)
+                with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
+                    pickle.dump(y_dev_bootstrap,f)
+                with open(Path(path_to_save_final,f'IDs_dev_bootstrap.pkl'),'wb') as f:
+                    pickle.dump(IDs_dev_bootstrap,f)
+                with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
+                    pickle.dump(X_train,f)
+                with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
+                    pickle.dump(y_train,f)
+                with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
+                    pickle.dump(ID_train,f)
+                with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                    pickle.dump(X_test,f)
+                with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                    pickle.dump(y_test,f)
+                with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                    pickle.dump(ID_test,f)
                 
                 models_performances = pd.DataFrame()
                 for model_index in range(models.shape[0]):

@@ -23,6 +23,11 @@ from psrcal import *
 
 project_name = 'MCI_classifier'
 
+tasks = ['fas','animales','fas__animales','grandmean']
+y_labels = ['target']
+
+scaler_name = 'StandardScaler'
+
 l2ocv = False
 
 n_seeds_train = 10
@@ -33,9 +38,8 @@ else:
     n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 
-y_labels = ['target']
 hyp_opt_list = [True]
-feature_selection_list = [False]
+feature_selection_list = [True,False]
 bootstrap_list = [True]
 
 boot_test = 100
@@ -45,10 +49,6 @@ n_seeds_test = 1
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','data',project_name)
 save_dir = Path(str(data_dir).replace('data','results'))    
-
-tasks = ['fas','animales','fas__animales','grandmean']
-
-scaler_name = 'StandardScaler'
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -65,7 +65,7 @@ models_dict = {'lr': LogisticRegression,
                'lda': LinearDiscriminantAnalysis
                }
 
-metrics_names = ['roc_auc','accuracy','f1','recall']
+metrics_names = ['roc_auc','accuracy','f1','recall','norm_expected_cost','norm_cross_entropy']
 
 random_seeds_test = np.arange(n_seeds_test)
 
@@ -90,13 +90,22 @@ for task in tasks:
                 files = [file for file in Path(path_to_results,f'random_seed_{random_seed_test}').iterdir() if 'all_performances' in file.stem and 'test' not in file.stem]
 
                 X_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_dev.pkl'),'rb'))
-                y_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
-
+                try:
+                    y_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
+                except:
+                    y_dev = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
+                
                 X_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_test.pkl'),'rb'))
-                y_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
+                try:
+                    y_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
+                except:
+                    y_test = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
 
-                IDs_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
-
+                try:
+                    IDs_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
+                except:
+                    IDs_test = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
+                    
                 all_features = X_dev.columns
 
                 for file in files:
@@ -138,10 +147,12 @@ for task in tasks:
                             result_append[f'mean_{metric}_bootstrap_test'] = np.round(mean,2)
                             result_append[f'sup_{metric}_bootstrap_test'] = np.round(sup,2)
                             
-                            result_append[f'inf_{metric}_bootstrap_dev'] = np.round(results_r[f'inf_{metric}_bootstrap'],2)
-                            result_append[f'mean_{metric}_bootstrap_dev'] = np.round(results_r[f'mean_{metric}_bootstrap'],2)
-                            result_append[f'sup_{metric}_bootstrap_dev'] = np.round(results_r[f'sup_{metric}_bootstrap'],2)
-
+                            try: 
+                                result_append[f'inf_{metric}_bootstrap_dev'] = np.round(results_r[f'inf_{metric}_bootstrap'],2)
+                                result_append[f'mean_{metric}_bootstrap_dev'] = np.round(results_r[f'mean_{metric}_bootstrap'],2)
+                                result_append[f'sup_{metric}_bootstrap_dev'] = np.round(results_r[f'sup_{metric}_bootstrap'],2)
+                            except:
+                                pass
                         if results_test.empty:
                             results_test = pd.DataFrame(columns=result_append.keys())
                         
@@ -149,3 +160,15 @@ for task in tasks:
 
                     pd.DataFrame(results_test).to_csv(Path(file.parent,f'best_{n_models}_{model_name}_test.csv'),index=False)
                     
+                    with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
+                        pickle.dump(y_test,f)
+                    with open(Path(file.parent,f'y_pred_bootstrap_{model_name}.pkl'),'wb') as f:
+                        pickle.dump(y_pred_bootstrap,f)
+                    
+                    with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:
+                        pickle.dump(IDs_test_bootstrap,f)
+
+                    scores_df = pd.DataFrame(columns=['ID','y_true','output','y_pred'],data=np.concatenate((IDs_test_bootstrap.flatten(),y_true_bootstrap.flatten(),outputs_bootstrap[:,:,1].flatten(),y_pred_bootstrap.flatten()),axis=1))
+                    
+                    scores_df = scores_df.sort_values(by='ID',ascending=True)
+                    scores_df.to_json(Path(file.parent,f'scores_{model_name}.json'),orient='records')
