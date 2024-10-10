@@ -7,6 +7,7 @@ from joblib import Parallel, delayed
 warnings.filterwarnings('ignore')
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.impute import KNNImputer
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
@@ -56,13 +57,12 @@ elif scaler_name == 'MinMaxScaler':
     scaler = MinMaxScaler
 else:
     scaler = None
-imputer = None
+imputer = KNNImputer
 
 models_dict = {'lr': LogisticRegression,
                'svc': SVC, 
                'xgb': XGBClassifier,
                'knn': KNeighborsClassifier,
-               'lda': LinearDiscriminantAnalysis
                }
 
 metrics_names = ['roc_auc','accuracy','f1','recall','norm_expected_cost','norm_cross_entropy']
@@ -90,6 +90,7 @@ for task in tasks:
                 files = [file for file in Path(path_to_results,f'random_seed_{random_seed_test}').iterdir() if 'all_performances' in file.stem and 'test' not in file.stem]
 
                 X_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_dev.pkl'),'rb'))
+
                 try:
                     y_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
                 except:
@@ -168,7 +169,7 @@ for task in tasks:
                     with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:
                         pickle.dump(IDs_test_bootstrap,f)
 
-                    scores_df = pd.DataFrame(columns=['ID','y_true','output','y_pred'],data=np.concatenate((IDs_test_bootstrap.flatten(),y_true_bootstrap.flatten(),outputs_bootstrap[:,:,1].flatten(),y_pred_bootstrap.flatten()),axis=1))
-                    
-                    scores_df = scores_df.sort_values(by='ID',ascending=True)
-                    scores_df.to_json(Path(file.parent,f'scores_{model_name}.json'),orient='records')
+                    scores_df = {'ID':IDs_test_bootstrap.flatten(),'y_true':y_true_bootstrap.flatten(),'output':outputs_bootstrap[:,:,1].flatten(),'y_pred':y_pred_bootstrap.flatten()}
+                    scores_df = pd.DataFrame(scores_df).sort_values(by='ID',ascending=True)
+                    scores_df.drop_duplicates(subset='ID',keep='first',inplace=True)
+                    scores_df.to_csv(Path(file.parent,f'scores_test_{model_name}.csv'))

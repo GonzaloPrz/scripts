@@ -22,8 +22,6 @@ from joblib import Parallel, delayed
 
 from random import randint as randint_random 
 
-#sys.path.append(str(Path(Path.home() / 'Doctorado' / 'Codigo' / 'machine_learning')))
-
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 from utils import *
@@ -44,11 +42,19 @@ for ndim in range(2,len(single_dimensions)+1):
     for dimension in itertools.combinations(single_dimensions,ndim):
         dimensions.append('__'.join(dimension))
 
-n_iter = 5
-n_iter_features = 5
+project_name = 'MCI_classifier'
+
+n_iter = 40
+n_iter_features = 40
 
 feature_sample_ratio = .5 
+
 scaler_name = 'StandardScaler'
+
+y_labels = ['target']
+
+id_col = 'id'
+
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
 elif scaler_name == 'MinMaxScaler':
@@ -57,8 +63,9 @@ else:
     scaler = None
 imputer = KNNImputer
 
+thresholds = [0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
+
 cmatrix = None
-feature_importance = True 
 shuffle_labels = False
 held_out_default = False
 hyp_tuning_list = [True]
@@ -83,18 +90,12 @@ random_seeds_train = np.arange(n_seeds_train)
 models_dict = {
     'lr':LR,
     'svc':SVC,
-    #'lda':LDA,
     'knn':KNN,
     'xgb':xgboost
     }
 
-project_name = 'MCI_classifier'
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
-
-y_labels = ['target']
-
-id_col = 'id'
 
 for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
     print(task,dimension)
@@ -202,7 +203,7 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             feature_sets = [np.unique(np.random.choice(features,int(np.sqrt(data.shape[0]*(1-test_size))),replace=True)) for _ in range(n_iter_features)]
         
         feature_sets.append(features)
-            
+
         for random_seed_test in random_seeds_test:
                                                                                                                                                                                                                                                                                                                             
             if test_size > 0:
@@ -231,7 +232,7 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             #if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists():
             #    continue
 
-            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc',problem_type='clf')        
+            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,thresholds,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc',problem_type='clf')        
         
             metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 
