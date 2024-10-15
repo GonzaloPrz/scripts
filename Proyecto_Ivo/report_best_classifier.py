@@ -3,7 +3,9 @@ import numpy as np
 from pathlib import Path
 import itertools
 
-tasks = ['Animales','P','Animales_P','brain','AAL','conn','cog']
+results_dir = Path(Path.home(),'results','Proyecto_Ivo')
+
+tasks = ['Animales','P','Animales_P','cog','brain']
 
 best_classifiers = pd.DataFrame(columns=['task','dimension','model_type',
                                          'AUC_bootstrap_dev','AUC_oob_dev',
@@ -31,10 +33,10 @@ scoring = 'roc_auc'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 
 for task in tasks:
-    dimensions = [folder.name for folder in Path(Path(__file__).parent,task).iterdir() if folder.is_dir()]
+    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
-        path = Path(Path(__file__).parent,task,dimension,'StandardScaler','all_features',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
+        path = Path(results_dir,task,dimension,'StandardScaler','all_features',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
         path = Path(str(path).replace('feature_selection','')) if not feature_selection else path 
         path = Path(str(path).replace('bootstrap','')) if not bootstrap else path
 
@@ -72,4 +74,4 @@ for task in tasks:
                                                                     })
 
 filename_to_save = f'best_classifiers_{kfold_folder}_hyp_opt.csv' if hyp_opt else f'best_classifiers_{kfold_folder}_no_hyp_opt.csv'
-best_classifiers.to_csv(Path(Path(__file__).parent,filename_to_save),index=False)
+best_classifiers.to_csv(Path(results_dir,filename_to_save),index=False)

@@ -14,6 +14,7 @@ from tqdm import tqdm
 import itertools,pickle,sys, json
 from scipy.stats import loguniform, uniform, randint
 from random import randint as randint_random 
+import math 
 
 from random import randint as randint_random 
 
@@ -27,8 +28,6 @@ from expected_cost.utils import *
 import scipy
 #Parámetros
 
-scaler_name = 'StandardScaler'
-scaler = MinMaxScaler() if scaler_name == 'minmax' else StandardScaler()
 cmatrix = None
 feature_importance = True 
 shuffle_labels = False
@@ -38,6 +37,17 @@ metrics_names = ['r2_score','mean_squared_error','mean_absolute_error']
 l2ocv = False
 exp_ft = False
 n_boot = 100
+
+feature_sample_ratio = .5 
+
+scaler_name = 'StandardScaler'
+if scaler_name == 'StandardScaler':
+    scaler = StandardScaler
+elif scaler_name == 'MinMaxScaler':
+    scaler = MinMaxScaler
+else:
+    scaler = None
+imputer = KNNImputer
 
 dimensions = ['properties','valid_responses']
 id_col = 'Codigo'
@@ -88,12 +98,6 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
     data_features = pd.read_excel(Path(data_dir,f'{dimension}_fas_animales.xlsx'))
 
     n_iter_features = 50 if dimension == 'properties' else 0
-
-    config = {'n_iter':n_iter,
-            'n_iter_features':n_iter_features,
-          'test_size':test_size,
-          'bootstrap':n_boot,
-          'cmatrix':str(cmatrix)}
     
     #y_labels = [col for col in neuro_data.columns if col != 'Grupo' and col != id_col]
     y_labels = ['MMSE_Total_Score']
@@ -126,6 +130,13 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
             
             path_to_save.mkdir(parents=True,exist_ok=True)
 
+            config = {'n_iter':n_iter,
+                'test_size':test_size,
+                'bootstrap':n_boot,
+                'n_feature_sets': n_iter_features,
+                'feature_sample_ratio':feature_sample_ratio,
+                'cmatrix':str(cmatrix)}
+            
             with open(Path(path_to_save,'config.json'),'w') as f:
                 json.dump(config,f)
             
@@ -167,7 +178,21 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
             elif model == 'xgb':
                 hyperp[model] = hyperp[model].astype({'n_estimators':int,'max_depth':int})
             
-            feature_sets = [np.unique(np.random.choice(features,len(features),replace=True)) for _ in range(n_iter_features)]
+            num_comb = 0
+
+            for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size))-1,len(features)-1))):
+                num_comb += math.comb(len(features),k+1)
+
+            feature_sets = list()
+            
+            if n_iter_features > num_comb:
+                for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size))-1,len(features)-1))):
+                    for comb in itertools.combinations(features,k+1):
+                        feature_sets.append(list(comb))
+                n_iter_features = len(feature_sets)
+            else:
+                feature_sets = [np.unique(np.random.choice(features,int(np.sqrt(data.shape[0]*(1-test_size))),replace=True)) for _ in range(n_iter_features)]
+            
             feature_sets.append(features)
             
             for random_seed_test in random_seeds_test:

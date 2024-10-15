@@ -29,23 +29,26 @@ from utils import *
 from expected_cost.ec import *
 from expected_cost.utils import *
 
-tasks = ['fas','animales','fas__animales','grandmean'] 
+tasks = ['MOTOR_LIBRE'] 
+project_name = 'tell_classifier'
+data_file = 'data_MOTOR_LIBRE.csv'
 
 single_dimensions = [
-                     'psycholinguistic',
-                     'talking-intervals'
+                     'pitch',
+                     'voice-quality',
+                     'talking-intevals'
                      ]
 
-dimensions = single_dimensions
+dimensions = list()
 
 for ndim in range(2,len(single_dimensions)+1):
     for dimension in itertools.combinations(single_dimensions,ndim):
         dimensions.append('__'.join(dimension))
 
-project_name = 'MCI_classifier'
+dimensions += single_dimensions
 
-n_iter = 40
-n_iter_features = 40
+n_iter = 50
+n_iter_features = 50
 
 feature_sample_ratio = .5 
 
@@ -63,7 +66,7 @@ else:
     scaler = None
 imputer = KNNImputer
 
-thresholds = [0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
+thresholds = [None]
 
 cmatrix = None
 shuffle_labels = False
@@ -99,7 +102,7 @@ results_dir = Path(str(data_dir).replace('data','results'))
 
 for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
     print(task,dimension)
-    data = pd.read_excel(Path(data_dir,'features_fas_animales_matched.xlsx'))
+    data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
     ID = data[id_col]
 
     if shuffle_labels:

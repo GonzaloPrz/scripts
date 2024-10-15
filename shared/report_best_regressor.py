@@ -26,6 +26,8 @@ project_name = 'GeroApathy'
 tasks = ['Fugu']
 
 best_regressors = pd.DataFrame(columns=['task','dimension','target','model_type',
+                                        'r2_score_bootstrap_dev',
+                                        'r2_score_bootstrap_holdout',
                                          'mean_absolute_error_bootstrap_dev',
                                          'mean_absolute_error_bootstrap_holdout',
                                          'root_mean_squared_error_bootstrap_dev',
@@ -49,7 +51,7 @@ n_seeds_test = 1
 feature_selection = True
 bootstrap = True
 
-scoring = 'mean_absolute_error'
+scoring = 'r2_score'
 
 extremo = 'sup' if 'error' in scoring else 'inf'
 
@@ -94,10 +96,11 @@ for task in tasks:
                             best_file = file
                 
                 print(best['model_type'])
+                r2_score_bootstrap = f'[{np.round(best["inf_r2_score_bootstrap"],2)}, {np.round(best["mean_r2_score_bootstrap"],2)}, {np.round(best["sup_r2_score_bootstrap"],2)}]'
                 mean_squared_error_bootstrap = f'[{np.round(np.sqrt(best[f'inf_mean_squared_error_bootstrap']),2)}, {np.round(np.sqrt(best[f"mean_mean_squared_error_bootstrap"]),2)}, {np.round(np.sqrt(best[f"sup_mean_squared_error_bootstrap"]),2)}]'
-                
                 mean_absolute_error_bootstrap = f'[{np.round(best["inf_mean_absolute_error_bootstrap"],2)}, {np.round(best["mean_mean_absolute_error_bootstrap"],2)}, {np.round(best["sup_mean_absolute_error_bootstrap"],2)}]'
 
+                r2_score_bootstrap_test = 'NA'
                 mean_squared_error_bootstrap_test = 'NA'
                 mean_absolute_error_bootstrap_test = 'NA'
 
@@ -105,11 +108,13 @@ for task in tasks:
                     
                     best_test = pd.read_csv(Path(best_file.parent,f'best_10_{best['model_type']}_test.csv')).loc[0,:]
                     
+                    r2_score_bootstrap_test = f'[{np.round(best_test["inf_r2_score_bootstrap_test"],2)}, {np.round(best_test["mean_r2_score_bootstrap_test"],2)}, {np.round(best_test["sup_r2_score_bootstrap_test"],2)}]'
                     root_mean_squared_error_bootstrap_test = f'[{np.round(np.sqrt(best_test[f'inf_mean_squared_error_bootstrap_test']),2)}, {np.round(np.sqrt(best_test[f"mean_mean_squared_error_bootstrap_test"]),2)}, {np.round(np.sqrt(best_test[f"sup_mean_squared_error_bootstrap_test"]),2)}]'
-                
                     mean_absolute_error_bootstrap_test = f'[ {np.round(best_test["inf_mean_absolute_error_bootstrap_test"],2)}, {np.round(best_test["mean_mean_absolute_error_bootstrap_test"],2)}, {np.round(best_test["sup_mean_absolute_error_bootstrap_test"],2)}]'
                 
                 best_regressors.loc[len(best_regressors),:] = pd.Series({'task':task,'dimension':dimension,'target':y_label,'model_type':best['model_type'],
+                                                                            'r2_score_bootstrap_dev':r2_score_bootstrap,
+                                                                            'r2_score_bootstrap_holdout':r2_score_bootstrap_test,
                                                                             'root_mean_squared_error_bootstrap_dev':mean_squared_error_bootstrap,
                                                                             'root_mean_squared_error_bootstrap_holdout':root_mean_squared_error_bootstrap_test,
                                                                             'mean_absolute_error_bootstrap_dev':mean_absolute_error_bootstrap,

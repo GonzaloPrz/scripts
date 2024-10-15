@@ -44,11 +44,11 @@ feature_selection_list = [True,False]
 bootstrap_list = [True]
 
 boot_test = 100
-boot_train = 0
+boot_train = 10
 
 n_seeds_test = 1
 
-data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','data',project_name)
+data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 save_dir = Path(str(data_dir).replace('data','results'))    
 
 if scaler_name == 'StandardScaler':
@@ -91,23 +91,15 @@ for task in tasks:
 
                 X_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_dev.pkl'),'rb'))
 
-                try:
-                    y_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
-                except:
-                    y_dev = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
+                y_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
                 
                 X_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_test.pkl'),'rb'))
-                try:
-                    y_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
-                except:
-                    y_test = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
+                
+                y_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
+            
+                IDs_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
 
-                try:
-                    IDs_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
-                except:
-                    IDs_test = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
-                    
-                all_features = X_dev.columns
+                all_features = list(X_dev.columns)
 
                 for file in files:
                     model_name = file.stem.split('_')[-1]
@@ -124,7 +116,7 @@ for task in tasks:
                     for r, row in tqdm.tqdm(results.iloc[:n_models,].iterrows()):
                         results_r = row.dropna().to_dict()
                                         
-                        params = dict((key,value) for (key,value) in results_r.items() if 'inf' not in key and 'sup' not in key and 'mean' not in key and 'std' not in key and all(x not in key for x in all_features))
+                        params = dict((key,value) for (key,value) in results_r.items() if all(x not in key for x in ['inf','sup','mean'] + all_features))
 
                         features = [col for col in all_features if results_r[col] == 1]
                         features_dict = {col:results_r[col] for col in all_features}
@@ -148,12 +140,10 @@ for task in tasks:
                             result_append[f'mean_{metric}_bootstrap_test'] = np.round(mean,2)
                             result_append[f'sup_{metric}_bootstrap_test'] = np.round(sup,2)
                             
-                            try: 
-                                result_append[f'inf_{metric}_bootstrap_dev'] = np.round(results_r[f'inf_{metric}_bootstrap'],2)
-                                result_append[f'mean_{metric}_bootstrap_dev'] = np.round(results_r[f'mean_{metric}_bootstrap'],2)
-                                result_append[f'sup_{metric}_bootstrap_dev'] = np.round(results_r[f'sup_{metric}_bootstrap'],2)
-                            except:
-                                pass
+                            result_append[f'inf_{metric}_bootstrap_dev'] = np.round(results_r[f'inf_{metric}_bootstrap'],2)
+                            result_append[f'mean_{metric}_bootstrap_dev'] = np.round(results_r[f'mean_{metric}_bootstrap'],2)
+                            result_append[f'sup_{metric}_bootstrap_dev'] = np.round(results_r[f'sup_{metric}_bootstrap'],2)
+
                         if results_test.empty:
                             results_test = pd.DataFrame(columns=result_append.keys())
                         

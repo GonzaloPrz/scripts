@@ -70,8 +70,6 @@ n_models = 10
 
 neuro_data = pd.read_excel(Path(data_dir,f'nps_data_filtered_no_missing.xlsx'))
 
-dimensions = ['pitch','talking_intervals','pitch__talking_intervals']
-
 sort_by = 'mean_absolute_error'
 extremo = 'sup' if 'error' in sort_by else 'inf'
 ascending = True if 'error' in sort_by else False
@@ -79,15 +77,14 @@ ascending = True if 'error' in sort_by else False
 data_features = pd.read_csv(Path(data_dir,'features_data.csv'))
 
 for task in tasks:
+    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
-        print(task,dimension)
         path = Path(results_dir,task,dimension,scaler_name,kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test' if len(random_seeds_test) > 0 else '')
 
-        #y_labels = [folder.name for folder in path.iterdir() if folder.is_dir()]
-        y_labels = ['AES_Total_Score','Well_Being_Total_Score_V']
+        y_labels = [folder.name for folder in path.iterdir() if folder.is_dir()]
         for y_label,hyp_opt,feature_selection,bootstrap in itertools.product(y_labels,hyp_opt_list,feature_selection_list,bootstrap_list):
-            if y_label == 'Well_Being_Total_Score_V':
-                continue
+            print(task,dimension,y_label)
+
             data = pd.merge(data_features,neuro_data,on=id_col,how='inner')
             
             data = data.dropna(subset=[y_label])
@@ -112,21 +109,18 @@ for task in tasks:
                     model_name = file.stem.split('_')[-1]
 
                     print(model_name)
-                    '''
+                    
                     if Path(file.parent,f'best_{n_models}_{model_name}_test.csv').exists():
                         continue
-                    '''
+                    
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
+                    results.drop(columns=['threshold'],axis=1,inplace=True)
                     results = results.sort_values(by=f'{extremo}_{sort_by}_bootstrap',ascending=ascending).reset_index(drop=True)
                     #selected_features = pd.read_csv(Path(file.parent,file.stem.replace('conf_int','selected_features') + '.csv'))
                     results_test = pd.DataFrame()
-                    
-                    if 'Fugu_logit__POS_std' in results.columns:
-                        print(f'Fufu_logit__POS_std in {task} {dimension} {y_label}')
-                        continue
 
                     for r, row in tqdm.tqdm(results.loc[:n_models,].iterrows(),total=n_models):
-                        all_features = [col for col in results.columns if any(x in col for x in ['pitch','talking_intervals','___'])] 
+                        all_features = [col for col in results.columns if any(x in col for x in dimension.split('__'))] 
 
                         results_r = row.dropna().to_dict()
                                         

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import math 
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LogisticRegression as LR
@@ -18,11 +19,8 @@ import itertools,pickle,sys, json
 from scipy.stats import loguniform, uniform, randint
 from random import randint
 
-#sys.path.append(str(Path(Path.home() / 'Doctorado' / 'Codigo' / 'machine_learning')))
+sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-sys.path.append(str(Path(Path.home(),'scripts_generales')))
-
-#from machine_learning_module import *
 from utils import *
 
 from expected_cost.ec import *
@@ -32,8 +30,8 @@ from expected_cost.utils import *
 
 n_iter = 50
 n_iter_features = 50
-scaler_name = 'StandardScaler'
-scaler = MinMaxScaler() if scaler_name == 'minmax' else StandardScaler()
+feature_sample_ratio = 0.5
+
 cmatrix = None
 feature_importance = True 
 shuffle_labels = False
@@ -44,17 +42,26 @@ l2ocv = False
 exp_ft = False
 n_boot = 100
 
+scaler_name = 'StandardScaler'
+if scaler_name == 'StandardScaler':
+    scaler = StandardScaler
+elif scaler_name == 'MinMaxScaler':
+    scaler = MinMaxScaler
+else:
+    scaler = None
+imputer = KNNImputer
+
 id_col = 'Codigo'
 
-tasks = ['conn'] 
+tasks = ['Animales','P','Animales_P','cog','brain','AAL','conn'] 
 
 dimensions = {'cog':['neuropsico','neuropsico_mmse'],
               'brain':['norm_brain_lit'],
               'AAL':['norm_AAL'],
               'conn':['connectivity'],
-              'Animales':['properties','timing','properties_timning'],
-                'P':['properties','timing','properties_timing'],
-                'Animales_P':['properties','timing','properties_timing']
+              'Animales':['properties','timing','properties_timing','properties_vr','timing_vr','properties_timing_vr'],
+                'P':['properties','timing','properties_timing','properties_vr','timing_vr','properties_timing_vr'],
+                'Animales_P':['properties','timing','properties_timing','properties_vr','timing_vr','properties_timing_vr']
 }
 
 y_labels = ['Grupo']
@@ -63,6 +70,7 @@ test_size = 0
 
 config = {'n_iter':n_iter,
           'test_size':test_size,
+          'feature_to_sample_ratio':feature_sample_ratio,
           'bootstrap':n_boot,
           'n_feature_sets': n_iter_features,
           'cmatrix':str(cmatrix)}
@@ -86,15 +94,15 @@ models_dict = {
     'svc':SVC,
     'xgb':xgboost
     }
+project_name = 'Proyecto_Ivo'
 
-base_dir = Path(Path(__file__).parent,'data')
-
-path_to_data = base_dir
+data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
+results_dir = Path(str(data_dir).replace('data','results'))
 
 for y_label,task in itertools.product(y_labels,tasks):
     for dimension in dimensions[task]:
         print(task,dimension)
-        data = pd.read_excel(Path(path_to_data,f'data_total.xlsx'),sheet_name=dimension)
+        data = pd.read_excel(Path(data_dir,f'data_total.xlsx'),sheet_name=dimension)
 
         if shuffle_labels:
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
@@ -102,18 +110,8 @@ for y_label,task in itertools.product(y_labels,tasks):
         y = data.pop(y_label).map({'CTR':0,'AD':1})
 
         ID = data.pop(id_col)
-
-        if '_' in task:
-            features = [col for col in data.columns if any([f'{t}_' in col for t in task.split('_')])]
-        else:
-            features = [col for col in data.columns if f'{task}_' in col]
-
-        #impute mising data
-        imputer = KNNImputer(n_neighbors=5)
-        data = pd.DataFrame(imputer.fit_transform(data[features]),columns=features)
         
-        feature_sets = [np.unique(np.random.choice(features,len(features),replace=True)) for _ in range(n_iter_features)]
-        feature_sets.append(features)
+        features = [col for col in data.columns if any([f'{t}_' in col for t in task.split('_')])]
         
         for hyp_tuning,model in itertools.product(hyp_tuning_list,models_dict.keys()):     
             print(model)   
@@ -127,7 +125,7 @@ for y_label,task in itertools.product(y_labels,tasks):
                     n_folds = int(data.shape[0]*test_size-2)
                 n_seeds_test = 1
             
-            path_to_save = Path(Path(__file__).parent,task,dimension,scaler_name,'exp_ft',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'no_hyp_opt','feature_selection')
+            path_to_save = Path(results_dir,task,dimension,scaler_name,'exp_ft',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'no_hyp_opt','feature_selection')
             path_to_save = Path(path_to_save,'bootstrap') if n_boot and 'bootstrap' not in str(path_to_save) else path_to_save
 
             if not exp_ft:
@@ -178,7 +176,21 @@ for y_label,task in itertools.product(y_labels,tasks):
             elif model == 'xgb':
                 hyperp[model] = hyperp[model].astype({'n_estimators':int,'max_depth':int})
             
-            feature_sets = [np.unique(np.random.choice(features,len(features),replace=True)) for _ in range(n_iter_features)]
+            num_comb = 0
+
+            for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size))-1,len(features)-1))):
+                num_comb += math.comb(len(features),k+1)
+
+            feature_sets = list()
+            
+            if n_iter_features > num_comb:
+                for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size))-1,len(features)-1))):
+                    for comb in itertools.combinations(features,k+1):
+                        feature_sets.append(list(comb))
+                n_iter_features = len(feature_sets)
+            else:
+                feature_sets = [np.unique(np.random.choice(features,int(np.sqrt(data.shape[0]*(1-test_size))),replace=True)) for _ in range(n_iter_features)]
+            
             feature_sets.append(features)
             
             for random_seed_test in random_seeds_test:
@@ -210,52 +222,54 @@ for y_label,task in itertools.product(y_labels,tasks):
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
                     
-                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc')        
+                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,[None],metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc',problem_type='clf')        
 
-                with open(Path(path_to_save_final,f'outputs_bootstrap_{model}.pkl'),'wb') as f:
-                    pickle.dump(outputs_bootstrap,f)
+                metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
+
+                with open(Path(path_to_save_final,f'outputs_best_model_{model}.pkl'),'wb') as f:
+                    pickle.dump(outputs_bootstrap[:,:,best_model_index,:],f)
+
+                with open(Path(path_to_save_final,f'metrics_bootstrap_{model}.pkl'),'wb') as f:
+                    pickle.dump(metrics_bootstrap,f)
+
+                pd.DataFrame(metrics_bootstrap_json).to_csv(Path(path_to_save_final,f'metrics_bootstrap_best_model_{model}.csv'))
+
+                with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
+                    pickle.dump(y_dev_bootstrap,f)
+                with open(Path(path_to_save_final,f'IDs_dev_bootstrap.pkl'),'wb') as f:
+                    pickle.dump(IDs_dev_bootstrap,f)
+                with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
+                    pickle.dump(X_train,f)
+                with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
+                    pickle.dump(y_train,f)
+                with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
+                    pickle.dump(ID_train,f)
+                with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                    pickle.dump(X_test,f)
+                with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                    pickle.dump(y_test,f)
+                with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                    pickle.dump(ID_test,f)
                 
-                if Path(path_to_save_final,'X_dev_bootstrap.pkl').exists() == False:
-                    with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
-                        pickle.dump(y_dev_bootstrap,f)
-                    with open(Path(path_to_save_final,f'IDs_dev_bootstrap.pkl'),'wb') as f:
-                        pickle.dump(IDs_dev_bootstrap,f)
-                    with open(Path(path_to_save_final,'X_dev.pkl'),'wb') as f:
-                        pickle.dump(X_train,f)
-                    with open(Path(path_to_save_final,'y_dev.pkl'),'wb') as f:
-                        pickle.dump(y_train,f)
-                    with open(Path(path_to_save_final,'ID_dev.pkl'),'wb') as f:
-                        pickle.dump(ID_train,f)
-                    
-                    if test_size > 0:
-                        with open(Path(path_to_save_final,'X_test.pkl'),'wb') as f:
-                            pickle.dump(X_test,f)
-                        with open(Path(path_to_save_final,'y_test.pkl'),'wb') as f:
-                            pickle.dump(y_test,f)
-                        with open(Path(path_to_save_final,'ID_test.pkl'),'wb') as f:
-                            pickle.dump(ID_test,f)
-
-                best_models_performances = pd.DataFrame()
-
+                models_performances = pd.DataFrame()
                 for model_index in range(models.shape[0]):
                     model_performance = {}
                     for param in models.keys():
                         model_performance[param] = models.iloc[model_index][param]
 
                     for metric in metrics_names:
-                        inf = np.nanpercentile(metrics_bootstrap[metric][model_index],2.5)
-                        sup = np.nanpercentile(metrics_bootstrap[metric][model_index],97.5)
+                        mean, inf, sup = conf_int_95(metrics_bootstrap[metric][model_index])
+                        
                         model_performance[f'inf_{metric}_bootstrap'] = inf
-                        model_performance[f'mean_{metric}_bootstrap'] = np.nanmean(metrics_bootstrap[metric][model_index])
+                        model_performance[f'mean_{metric}_bootstrap'] = mean
                         model_performance[f'sup_{metric}_bootstrap'] = sup
 
-                        inf = np.nanpercentile(metrics_oob[metric][model_index],2.5)
-                        sup = np.nanpercentile(metrics_oob[metric][model_index],97.5)
+                        mean, inf, sup = conf_int_95(metrics_oob[metric][model_index])
+
                         model_performance[f'inf_{metric}_oob'] = inf  
-                        model_performance[f'mean_{metric}_oob'] = np.nanmean(metrics_oob[metric][model_index])
+                        model_performance[f'mean_{metric}_oob'] = mean
                         model_performance[f'sup_{metric}_oob'] = sup
 
-                    best_models_performances = pd.concat([best_models_performances,pd.DataFrame(model_performance,index=[0])],ignore_index=True,axis=0)
+                    models_performances = pd.concat([models_performances,pd.DataFrame(model_performance,index=[0])],ignore_index=True,axis=0)
                 
-                best_models_performances = best_models_performances.sort_values(by='inf_roc_auc_bootstrap',ascending=False)
-                best_models_performances.to_csv(Path(path_to_save_final,f'all_performances_{model}.csv'),index=False)
+                models_performances.to_csv(Path(path_to_save_final,f'all_performances_{model}.csv'),index=False)

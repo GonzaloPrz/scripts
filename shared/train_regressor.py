@@ -49,10 +49,13 @@ imputer = KNNImputer
 project_name = 'GeroApathy'
 
 y_labels = ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']
+#y_labels = ['MiniSea_MiniSea_Total_EkmanFaces','MiniSea_MiniSea_Total_FauxPas']
 
 single_dimensions = ['voice-quality',
                     'pitch',
                      'talking_intervals',
+                     'mfcc',
+                     'formants'
                      ]
 
 dimensions = single_dimensions
@@ -92,7 +95,7 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 
 results_dir = Path(str(data_dir).replace('data','results'))
 
-neuro_data = pd.read_excel(Path(data_dir,f'nps_data_filtered_no_missing.xlsx'))
+neuro_data = pd.read_csv(Path(data_dir,f'nps_data_filtered_no_missing.csv'))
 
 scoring = 'r2_score'
 
@@ -222,7 +225,7 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 #if Path(path_to_save_final,f'all_performances_{model}.csv').exists():
                 #   continue
                 
-                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring=scoring,problem_type='reg')        
+                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,[None],metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring=scoring,problem_type='reg')        
 
                 metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 
