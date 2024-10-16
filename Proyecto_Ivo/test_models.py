@@ -42,7 +42,7 @@ boot_train = 0
 
 n_seeds_test = 1
 
-tasks = ['Animales','P','Animales_P']
+tasks = ['Animales','P','Animales_P','cog','brain']
 
 scaler_name = 'StandardScaler'
 
@@ -54,11 +54,11 @@ models_dict = {'lr': LogisticRegression,
                'knn': KNeighborsClassifier,
                }
 
-metrics_names = ['roc_auc','accuracy','f1','recall','norm_cross_entropy']
+metrics_names = ['roc_auc','accuracy','f1','recall','norm_cross_entropy','norm_expected_cost']
 
 random_seeds_test = np.arange(n_seeds_test)
 
-n_models = 100
+n_models = 10
 
 for task in tasks:
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
@@ -102,7 +102,7 @@ for task in tasks:
                                     
                     params = dict((key,value) for (key,value) in results_r.items() if 'inf' not in key and 'sup' not in key and 'mean' not in key and 'std' not in key and all(x not in key for x in dimension.split('_')))
 
-                    features = [col for col in all_features if results_r[col] == 1 and col != 'TIV']
+                    features = [col for col in all_features if col != 'TIV' and results_r[col] == 1]
                     features_dict = {col:results_r[col] for col in all_features}
 
                     if 'gamma' in params.keys():

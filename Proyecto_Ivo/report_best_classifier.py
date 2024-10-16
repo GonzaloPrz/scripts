@@ -5,7 +5,7 @@ import itertools
 
 results_dir = Path(Path.home(),'results','Proyecto_Ivo')
 
-tasks = ['Animales','P','Animales_P','cog','brain']
+tasks = ['Animales','P','Animales_P','cog','brain','AAL','conn']
 
 best_classifiers = pd.DataFrame(columns=['task','dimension','model_type',
                                          'AUC_bootstrap_dev','AUC_oob_dev',
@@ -24,7 +24,7 @@ else:
     kfold_folder = f'{n_folds}_folds'
 
 hyp_opt = True
-y_label = 'Grupo'
+y_label = 'target'
 
 feature_selection = True
 bootstrap = True
@@ -37,9 +37,13 @@ for task in tasks:
     for dimension in dimensions:
         print(task,dimension)
         path = Path(results_dir,task,dimension,'StandardScaler','all_features',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
+        
         path = Path(str(path).replace('feature_selection','')) if not feature_selection else path 
         path = Path(str(path).replace('bootstrap','')) if not bootstrap else path
 
+        if not path.exists():
+            path = Path(str(path).replace('all_features',''))
+            
         files = [file for file in path.iterdir() if 'all_performances_' in file.stem and 'test' not in file.stem]
         best = None
         for file in files:

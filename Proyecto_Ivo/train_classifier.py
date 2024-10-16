@@ -51,9 +51,10 @@ else:
     scaler = None
 imputer = KNNImputer
 
-id_col = 'Codigo'
+id_col = 'id'
 
-tasks = ['Animales','P','Animales_P','cog','brain','AAL','conn'] 
+tasks = [#'Animales','P','Animales_P','cog','brain','AAL',
+    'conn'] 
 
 dimensions = {'cog':['neuropsico','neuropsico_mmse'],
               'brain':['norm_brain_lit'],
@@ -64,7 +65,7 @@ dimensions = {'cog':['neuropsico','neuropsico_mmse'],
                 'Animales_P':['properties','timing','properties_timing','properties_vr','timing_vr','properties_timing_vr']
 }
 
-y_labels = ['Grupo']
+y_labels = ['target']
 
 test_size = 0
 

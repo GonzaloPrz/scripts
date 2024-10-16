@@ -8,10 +8,9 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-project_name = 'MCI_classifier'
+project_name = 'Proyecto_Ivo'
 
-tasks = ['fas','animales','fas__animales',
-         'grandmean'
+tasks = ['Animales','P','Animales_P','cog','brain'
          ]
 
 scaler_name = 'StandardScaler'
@@ -37,7 +36,7 @@ hyp_opt = True
 n_seeds_test = 1
 y_label = 'target'
 
-feature_selection_list = [True,False]
+feature_selection_list = [True]
 bootstrap = True
 
 random_seeds_test = np.arange(n_seeds_test)
@@ -46,18 +45,24 @@ scoring = 'roc_auc'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 for feature_selection in feature_selection_list:
     for task in tasks:
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
             print(task,dimension)
-            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
+            path = Path(results_dir,task,dimension,scaler_name,'all_features',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
             path = Path(str(path).replace('feature_selection','')) if not feature_selection else path 
             path = Path(str(path).replace('bootstrap','')) if not bootstrap else path
+            
+            random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir()]
+
+            if len(random_seeds_test) == 0:
+                random_seeds_test = ['']
+
             for random_seed_test in random_seeds_test:
                 
-                files = [file for file in Path(path,f'random_seed_{random_seed_test}').iterdir() if 'all_performances_' in file.stem and 'test' not in file.stem]
+                files = [file for file in Path(path,random_seed_test).iterdir() if 'all_performances_' in file.stem and 'test' not in file.stem]
                 best = None
                 for file in files:
                     

@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from mlxtend.evaluate import cochrans_q
 
+tasks = ['']
 dimensions = ['NLP_temporal',
               'nps_correctas']
 

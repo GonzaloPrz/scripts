@@ -40,7 +40,7 @@ else:
     kfold_folder = f'{n_folds}_folds'
 
 hyp_opt_list = [True]
-feature_selection_list = [True,False]
+feature_selection_list = [True]
 bootstrap_list = [True]
 
 boot_test = 100
@@ -80,26 +80,31 @@ for task in tasks:
     for dimension in dimensions:
         print(task,dimension)
         for y_label,hyp_opt,feature_selection,bootstrap in itertools.product(y_labels,hyp_opt_list,feature_selection_list,bootstrap_list):
-            path_to_results = save_dir / task / dimension / scaler_name / kfold_folder / f'{n_seeds_train}_seeds_train' / f'{n_seeds_test}_seeds_test' / y_label / 'no_hyp_opt' / 'feature_selection' / 'bootstrap'
+            path_to_results = save_dir / task / dimension / scaler_name  / kfold_folder / f'{n_seeds_train}_seeds_train' / f'{n_seeds_test}_seeds_test' / y_label / 'no_hyp_opt' / 'feature_selection' / 'bootstrap'
             
             path_to_results = Path(str(path_to_results).replace('no_hyp_opt', 'hyp_opt')) if hyp_opt else path_to_results
             path_to_results = Path(str(path_to_results).replace('feature_selection', '')) if not feature_selection else path_to_results
             path_to_results = Path(str(path_to_results).replace('bootstrap', '')) if not bootstrap else path_to_results
 
+            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir()]
+
+            if len(random_seeds_test) == 0:
+                random_seeds_test = ['']
+                
             for random_seed_test in random_seeds_test:
-                files = [file for file in Path(path_to_results,f'random_seed_{random_seed_test}').iterdir() if 'all_performances' in file.stem and 'test' not in file.stem]
+                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_performances' in file.stem and 'test' not in file.stem]
 
-                X_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_dev.pkl'),'rb'))
+                X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
 
-                y_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
+                y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb'))
                 
-                X_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_test.pkl'),'rb'))
+                X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
                 
-                y_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
+                y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
             
-                IDs_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
+                IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
 
-                all_features = list(X_dev.columns)
+                all_features = [col for col in X_dev.columns if any(x in col for x in task.split('_'))]
 
                 for file in files:
                     model_name = file.stem.split('_')[-1]
@@ -116,7 +121,7 @@ for task in tasks:
                     for r, row in tqdm.tqdm(results.iloc[:n_models,].iterrows()):
                         results_r = row.dropna().to_dict()
                                         
-                        params = dict((key,value) for (key,value) in results_r.items() if all(x not in key for x in ['inf','sup','mean'] + all_features))
+                        params = dict((key,value) for (key,value) in results_r.items() if all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id']))
 
                         features = [col for col in all_features if results_r[col] == 1]
                         features_dict = {col:results_r[col] for col in all_features}

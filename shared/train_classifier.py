@@ -29,23 +29,14 @@ from utils import *
 from expected_cost.ec import *
 from expected_cost.utils import *
 
-tasks = ['MOTOR_LIBRE'] 
-project_name = 'tell_classifier'
-data_file = 'data_MOTOR_LIBRE.csv'
+tasks = ['fas','animales','fas__animales','grandmean'] 
+project_name = 'MCI_classifier'
+data_file = 'features_data.csv'
 
 single_dimensions = [
-                     'pitch',
-                     'voice-quality',
-                     'talking-intevals'
+                     'psycholinguistic',
+                     'voice-quality'
                      ]
-
-dimensions = list()
-
-for ndim in range(2,len(single_dimensions)+1):
-    for dimension in itertools.combinations(single_dimensions,ndim):
-        dimensions.append('__'.join(dimension))
-
-dimensions += single_dimensions
 
 n_iter = 50
 n_iter_features = 50
@@ -57,6 +48,12 @@ scaler_name = 'StandardScaler'
 y_labels = ['target']
 
 id_col = 'id'
+
+dimensions = list()
+
+for ndim in range(1,len(single_dimensions)+1):
+    for dimension in itertools.combinations(single_dimensions,ndim):
+        dimensions.append('__'.join(dimension))
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
