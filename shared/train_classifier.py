@@ -42,8 +42,8 @@ single_dimensions = [
                      'pitch'
                      ]
 
-n_iter = 50
-n_iter_features = 50
+n_iter = 5
+n_iter_features = 5
 
 feature_sample_ratio = .5 
 
@@ -241,12 +241,14 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 
             all_models = pd.DataFrame()
+            all_features = [col for col in X_train.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+            
             for model_index in range(models.shape[0]):
                 model_ = {}
                 for param in models.keys():
                     if param in [y_label,id_col]:
                         continue
-                    all_models[param] = models.iloc[model_index][param]
+                    model_[param] = models.iloc[model_index][param]
 
                 all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
             
