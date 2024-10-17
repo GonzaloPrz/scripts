@@ -22,9 +22,9 @@ from utils import *
 from expected_cost.ec import *
 from psrcal import *
 
-project_name = 'MCI_classifier'
+project_name = 'tell_classifier'
 
-tasks = ['fas','animales','fas__animales','grandmean']
+tasks = ['MOTOR-LIBRE']
 y_labels = ['target']
 
 scaler_name = 'StandardScaler'
@@ -44,7 +44,7 @@ feature_selection_list = [True]
 bootstrap_list = [True]
 
 boot_test = 100
-boot_train = 10
+boot_train = 1
 
 n_seeds_test = 1
 
@@ -80,7 +80,7 @@ for task in tasks:
     for dimension in dimensions:
         print(task,dimension)
         for y_label,hyp_opt,feature_selection,bootstrap in itertools.product(y_labels,hyp_opt_list,feature_selection_list,bootstrap_list):
-            path_to_results = save_dir / task / dimension / scaler_name  / kfold_folder / f'{n_seeds_train}_seeds_train' / f'{n_seeds_test}_seeds_test' / y_label / 'no_hyp_opt' / 'feature_selection' / 'bootstrap'
+            path_to_results = save_dir / task / dimension / scaler_name  / kfold_folder / y_label / 'no_hyp_opt' / 'feature_selection' / 'bootstrap'
             
             path_to_results = Path(str(path_to_results).replace('no_hyp_opt', 'hyp_opt')) if hyp_opt else path_to_results
             path_to_results = Path(str(path_to_results).replace('feature_selection', '')) if not feature_selection else path_to_results
@@ -98,6 +98,8 @@ for task in tasks:
 
                 y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb'))
                 
+                IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb'))
+
                 X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
                 
                 y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
@@ -105,7 +107,6 @@ for task in tasks:
                 IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
 
                 all_features = [col for col in X_dev.columns if any(x in col for x in task.split('_'))]
-
                 for file in files:
                     model_name = file.stem.split('_')[-1]
 
@@ -164,7 +165,7 @@ for task in tasks:
                     with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:
                         pickle.dump(IDs_test_bootstrap,f)
 
-                    scores_df = {'ID':IDs_test_bootstrap.flatten(),'y_true':y_true_bootstrap.flatten(),'output':outputs_bootstrap[:,:,1].flatten(),'y_pred':y_pred_bootstrap.flatten()}
+                    scores_df = {'ID':IDs_test_bootstrap.flatten(),'y_true':y_true_bootstrap.flatten(),'output':outputs_bootstrap[:,1].flatten(),'y_pred':y_pred_bootstrap.flatten()}
                     scores_df = pd.DataFrame(scores_df).sort_values(by='ID',ascending=True)
                     scores_df.drop_duplicates(subset='ID',keep='first',inplace=True)
                     scores_df.to_csv(Path(file.parent,f'scores_test_{model_name}.csv'))

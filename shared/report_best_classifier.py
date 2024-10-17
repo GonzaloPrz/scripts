@@ -8,10 +8,9 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-project_name = 'Proyecto_Ivo'
+project_name = 'tell_classifier'
 
-tasks = ['Animales','P','Animales_P','cog','brain'
-         ]
+tasks = ['MOTOR-LIBRE']
 
 scaler_name = 'StandardScaler'
 
@@ -51,7 +50,7 @@ for feature_selection in feature_selection_list:
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
             print(task,dimension)
-            path = Path(results_dir,task,dimension,scaler_name,'all_features',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
+            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
             path = Path(str(path).replace('feature_selection','')) if not feature_selection else path 
             path = Path(str(path).replace('bootstrap','')) if not bootstrap else path
             
@@ -109,11 +108,11 @@ for feature_selection in feature_selection_list:
                                                                             'accuracy_bootstrap_holdout':accuracy_bootstrap_test,
                                                                             })
 
-        filename_to_save = f'best_classifiers_{kfold_folder}_{scaler_name}_no_hyp_opt_no_feature_selection.csv'
+        filename_to_save = f'best_classifiers_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection.csv'
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
-    if feature_selection:
-        filename_to_save = filename_to_save.replace('no_feature_selection','feature_selection')
+    if not feature_selection:
+        filename_to_save = filename_to_save.replace('feature_selection','')
 
     best_classifiers.to_csv(Path(results_dir,filename_to_save),index=False)

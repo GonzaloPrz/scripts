@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 import math 
 
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
@@ -29,13 +29,17 @@ from utils import *
 from expected_cost.ec import *
 from expected_cost.utils import *
 
-tasks = ['fas','animales','fas__animales','grandmean'] 
-project_name = 'MCI_classifier'
-data_file = 'features_data.csv'
+parallel = True
+
+tasks = ['MOTOR-LIBRE'] 
+project_name = 'tell_classifier'
+data_file = 'data_MOTOR-LIBRE.csv'
+stratify = True
 
 single_dimensions = [
-                     'psycholinguistic',
-                     'voice-quality'
+                     'talking-intervals',
+                     'voice-quality',
+                     'pitch'
                      ]
 
 n_iter = 50
@@ -70,9 +74,10 @@ shuffle_labels = False
 held_out_default = False
 hyp_tuning_list = [True]
 metrics_names = ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy']
+
 l2ocv = False
 
-n_boot = 100
+n_boot = 0
 
 test_size = .3
 
@@ -117,25 +122,24 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
     
     y = data[y_label]
 
-    #impute mising data
     for hyp_tuning,model in itertools.product(hyp_tuning_list,models_dict.keys()):        
         print(model)
         held_out = True if hyp_tuning else held_out_default
 
         if held_out:
             if l2ocv:
-                n_folds = int((data.shape[0]*(1-test_size)-2)/2)
+                n_folds = int((data.shape[0]*(1-test_size))/2)
             n_seeds_test = n_seeds_test_
         else:
             if l2ocv:
-                n_folds = int((data.shape[0]-2)/2)
+                n_folds = int(data.shape[0]/2)
             n_seeds_test = 1
         
         random_seeds_test = np.arange(n_seeds_test)
 
-        CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True)
+        CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify else KFold(n_splits=n_folds,shuffle=True)
 
-        path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'no_hyp_opt','feature_selection')
+        path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'no_hyp_opt','feature_selection')
         path_to_save = Path(path_to_save,'bootstrap') if n_boot and 'bootstrap' not in str(path_to_save) else path_to_save
 
         path_to_save = Path(str(path_to_save).replace('no_hyp_opt','hyp_opt')) if hyp_tuning else path_to_save
@@ -209,7 +213,7 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             if test_size > 0:
                 path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
 
-                X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size,random_state=random_seed_test)
+                X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size,random_state=random_seed_test,shuffle=True,stratify=y if stratify else None)
                 X_train.reset_index(drop=True,inplace=True)
                 X_test.reset_index(drop=True,inplace=True)
                 y_train.reset_index(drop=True,inplace=True)
@@ -229,59 +233,51 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             path_to_save_final.mkdir(parents=True,exist_ok=True)
             assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-            #if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists():
+            #if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists() or Path(path_to_save_final,f'outputs_{model}.pkl').exists():
             #    continue
 
-            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,thresholds,metrics_names,ID_train,Path(path_to_save,f'random_seed_{random_seed_test}',f'errors_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring='roc_auc',problem_type='clf')        
+            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,n_boot=n_boot,cmatrix=cmatrix,parallel=parallel,scoring='roc_auc',problem_type='clf')        
         
             metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 
-            with open(Path(path_to_save_final,f'outputs_best_model_{model}.pkl'),'wb') as f:
-                pickle.dump(outputs_bootstrap[:,:,best_model_index,:],f)
+            all_models = pd.DataFrame()
+            for model_index in range(models.shape[0]):
+                model_ = {}
+                for param in models.keys():
+                    if param in [y_label,id_col]:
+                        continue
+                    all_models[param] = models.iloc[model_index][param]
 
-            with open(Path(path_to_save_final,f'metrics_bootstrap_{model}.pkl'),'wb') as f:
-                pickle.dump(metrics_bootstrap,f)
+                all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
+            
+            all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
-            pd.DataFrame(metrics_bootstrap_json).to_csv(Path(path_to_save_final,f'metrics_bootstrap_best_model_{model}.csv'))
-
-            if Path(path_to_save_final,'X_dev.pkl').exists() == False:
+            with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
+                pickle.dump(X_train,f)
+            with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
+                pickle.dump(y_dev_bootstrap,f) 
+            with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
+                pickle.dump(ID_train,f)
+            with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                pickle.dump(X_test,f)
+            with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                pickle.dump(y_test,f)
+            with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                pickle.dump(ID_test,f)
+            
+            scored_dev_best_model = pd.DataFrame({'id':IDs_dev_bootstrap,'output':outputs_bootstrap[best_model_index,:,1],'y':y_dev_bootstrap})
+            scored_dev_best_model.to_csv(Path(path_to_save_final,f'scored_dev_best_{model}.csv'),index=False)
+            
+            if n_boot:
+                with open(Path(path_to_save_final,f'outputs_best_model_{model}.pkl'),'wb') as f:
+                    pickle.dump(outputs_bootstrap[best_model_index,:,:],f)
+                with open(Path(path_to_save_final,f'metrics_bootstrap_{model}.pkl'),'wb') as f:
+                    pickle.dump(metrics_bootstrap,f)
                 with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
                     pickle.dump(y_dev_bootstrap,f)
                 with open(Path(path_to_save_final,f'IDs_dev_bootstrap.pkl'),'wb') as f:
                     pickle.dump(IDs_dev_bootstrap,f)
-                with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
-                    pickle.dump(X_train,f)
-                with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                    pickle.dump(y_train,f)
-                with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
-                    pickle.dump(ID_train,f)
-                with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
-                    pickle.dump(X_test,f)
-                with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                    pickle.dump(y_test,f)
-                with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                    pickle.dump(ID_test,f)
             
-            models_performances = pd.DataFrame()
-            for model_index in range(models.shape[0]):
-                model_performance = {}
-                for param in models.keys():
-                    model_performance[param] = models.iloc[model_index][param]
-
-                for metric in metrics_names:
-                    mean, inf, sup = conf_int_95(metrics_bootstrap[metric][model_index])
-                    
-                    model_performance[f'inf_{metric}_bootstrap'] = inf
-                    model_performance[f'mean_{metric}_bootstrap'] = mean
-                    model_performance[f'sup_{metric}_bootstrap'] = sup
-
-                    mean, inf, sup = conf_int_95(metrics_oob[metric][model_index])
-
-                    model_performance[f'inf_{metric}_oob'] = inf  
-                    model_performance[f'mean_{metric}_oob'] = mean
-                    model_performance[f'sup_{metric}_oob'] = sup
-
-                models_performances = pd.concat([models_performances,pd.DataFrame(model_performance,index=[0])],ignore_index=True,axis=0)
-            
-            models_performances.to_csv(Path(path_to_save_final,f'all_performances_{model}.csv'),index=False)
-            
+            else:
+                with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
+                    pickle.dump(outputs_bootstrap,f)
