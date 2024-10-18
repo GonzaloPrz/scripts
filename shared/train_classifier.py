@@ -31,19 +31,26 @@ from expected_cost.utils import *
 
 parallel = True
 
-project_name = 'MCI_classifier'
-data_file = 'features_data.csv'
+l2ocv = False
 
-tasks = [
-        #'fas',
-         'animales','fas__animales','grandmean'] 
+project_name = 'tell_classifier'
+data_file = 'data_MOTOR-LIBRE.csv'
 
-single_dimensions = [
-                     'talking-intervals',
-                     'psycholinguistic'
-                     ]
+tasks = {'tell_classifier':['MOTOR-LIBRE'],
+         'MCI_classifier':['fas','animales','fas__animales','grandmean']}
 
-stratify = True
+single_dimensions = {'tell_classifier':['voice-quality',
+                                        'talking-intervals','pitch'
+                                        ],
+                     'MCI_classifier':['talking-intervals','psycholinguistic']}
+
+dimensions = list()
+
+for ndim in range(1,len(single_dimensions[project_name])+1):
+    for dimension in itertools.combinations(single_dimensions[project_name],ndim):
+        dimensions.append('__'.join(dimension))
+
+stratify = False
 
 n_iter = 50
 n_iter_features = 50
@@ -55,12 +62,6 @@ scaler_name = 'StandardScaler'
 y_labels = ['target']
 
 id_col = 'id'
-
-dimensions = list()
-
-for ndim in range(1,len(single_dimensions)+1):
-    for dimension in itertools.combinations(single_dimensions,ndim):
-        dimensions.append('__'.join(dimension))
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -78,11 +79,7 @@ held_out_default = False
 hyp_tuning_list = [True]
 metrics_names = ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy']
 
-l2ocv = False
-
-n_boot = 0
-
-test_size = .3
+test_size = .5
 
 n_seeds_test_ = 1
 n_seeds_train = 10
@@ -90,7 +87,7 @@ n_seeds_train = 10
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 10
+    n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
 random_seeds_train = np.arange(n_seeds_train)
@@ -99,16 +96,15 @@ models_dict = {
     'lr':LR,
     'svc':SVC,
     'knn':KNN,
-    'xgb':xgboost
+    #'xgb':xgboost
     }
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
 
-for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
+for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dimensions):
     print(task,dimension)
     data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
-    ID = data[id_col]
 
     if shuffle_labels:
         data[y_label] = pd.Series(np.random.permutation(data[y_label]))
@@ -118,12 +114,10 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
     data = data[all_features + [y_label,id_col]].dropna(axis=1,how='any')
     
     features = all_features
-
-    data_unique = data.drop_duplicates(subset=id_col).reset_index(drop=True)
-    y_unique = data_unique[y_label]
-    ID_unique = data_unique[id_col]
     
-    y = data[y_label]
+    ID = data.pop(id_col)
+
+    y = data.pop(y_label)
 
     for hyp_tuning,model in itertools.product(hyp_tuning_list,models_dict.keys()):        
         print(model)
@@ -143,7 +137,6 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
         CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify else KFold(n_splits=n_folds,shuffle=True)
 
         path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'no_hyp_opt','feature_selection')
-        path_to_save = Path(path_to_save,'bootstrap') if n_boot and 'bootstrap' not in str(path_to_save) else path_to_save
 
         path_to_save = Path(str(path_to_save).replace('no_hyp_opt','hyp_opt')) if hyp_tuning else path_to_save
         path_to_save = Path(str(path_to_save).replace('feature_selection','')) if n_iter_features == 0 else path_to_save
@@ -152,7 +145,6 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
 
         config = {'n_iter':n_iter,
           'test_size':test_size,
-          'bootstrap':n_boot,
           'n_feature_sets': n_iter_features,
           'feature_sample_ratio':feature_sample_ratio,
           'cmatrix':str(cmatrix)}
@@ -239,10 +231,8 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             #if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists() or Path(path_to_save_final,f'outputs_{model}.pkl').exists():
             #    continue
 
-            models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,n_boot=n_boot,cmatrix=cmatrix,parallel=parallel,scoring='roc_auc',problem_type='clf')        
+            models,outputs,y_pred,y_dev,IDs_dev = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,cmatrix=cmatrix,parallel=parallel,scoring='roc_auc',problem_type='clf')        
         
-            metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
-
             all_models = pd.DataFrame()
             all_features = [col for col in X_train.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
             
@@ -259,8 +249,10 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
 
             with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
                 pickle.dump(X_train,f)
+            with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
+                pickle.dump(y_dev,f)
             with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                pickle.dump(y_dev_bootstrap,f) 
+                pickle.dump(y_train,f) 
             with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
                 pickle.dump(ID_train,f)
             with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
@@ -270,19 +262,5 @@ for y_label,task,dimension in itertools.product(y_labels,tasks,dimensions):
             with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
                 pickle.dump(ID_test,f)
             
-            scored_dev_best_model = pd.DataFrame({'id':IDs_dev_bootstrap,'output':outputs_bootstrap[best_model_index,:,1],'y':y_dev_bootstrap})
-            scored_dev_best_model.to_csv(Path(path_to_save_final,f'scored_dev_best_{model}.csv'),index=False)
-            
-            if n_boot:
-                with open(Path(path_to_save_final,f'outputs_best_model_{model}.pkl'),'wb') as f:
-                    pickle.dump(outputs_bootstrap[best_model_index,:,:],f)
-                with open(Path(path_to_save_final,f'metrics_bootstrap_{model}.pkl'),'wb') as f:
-                    pickle.dump(metrics_bootstrap,f)
-                with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
-                    pickle.dump(y_dev_bootstrap,f)
-                with open(Path(path_to_save_final,f'IDs_dev_bootstrap.pkl'),'wb') as f:
-                    pickle.dump(IDs_dev_bootstrap,f)
-            
-            else:
-                with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
-                    pickle.dump(outputs_bootstrap,f)
+            with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
+                pickle.dump(outputs,f)

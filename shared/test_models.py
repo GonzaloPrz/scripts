@@ -22,28 +22,24 @@ from utils import *
 from expected_cost.ec import *
 from psrcal import *
 
-project_name = 'MCI_classifier'
+project_name = 'tell_classifier'
+l2ocv = False
 
-tasks = [#'fas',
-    'animales','fas__animales','grandmean'] 
+tasks = {'tell_classifier':['MOTOR-LIBRE'],
+         'MCI_classifier':['fas','animales','fas__animales','grandmean']}
 
 y_labels = ['target']
 
 scaler_name = 'StandardScaler'
 
-l2ocv = False
-
-n_seeds_train = 10
-
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 10
+    n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
 hyp_opt_list = [True]
 feature_selection_list = [True]
-bootstrap_list = [False]
 
 boot_test = 100
 boot_train = 0
@@ -77,17 +73,19 @@ scoring = 'roc_auc'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
-for task in tasks:
+for task in tasks[project_name]:
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
-        for y_label,hyp_opt,feature_selection,bootstrap in itertools.product(y_labels,hyp_opt_list,feature_selection_list,bootstrap_list):
-            path_to_results = save_dir / task / dimension / scaler_name  / kfold_folder / y_label / 'no_hyp_opt' / 'feature_selection' / 'bootstrap'
+        for y_label,hyp_opt,feature_selection in itertools.product(y_labels,hyp_opt_list,feature_selection_list):
+            path_to_results = save_dir / task / dimension / scaler_name  / kfold_folder / y_label / 'no_hyp_opt' / 'feature_selection'
             
             path_to_results = Path(str(path_to_results).replace('no_hyp_opt', 'hyp_opt')) if hyp_opt else path_to_results
             path_to_results = Path(str(path_to_results).replace('feature_selection', '')) if not feature_selection else path_to_results
-            path_to_results = Path(str(path_to_results).replace('bootstrap', '')) if not bootstrap else path_to_results
 
+            if not path_to_results.exists():
+                continue
+            
             random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir()]
 
             if len(random_seeds_test) == 0:
@@ -114,8 +112,8 @@ for task in tasks:
 
                     print(model_name)
                     
-                    if Path(file.parent,f'best_{n_models}_{model_name}_test.csv').exists():
-                        continue
+                    #if Path(file.parent,f'best_{n_models}_{model_name}_test.csv').exists():
+                    #    continue
                     
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     results = results.sort_values(by=[f'{extremo}_{scoring}'],ascending=ascending).reset_index(drop=True)
@@ -134,7 +132,9 @@ for task in tasks:
                                 params['gamma'] = float(params['gamma'])
                             except:
                                 pass
-
+                        if 'random_state' in params.keys():
+                            params['random_state'] = int(params['random_state'])
+                        
                         mod = Model(models_dict[model_name](**params),scaler,imputer)
                         metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(mod,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test)
 
