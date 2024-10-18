@@ -22,6 +22,8 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
+mean_std = True
+
 cmatrix = None
 feature_importance = True 
 shuffle_labels = False
@@ -29,11 +31,11 @@ held_out_default = False
 hyp_tuning_list = [True]
 metrics_names = ['r2_score','mean_squared_error','mean_absolute_error']
 l2ocv = False
-exp_ft = False
-n_boot = 100
 
-n_iter = 50
-n_iter_features = 50
+n_boot = 0
+
+n_iter = 5
+n_iter_features = 5
 feature_sample_ratio = .5 
 
 scaler_name = 'StandardScaler'
@@ -51,6 +53,8 @@ project_name = 'GeroApathy'
 y_labels = ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']
 #y_labels = ['MiniSea_MiniSea_Total_EkmanFaces','MiniSea_MiniSea_Total_FauxPas']
 
+stats_exclude = ['skewness','kurtosis','min','max'] if mean_std else []
+
 single_dimensions = ['voice-quality',
                     'pitch',
                      'talking_intervals',
@@ -58,9 +62,9 @@ single_dimensions = ['voice-quality',
                      'formants'
                      ]
 
-dimensions = single_dimensions
+dimensions = list()
 
-for ndim in range(2,len(single_dimensions)+1):
+for ndim in range(1,len(single_dimensions)+1):
     for dimension in itertools.combinations(single_dimensions,ndim):
         dimensions.append('__'.join(dimension))
 
@@ -120,14 +124,15 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
 
         ID = data[id_col]
         
-        features = [col for col in data.columns if any([f'{t}_' in col for t in task.split('__')]) and isinstance(data[col][0],(float,int))]
+        features = [col for col in data.columns if any([f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))]) and isinstance(data[col][0],(float,int)) and all(x not in col for x in stats_exclude)]
                 
         for model in models_dict.keys():        
             print(model)
             if l2ocv:
                 n_folds = int(data.shape[0]*test_size-2)
             
-            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt','feature_selection')
+            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,'mean_std',y_label,'hyp_opt','feature_selection')
+            path_to_save = Path(str(path_to_save).replace('mean_std','')) if not mean_std else path_to_save
             path_to_save = Path(path_to_save,'bootstrap') if n_boot and 'bootstrap' not in str(path_to_save) else path_to_save
             path_to_save = Path(str(path_to_save).replace(f'{n_seeds_test}_seeds_test','')) if test_size == 0 else path_to_save
             
@@ -225,26 +230,28 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 #if Path(path_to_save_final,f'all_performances_{model}.csv').exists():
                 #   continue
                 
-                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,[None],metrics_names,ID_train,Path(path_to_save_final,f'nan_models_{model}.json'),n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring=scoring,problem_type='reg')        
+                models,outputs_bootstrap,y_pred_bootstrap,metrics_bootstrap,y_dev_bootstrap,IDs_dev_bootstrap,metrics_oob,best_model_index = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,metrics_names,ID_train,n_boot=n_boot,cmatrix=cmatrix,parallel=True,scoring=scoring,problem_type='reg')        
 
                 metrics_bootstrap_json = {metric:metrics_bootstrap[metric][best_model_index] for metric in metrics_names}
 
-                with open(Path(path_to_save_final,f'outputs_best_model_{model}.pkl'),'wb') as f:
-                    pickle.dump(outputs_bootstrap[:,:,best_model_index,:],f)
+                all_models = pd.DataFrame()
+                all_features = [col for col in X_train.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+                
+                for model_index in range(models.shape[0]):
+                    model_ = {}
+                    for param in models.keys():
+                        if param in [y_label,id_col]:
+                            continue
+                        model_[param] = models.iloc[model_index][param]
 
-                with open(Path(path_to_save_final,f'metrics_bootstrap_{model}.pkl'),'wb') as f:
-                    pickle.dump(metrics_bootstrap,f)
+                    all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
+                
+                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
-                pd.DataFrame(metrics_bootstrap_json).to_csv(Path(path_to_save_final,f'metrics_bootstrap_best_model_{model}.csv'))
-
-                with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
-                    pickle.dump(y_dev_bootstrap,f)
-                with open(Path(path_to_save_final,f'IDs_dev_bootstrap.pkl'),'wb') as f:
-                    pickle.dump(IDs_dev_bootstrap,f)
                 with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
                     pickle.dump(X_train,f)
                 with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                    pickle.dump(y_train,f)
+                    pickle.dump(y_dev_bootstrap,f) 
                 with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
                     pickle.dump(ID_train,f)
                 with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
@@ -254,26 +261,19 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
                     pickle.dump(ID_test,f)
                 
-                models_performances = pd.DataFrame()
-                for model_index in range(models.shape[0]):
-                    model_performance = {}
-                    for param in models.keys():
-                        model_performance[param] = models.iloc[model_index][param]
-
-                    for metric in metrics_names:
-                        mean, inf, sup = conf_int_95(metrics_bootstrap[metric][model_index])
-                        
-                        model_performance[f'inf_{metric}_bootstrap'] = inf
-                        model_performance[f'mean_{metric}_bootstrap'] = mean
-                        model_performance[f'sup_{metric}_bootstrap'] = sup
-
-                        mean, inf, sup = conf_int_95(metrics_oob[metric][model_index])
-
-                        model_performance[f'inf_{metric}_oob'] = inf  
-                        model_performance[f'mean_{metric}_oob'] = mean
-                        model_performance[f'sup_{metric}_oob'] = sup
-
-                    models_performances = pd.concat([models_performances,pd.DataFrame(model_performance,index=[0])],ignore_index=True,axis=0)
+                scored_dev_best_model = pd.DataFrame({'id':IDs_dev_bootstrap,'output':outputs_bootstrap[best_model_index,:,1],'y':y_dev_bootstrap})
+                scored_dev_best_model.to_csv(Path(path_to_save_final,f'scored_dev_best_{model}.csv'),index=False)
                 
-                models_performances.to_csv(Path(path_to_save_final,f'all_performances_{model}.csv'),index=False)
+                if n_boot:
+                    with open(Path(path_to_save_final,f'outputs_best_model_{model}.pkl'),'wb') as f:
+                        pickle.dump(outputs_bootstrap[best_model_index,:,:],f)
+                    with open(Path(path_to_save_final,f'metrics_bootstrap_{model}.pkl'),'wb') as f:
+                        pickle.dump(metrics_bootstrap,f)
+                    with open(Path(path_to_save_final,f'y_dev_bootstrap.pkl'),'wb') as f:
+                        pickle.dump(y_dev_bootstrap,f)
+                    with open(Path(path_to_save_final,f'IDs_dev_bootstrap.pkl'),'wb') as f:
+                        pickle.dump(IDs_dev_bootstrap,f)
                 
+                else:
+                    with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
+                        pickle.dump(outputs_bootstrap,f)
