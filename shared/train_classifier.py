@@ -31,19 +31,22 @@ from expected_cost.utils import *
 
 parallel = True
 
-tasks = ['MOTOR-LIBRE'] 
-project_name = 'tell_classifier'
-data_file = 'data_MOTOR-LIBRE.csv'
-stratify = True
+project_name = 'MCI_classifier'
+data_file = 'features_data.csv'
+
+tasks = [
+        #'fas',
+         'animales','fas__animales','grandmean'] 
 
 single_dimensions = [
                      'talking-intervals',
-                     'voice-quality',
-                     'pitch'
+                     'psycholinguistic'
                      ]
 
-n_iter = 5
-n_iter_features = 5
+stratify = True
+
+n_iter = 50
+n_iter_features = 50
 
 feature_sample_ratio = .5 
 

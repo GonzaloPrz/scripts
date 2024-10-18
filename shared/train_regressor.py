@@ -34,8 +34,8 @@ l2ocv = False
 
 n_boot = 0
 
-n_iter = 5
-n_iter_features = 5
+n_iter = 50
+n_iter_features = 50
 feature_sample_ratio = .5 
 
 scaler_name = 'StandardScaler'
@@ -261,8 +261,8 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
                     pickle.dump(ID_test,f)
                 
-                scored_dev_best_model = pd.DataFrame({'id':IDs_dev_bootstrap,'output':outputs_bootstrap[best_model_index,:,1],'y':y_dev_bootstrap})
-                scored_dev_best_model.to_csv(Path(path_to_save_final,f'scored_dev_best_{model}.csv'),index=False)
+                scored_dev_best_model = pd.DataFrame({'id':IDs_dev_bootstrap,'output':outputs_bootstrap[best_model_index].squeeze(),'y':y_dev_bootstrap})
+                scored_dev_best_model.to_csv(Path(path_to_save_final,f'scores_dev_best_{model}.csv'),index=False)
                 
                 if n_boot:
                     with open(Path(path_to_save_final,f'outputs_best_model_{model}.pkl'),'wb') as f:

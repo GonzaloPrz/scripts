@@ -8,17 +8,18 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-project_name = 'tell_classifier'
+project_name = 'MCI_classifier'
 
-tasks = ['MOTOR-LIBRE']
+tasks = [#'fas',
+    'animales','fas__animales','grandmean'] 
 
 scaler_name = 'StandardScaler'
 
 best_classifiers = pd.DataFrame(columns=['task','dimension','model_type','random_seed_test',
-                                         'AUC_bootstrap_dev',#'AUC_oob_dev',
-                                         'AUC_bootstrap_holdout',
-                                         'accuracy_bootstrap_dev',#'accuracy_oob_dev',
-                                         'accuracy_bootstrap_holdout'])
+                                         'AUC_dev',#'AUC_oob_dev',
+                                         'AUC_holdout',
+                                         'accuracy_dev',#'accuracy_oob_dev',
+                                         'accuracy_holdout'])
 
 pd.options.mode.copy_on_write = True 
 
@@ -36,7 +37,7 @@ n_seeds_test = 1
 y_label = 'target'
 
 feature_selection_list = [True]
-bootstrap = True
+bootstrap = False
 
 random_seeds_test = np.arange(n_seeds_test)
 
@@ -61,13 +62,13 @@ for feature_selection in feature_selection_list:
 
             for random_seed_test in random_seeds_test:
                 
-                files = [file for file in Path(path,random_seed_test).iterdir() if 'all_performances_' in file.stem and 'test' not in file.stem]
+                files = [file for file in Path(path,random_seed_test).iterdir() if 'best_performances_' in file.stem and 'svc' not in file.stem]
                 best = None
                 for file in files:
                     
                     df = pd.read_csv(file)
-                    df = df.sort_values(by=f'{extremo}_{scoring}_bootstrap',ascending=ascending).reset_index(drop=True)
-                    print(f'{file.stem.split("_")[-1]}:{df.loc[0,f"{extremo}_{scoring}_bootstrap"]}')
+                    df = df.sort_values(by=f'{extremo}_{scoring}',ascending=ascending).reset_index(drop=True)
+                    print(f'{file.stem.split("_")[-1]}:{df.loc[0,f"{extremo}_{scoring}"]}')
                     if best is None:
                         best = df.loc[0,:]
 
@@ -75,7 +76,7 @@ for feature_selection in feature_selection_list:
                         best['model_type'] = model_type
                         best_file = file
                     else:
-                        if new_best(best[f'{extremo}_{scoring}_bootstrap'],df.loc[0,f'{extremo}_{scoring}_bootstrap'],ascending):
+                        if new_best(best[f'{extremo}_{scoring}'],df.loc[0,f'{extremo}_{scoring}'],ascending):
                             best = df.loc[0,:]
                             model_type = file.stem.split('_')[-1].replace('.csv','')
                             best['model_type'] = model_type
@@ -83,29 +84,27 @@ for feature_selection in feature_selection_list:
                 if best is None:
                     continue
                 print(best['model_type'])
-                AUC_bootstrap = f'[ {best[f"inf_roc_auc_bootstrap"].round(2)}, {best[f"mean_roc_auc_bootstrap"].round(2)}, {best[f"sup_roc_auc_bootstrap"].round(2)}]'
+                AUC = f'[ {best[f"inf_roc_auc"].round(2)}, {best[f"mean_roc_auc"].round(2)}, {best[f"sup_roc_auc"].round(2)}]'
                 
-                accuracy_bootstrap = f'[ {best["inf_accuracy_bootstrap"].round(2)}, {best["mean_accuracy_bootstrap"].round(2)}, {best["sup_accuracy_bootstrap"].round(2)}]'
+                accuracy = f'[ {best["inf_accuracy"].round(2)}, {best["mean_accuracy"].round(2)}, {best["sup_accuracy"].round(2)}]'
                     
-                accuracy_oob = f'[ {best["inf_accuracy_oob"].round(2)}, {best["mean_accuracy_oob"].round(2)}, {best["sup_accuracy_oob"].round(2)}]'
-
-                AUC_bootstrap_test = 'NA'
-                accuracy_bootstrap_test = 'NA'
+                AUC_test = 'NA'
+                accuracy_test = 'NA'
                 if Path(best_file.parent,f'best_10_{best["model_type"]}_test.csv').exists():
                     
                     best_test = pd.read_csv(Path(best_file.parent,f'best_10_{best["model_type"]}_test.csv')).loc[0,:]
-                    AUC_bootstrap_test = f'[ {best_test[f"inf_roc_auc_bootstrap_test"].round(2)}, {best_test[f"mean_roc_auc_bootstrap_test"].round(2)}, {best_test[f"sup_roc_auc_bootstrap_test"].round(2)}]'
+                    AUC_test = f'[ {best_test[f"inf_roc_auc_test"].round(2)}, {best_test[f"mean_roc_auc_test"].round(2)}, {best_test[f"sup_roc_auc_test"].round(2)}]'
                 
-                    accuracy_bootstrap_test = f'[ {best_test["inf_accuracy_bootstrap_test"].round(2)}, {best_test["mean_accuracy_bootstrap_test"].round(2)}, {best_test["sup_accuracy_bootstrap_test"].round(2)}]'
+                    accuracy_test = f'[ {best_test["inf_accuracy_test"].round(2)}, {best_test["mean_accuracy_test"].round(2)}, {best_test["sup_accuracy_test"].round(2)}]'
                 
                 model_type = file
                 best_classifiers.loc[len(best_classifiers),:] = pd.Series({'task':task,'dimension':dimension,'model_type':best['model_type'],'random_seed_test':random_seed_test,
-                                                                            'AUC_bootstrap_dev':AUC_bootstrap,
+                                                                            'AUC_dev':AUC,
                                                                             #'AUC_oob_dev':AUC_oob,
-                                                                            'AUC_bootstrap_holdout':AUC_bootstrap_test,
-                                                                            'accuracy_bootstrap_dev':accuracy_bootstrap,
+                                                                            'AUC_holdout':AUC_test,
+                                                                            'accuracy_dev':accuracy,
                                                                             #'accuracy_oob_dev':accuracy_oob,
-                                                                            'accuracy_bootstrap_holdout':accuracy_bootstrap_test,
+                                                                            'accuracy_holdout':accuracy_test,
                                                                             })
 
         filename_to_save = f'best_classifiers_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection.csv'
