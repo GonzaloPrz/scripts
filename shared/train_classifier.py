@@ -33,8 +33,8 @@ parallel = True
 
 l2ocv = False
 
-project_name = 'tell_classifier'
-data_file = 'data_MOTOR-LIBRE.csv'
+project_name = 'MCI_classifier'
+data_file = 'features_data.csv'
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean']}
@@ -96,7 +96,7 @@ models_dict = {
     'lr':LR,
     'svc':SVC,
     'knn':KNN,
-    #'xgb':xgboost
+    'xgb':xgboost
     }
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -228,8 +228,8 @@ for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dim
             path_to_save_final.mkdir(parents=True,exist_ok=True)
             assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-            #if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists() or Path(path_to_save_final,f'outputs_{model}.pkl').exists():
-            #    continue
+            if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists() or Path(path_to_save_final,f'outputs_{model}.pkl').exists():
+                continue
 
             models,outputs,y_pred,y_dev,IDs_dev = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,cmatrix=cmatrix,parallel=parallel,scoring='roc_auc',problem_type='clf')        
         

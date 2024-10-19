@@ -8,11 +8,14 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-project_name = 'tell_classifier'
+project_name = 'MCI_classifier'
 l2ocv = False
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean']}
+         'MCI_classifier':['fas','animales',
+                           'fas__animales',
+                            'grandmean'
+                           ]}
 
 scaler_name = 'StandardScaler'
 
@@ -78,6 +81,7 @@ for feature_selection in feature_selection_list:
                             best_file = file
                 if best is None:
                     continue
+                
                 print(best['model_type'])
                 AUC = f'[ {np.round(best[f"inf_roc_auc"],2)}, {np.round(best[f"mean_roc_auc"],2)}, {np.round(best[f"sup_roc_auc"],2)}]'
                 

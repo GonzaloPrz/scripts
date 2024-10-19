@@ -12,28 +12,22 @@ from utils import *
 
 parallel = True
 
-project_name = 'tell_classifier'
+project_name = 'MCI_classifier'
 l2ocv = False
 
-models = ['lr','svc','knn']
+models = ['lr','svc','knn','xgb']
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean']}
 
 single_dimensions = {'tell_classifier':['voice-quality',
-                                        #'talking-intervals','pitch'
+                                        'talking-intervals','pitch'
                                         ],
                      'MCI_classifier':['talking-intervals','psycholinguistic']}
 
 dimensions = list()
 
 n_boot = 100
-
-best = .01
-
-scoring = 'roc_auc'
-extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
-ascending = True if extremo == 'sup' else False
 
 for ndim in range(1,len(single_dimensions[project_name])+1):
     for dimension in itertools.combinations(single_dimensions[project_name],ndim):
@@ -70,29 +64,15 @@ for y_label,task,dimension,model,hyp_opt,feature_selection in itertools.product(
     for random_seed in random_seeds:
         all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
        
-        #if Path(path,random_seed,f'best_performances_{model}.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
-        #    continue
+        if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
+            continue
        
         outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
         y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
         outputs_bootstrap = np.expand_dims(np.empty(outputs.shape),axis=0)
         y_dev_bootstrap = np.expand_dims(np.empty(y_dev.shape,dtype=y_dev.dtype),axis=0)
 
-        scorings_dev = pd.DataFrame(columns=[scoring])
         metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names)
-
-        for model_index in all_models.index:
-            scores = np.empty(outputs.shape[1])
-            for r in range(outputs.shape[1]):
-                score, _ = get_metrics_clf(outputs[model_index,r],y_dev[r],[scoring],cmatrix,None)
-                scores[r] = score[scoring]
-            
-            scorings_dev.loc[model_index,scoring] = np.nanmean(scores)
-        
-        scorings_dev = scorings_dev.sort_values(by=scoring,ascending=ascending)
-        best_models_index = scorings_dev.index[:int(best*len(all_models))]
-        
-        best_models = all_models.loc[best_models_index]
 
         if parallel:
             results = Parallel(n_jobs=-1)(
@@ -101,7 +81,7 @@ for y_label,task,dimension,model,hyp_opt,feature_selection in itertools.product(
                     model_index, r,
                     create_bootstrap_set(outputs[model_index,r], y_dev[r], b,stratify=y_dev[r])
                 ))(b, model_index,r)
-                for b, model_index,r in itertools.product(range(n_boot), best_models.index,range(outputs.shape[1]))
+                for b, model_index,r in itertools.product(range(n_boot), all_models.index,range(outputs.shape[1]))
             )          
             for b,model_index, r, result in tqdm.tqdm(results):
 
@@ -111,7 +91,7 @@ for y_label,task,dimension,model,hyp_opt,feature_selection in itertools.product(
                     metrics[metric][b,model_index,r] = metrics_[metric]
             
         else:
-            for b,model_index,r in itertools.product(range(n_boot),best_models.index,range(outputs.shape[1])):
+            for b,model_index,r in itertools.product(range(n_boot),all_models.index,range(outputs.shape[1])):
                 outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r],_ = create_bootstrap_set(outputs[model_index,r],y_dev[r],b,stratify=y_dev[r])
 
                 metrics_,y_pred = get_metrics_clf(outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r], metrics_names, cmatrix, None)
@@ -119,10 +99,10 @@ for y_label,task,dimension,model,hyp_opt,feature_selection in itertools.product(
                 for metric in metrics_names:
                     metrics[metric][b,model_index,r] = metrics_[metric]
                 
-        for model_index in best_models.index:
+        for model_index in all_models.index:
             for metric in metrics_names:
                 mean, inf, sup = conf_int_95(metrics[metric][:,model_index,:].squeeze())
-                best_models.loc[model_index,f'inf_{metric}'] = inf
-                best_models.loc[model_index,f'mean_{metric}'] = mean
-                best_models.loc[model_index,f'sup_{metric}'] = sup
-        best_models.to_csv(Path(path,random_seed,f'best_performances_{model}.csv'))
+                all_models.loc[model_index,f'inf_{metric}'] = inf
+                all_models.loc[model_index,f'mean_{metric}'] = mean
+                all_models.loc[model_index,f'sup_{metric}'] = sup
+        all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev.csv'))

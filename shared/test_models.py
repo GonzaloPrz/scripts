@@ -22,7 +22,7 @@ from utils import *
 from expected_cost.ec import *
 from psrcal import *
 
-project_name = 'tell_classifier'
+project_name = 'MCI_classifier'
 l2ocv = False
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -67,9 +67,9 @@ metrics_names = ['roc_auc','accuracy','f1','recall','norm_expected_cost','norm_c
 
 random_seeds_test = np.arange(n_seeds_test)
 
-n_models = 10
+n_models = 100
 
-scoring = 'roc_auc'
+scoring = 'norm_expected_cost'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
@@ -112,8 +112,8 @@ for task in tasks[project_name]:
 
                     print(model_name)
                     
-                    #if Path(file.parent,f'best_{n_models}_{model_name}_test.csv').exists():
-                    #    continue
+                    if Path(file.parent,f'best_{n_models}_{model_name}_test.csv').exists():
+                        continue
                     
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     results = results.sort_values(by=[f'{extremo}_{scoring}'],ascending=ascending).reset_index(drop=True)
