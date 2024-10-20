@@ -98,7 +98,7 @@ models_dict = {
     'lr':LR,
     'svc':SVC,
     'knn':KNN,
-    #'xgb':xgboost
+    'xgb':xgboost
     }
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -232,7 +232,7 @@ for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dim
 
             with open(Path(path_to_save_final,'config.json'),'w') as f:
                 json.dump(config,f)
-                
+
             models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,thresholds,ID_train,cmatrix=cmatrix,parallel=parallel,problem_type='clf')        
         
             all_models = pd.DataFrame()

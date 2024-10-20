@@ -24,6 +24,8 @@ from utils import *
 
 mean_std = True
 
+test_size = .3
+
 project_name = 'GeroApathy'
 
 stats_exclude = ['skewness','kurtosis','min','max'] if mean_std else []
@@ -32,7 +34,7 @@ parallel = True
 
 l2ocv = False
 
-project_name = 'GeroApathy_classifier'
+project_name = 'GeroApathy'
 data_file = 'features_data.csv'
 
 tasks = {'GeroApathy':['Fugu']}
@@ -68,8 +70,6 @@ imputer = KNNImputer
 
 shuffle_labels = False
 hyp_tuning_list = [True]
-
-test_size = .3
 
 n_seeds_test_ = 1
 n_seeds_train = 10
@@ -154,7 +154,7 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
 
             config = {'n_iter':n_iter,
                 'test_size':test_size,
-                'bootstrap':n_boot,
+                'stratify':stratify,
                 'n_feature_sets': n_iter_features,
                 'feature_sample_ratio':feature_sample_ratio,
                 'cmatrix':str(cmatrix)}
