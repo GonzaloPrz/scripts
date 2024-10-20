@@ -34,7 +34,6 @@ parallel = True
 
 l2ocv = False
 
-project_name = 'GeroApathy_classifier'
 data_file = {'GeroApathy':'all_data.csv'}
 
 tasks = {'GeroApathy':['Fugu']}
@@ -51,8 +50,8 @@ for ndim in range(1,len(single_dimensions[project_name])+1):
 
 stratify = False
 
-n_iter = 50
-n_iter_features = 50
+n_iter = 5
+n_iter_features = 5
 
 feature_sample_ratio = .5 
 
@@ -86,8 +85,6 @@ id_col = 'id'
 
 tasks = ['Fugu']
 
-test_size = 0.3
-
 n_seeds_test = 1
 random_seeds_test = np.arange(n_seeds_test)
 
@@ -96,7 +93,7 @@ n_seeds_train = 10
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 10
+    n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
 random_seeds_train = np.arange(n_seeds_train)
@@ -123,7 +120,7 @@ data = pd.read_csv(Path(data_dir,data_file[project_name])) #CHANGE THIS LINE
 
 for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensions):
     held_out = True if hyp_tuning else False
-    for y_label in y_labels:
+    for y_label in y_labels[project_name]:
         print(task,y_label)
         if shuffle_labels:
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
@@ -143,8 +140,6 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
             
             path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,'mean_std',y_label,'hyp_opt','feature_selection')
             path_to_save = Path(str(path_to_save).replace('mean_std','')) if not mean_std else path_to_save
-            path_to_save = Path(path_to_save,'bootstrap') if n_boot and 'bootstrap' not in str(path_to_save) else path_to_save
-            path_to_save = Path(str(path_to_save).replace(f'{n_seeds_test}_seeds_test','')) if test_size == 0 else path_to_save
             
             path_to_save.mkdir(parents=True,exist_ok=True)
 
@@ -208,10 +203,13 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                         feature_sets.append(list(comb))
                 n_iter_features = len(feature_sets)
             else:
-                feature_sets = [np.unique(np.random.choice(features,int(np.sqrt(data.shape[0]*(1-test_size))),replace=True)) for _ in range(n_iter_features)]
+                feature_sets = [np.unique([np.random.choice(features,int(feature_sample_ratio*data.shape[0]*(1-test_size)),replace=True) for _ in range(n_iter_features)])]
             
             feature_sets.append(features)
             
+            #Drop duplicate feature sets:
+            feature_sets = [list(x) for x in set(tuple(x) for x in feature_sets)]
+
             for random_seed_test in random_seeds_test:
             
                 if test_size > 0:
@@ -239,7 +237,7 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,[None],ID_train,parallel=parallel,problem_type='reg')        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,parallel=parallel,problem_type='reg')        
             
                 all_models = pd.DataFrame()
                 
