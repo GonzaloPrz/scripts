@@ -25,13 +25,13 @@ ascending = True if 'norm' in scoring else False
 
 feature_selection_list = [True]
 bootstrap_list = [True]
-kfold_folder = '10_folds'
+kfold_folder = '5_folds'
 n_seeds_train = 10
 n_seeds_test = 1
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path(Path.home(),'gonza','results',project_name)
 
-best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{kfold_folder}_hyp_opt.csv')) 
+best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv')) 
 
 tasks = best_classifiers['task'].unique()
 y_label = 'target'
@@ -43,14 +43,9 @@ for task,feature_selection,bootstrap in itertools.product(tasks,feature_selectio
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
-        path = Path(results_dir,task,dimension,scaler_name,'all_features',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt','feature_selection','bootstrap')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','feature_selection')
         if not feature_selection:
             path = str(path).replace('feature_selection','')
-        if not bootstrap:
-            path = str(path).replace('bootstrap','')
-
-        if not Path(path).exists():
-            path = str(path).replace('all_features','')
 
         random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and folder.name != 'final_model']
         
@@ -64,20 +59,33 @@ for task,feature_selection,bootstrap in itertools.product(tasks,feature_selectio
 
             best_model = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension) & (best_classifiers['random_seed_test'] == int(random_seed_test.replace('random_seed_','')))]['model_type'].values[0] if random_seed_test != '' else best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
         
-        best_classifier = pd.read_csv(Path(path_to_data,f'all_performances_{best_model}.csv')).sort_values(f'{extremo}_{scoring}_bootstrap',ascending=False).reset_index(drop=True).head(1)
+        best_classifier = pd.read_csv(Path(path_to_data,f'all_models_{best_model}_dev.csv')).sort_values(f'{extremo}_{scoring}',ascending=False).reset_index(drop=True).head(1)
 
         all_features = [col for col in best_classifier.columns if any(x in col for x in task.split('_'))]
         features = [col for col in all_features if best_classifier[col].values[0] == 1]
-        params = [col for col in best_classifier.columns if all(x not in col for x in  all_features + ['inf','sup','mean'] + [y_label,id_col,'TIV','Edad','Lateralidad','Sexo','Educacion','Resonador'])]
+        params = [col for col in best_classifier.columns if all(x not in col for x in  all_features + ['inf','sup','mean'] + [y_label,id_col,'Unnamed: 0','TIV','Edad','Lateralidad','Sexo','Educacion','Resonador'])]
 
+        if task == 'P':
+            params = list(set(params) - set([x for x in params if 'Animales_' in x]))
+        elif task == 'Animales':
+            params = list(set(params) - set([x for x in params if 'P_' in x]))
+        elif dimension == 'neuropsico':
+            params = list(set(params) - set([x for x in params if 'mmse' in x]))
         params_dict = {param:best_classifier.loc[0,param] for param in params if str(best_classifier.loc[0,param]) != 'nan'}
         
         if 'gamma' in params_dict.keys():
-            params_dict['gamma'] = float(params_dict['gamma'])
+            try: 
+                params_dict['gamma'] = float(params_dict['gamma'])
+            except:
+                pass
+
+        if 'random_state' in params_dict.keys():
+            params_dict['random_state'] = int(params_dict['random_state'])
+        
         try:
             model = Model(models_dict[best_model](**params_dict),StandardScaler,KNNImputer)
         except:
-            params = list(set(params) - set([x for x in params if 'Animales' in x or 'mmse' in x]))
+            params = list(set(params) - set([x for x in params if any(x in params for x in ['Unnamed: 0'])]))
             params_dict = {param:best_classifier.loc[0,param] for param in params if str(best_classifier.loc[0,param]) != 'nan'}
             model = Model(models_dict[best_model](**params_dict),StandardScaler,KNNImputer)
         
@@ -94,7 +102,7 @@ for task,feature_selection,bootstrap in itertools.product(tasks,feature_selectio
         pickle.dump(scaler,open(Path(path_to_data,'final_model',f'scaler_{task}_{dimension}.pkl'),'wb'))
         pickle.dump(imputer,open(Path(path_to_data,'final_model',f'imputer_{task}_{dimension}.pkl'),'wb'))
 
-        if hasattr(model.model,'kernel'):
+        if best_model == 'svc':
             model.model.kernel = 'linear'
         
         model.train(X_dev[features],y_dev)
@@ -107,3 +115,12 @@ for task,feature_selection,bootstrap in itertools.product(tasks,feature_selectio
             feature_importance = np.abs(model.model.coef_[0])
             coef = pd.DataFrame({'feature':features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
             coef.to_csv(Path(path_to_data,'final_model',f'feature_importance_{task}_{dimension}.csv'),index=False)
+        elif hasattr(model.model,'get_booster'):
+            feature_importance = list(model.model.get_booster().get_score(importance_type='weight').values())
+            try:
+                feature_importance = pd.DataFrame({'feature':features,'importance':feature_importance/np.sum(feature_importance)}).sort_values('importance',ascending=False)
+                feature_importance.to_csv(Path(path_to_data,'final_model',f'feature_importance_{task}_{dimension}.csv'),index=False)
+            except:
+                pass       
+        else:
+            print(task,dimension,f'No feature importance available for {best_model}')

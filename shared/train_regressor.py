@@ -24,49 +24,63 @@ from utils import *
 
 mean_std = True
 
-cmatrix = None
-feature_importance = True 
-shuffle_labels = False
-held_out_default = False
-hyp_tuning_list = [True]
-metrics_names = ['r2_score','mean_squared_error','mean_absolute_error']
+project_name = 'GeroApathy'
+
+stats_exclude = ['skewness','kurtosis','min','max'] if mean_std else []
+
+parallel = True
+
 l2ocv = False
 
-n_boot = 0
+project_name = 'GeroApathy_classifier'
+data_file = 'features_data.csv'
+
+tasks = {'GeroApathy':['Fugu']}
+
+single_dimensions = {'GeroApathy':['voice-quality','pitch','talking_intervals','mfcc','formants']}
+
+y_labels = {'GeroApathy': ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
+
+dimensions = list()
+
+for ndim in range(1,len(single_dimensions[project_name])+1):
+    for dimension in itertools.combinations(single_dimensions[project_name],ndim):
+        dimensions.append('__'.join(dimension))
+
+stratify = False
 
 n_iter = 50
 n_iter_features = 50
+
 feature_sample_ratio = .5 
 
 scaler_name = 'StandardScaler'
+
+id_col = 'id'
+
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
 elif scaler_name == 'MinMaxScaler':
     scaler = MinMaxScaler
 else:
     scaler = None
-
 imputer = KNNImputer
 
-project_name = 'GeroApathy'
+shuffle_labels = False
+hyp_tuning_list = [True]
 
-y_labels = ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']
-#y_labels = ['MiniSea_MiniSea_Total_EkmanFaces','MiniSea_MiniSea_Total_FauxPas']
+test_size = .3
 
-stats_exclude = ['skewness','kurtosis','min','max'] if mean_std else []
+n_seeds_test_ = 1
+n_seeds_train = 10
 
-single_dimensions = ['voice-quality',
-                    'pitch',
-                     'talking_intervals',
-                     'mfcc',
-                     'formants'
-                     ]
+if l2ocv:
+    kfold_folder = 'l2ocv'
+else:
+    n_folds = 5
+    kfold_folder = f'{n_folds}_folds'
 
-dimensions = list()
-
-for ndim in range(1,len(single_dimensions)+1):
-    for dimension in itertools.combinations(single_dimensions,ndim):
-        dimensions.append('__'.join(dimension))
+random_seeds_train = np.arange(n_seeds_train)
 
 id_col = 'id'
 

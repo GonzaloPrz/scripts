@@ -79,7 +79,7 @@ held_out_default = False
 hyp_tuning_list = [True]
 metrics_names = ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy']
 
-test_size = .5
+test_size = .3
 
 n_seeds_test_ = 1
 n_seeds_train = 10
@@ -92,11 +92,13 @@ else:
 
 random_seeds_train = np.arange(n_seeds_train)
 
+thresholds = [0.5]
+
 models_dict = {
     'lr':LR,
     'svc':SVC,
     'knn':KNN,
-    'xgb':xgboost
+    #'xgb':xgboost
     }
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -228,7 +230,10 @@ for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dim
             path_to_save_final.mkdir(parents=True,exist_ok=True)
             assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-            models,outputs,y_pred,y_dev,IDs_dev = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,cmatrix=cmatrix,parallel=parallel,scoring='roc_auc',problem_type='clf')        
+            with open(Path(path_to_save_final,'config.json'),'w') as f:
+                json.dump(config,f)
+                
+            models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,thresholds,ID_train,cmatrix=cmatrix,parallel=parallel,problem_type='clf')        
         
             all_models = pd.DataFrame()
             

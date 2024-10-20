@@ -109,6 +109,7 @@ for task in tasks[project_name]:
                         continue
                     
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
+                    results_test = pd.DataFrame()
                     
                     for r, row in tqdm.tqdm(results.iterrows()):
                         results_r = row.dropna().to_dict()
