@@ -21,7 +21,7 @@ from utils import *
 from expected_cost.ec import *
 from psrcal import *
 
-project_name = 'MCI_classifier'
+project_name = 'tell_classifier'
 l2ocv = False
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -40,7 +40,7 @@ else:
 hyp_opt_list = [True]
 feature_selection_list = [True]
 
-boot_test = 100
+boot_test = 50
 boot_train = 0
 
 n_seeds_test = 1
@@ -66,12 +66,6 @@ metrics_names = ['roc_auc','accuracy','f1','recall','norm_expected_cost','norm_c
 
 random_seeds_test = np.arange(n_seeds_test)
 
-n_models = 100
-
-scoring = 'norm_expected_cost'
-extremo = 'sup' if 'norm' in scoring else 'inf'
-ascending = True if 'norm' in scoring else False
-
 for task in tasks[project_name]:
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
@@ -91,7 +85,7 @@ for task in tasks[project_name]:
                 random_seeds_test = ['']
                 
             for random_seed_test in random_seeds_test:
-                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'best_performances' in file.stem and 'test' not in file.stem]
+                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev' in file.stem]
 
                 X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
 
@@ -107,18 +101,16 @@ for task in tasks[project_name]:
 
                 all_features = [col for col in X_dev.columns if any(x in col for x in task.split('__'))]
                 for file in files:
-                    model_name = file.stem.split('_')[-1]
+                    model_name = file.stem.split('_')[-2]
 
                     print(model_name)
                     
-                    if Path(file.parent,f'best_{n_models}_{model_name}_test.csv').exists():
+                    if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
                         continue
                     
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
-                    results = results.sort_values(by=[f'{extremo}_{scoring}'],ascending=ascending).reset_index(drop=True)
-                    results_test = pd.DataFrame()
                     
-                    for r, row in tqdm.tqdm(results.iloc[:n_models,].iterrows()):
+                    for r, row in tqdm.tqdm(results.iterrows()):
                         results_r = row.dropna().to_dict()
                                         
                         params = dict((key,value) for (key,value) in results_r.items() if all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0']))
@@ -156,7 +148,7 @@ for task in tasks[project_name]:
                         
                         results_test.loc[len(results_test.index),:] = result_append
 
-                    pd.DataFrame(results_test).to_csv(Path(file.parent,f'best_{n_models}_{model_name}_test.csv'),index=False)
+                    pd.DataFrame(results_test).to_csv(Path(file.parent,f'all_models_{model_name}_test.csv'),index=False)
                     
                     with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
                         pickle.dump(y_test,f)
