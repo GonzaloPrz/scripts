@@ -11,7 +11,6 @@ from sklearn.impute import KNNImputer
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier 
 

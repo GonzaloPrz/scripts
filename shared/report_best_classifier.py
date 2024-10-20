@@ -8,22 +8,30 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-project_name = 'MCI_classifier'
+project_name = 'Proyecto_Ivo'
 l2ocv = False
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales',
-                           'fas__animales',
-                            'grandmean'
-                           ]}
+         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
+         'Proyecto_Ivo':['Animales','P','Animales_P','cog','brain','AAL','conn']}
 
 scaler_name = 'StandardScaler'
 
+metrics_names = ['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1']
+
 best_classifiers = pd.DataFrame(columns=['task','dimension','model_type','random_seed_test',
-                                         'AUC_dev',
-                                         'AUC_holdout',
+                                         'roc_auc_dev',
+                                         'roc_auc_holdout',
                                          'accuracy_dev',
-                                         'accuracy_holdout'])
+                                         'accuracy_holdout',
+                                         'norm_expected_cost_dev',
+                                         'norm_expected_cost_holdout',
+                                         'norm_cross_entropy_dev',
+                                         'norm_cross_entropy_holdout',
+                                         'recall_dev',
+                                         'recall_holdout',
+                                         'f1_dev',
+                                         'f1_holdout'])
 
 pd.options.mode.copy_on_write = True 
 
@@ -60,7 +68,7 @@ for feature_selection in feature_selection_list:
 
             for random_seed_test in random_seeds_test:
                 
-                files = [file for file in Path(path,random_seed_test).iterdir() if 'best_performances_' in file.stem and 'svc' not in file.stem]
+                files = [file for file in Path(path,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev' in file.stem]
                 best = None
                 for file in files:
                     
@@ -70,39 +78,45 @@ for feature_selection in feature_selection_list:
                     if best is None:
                         best = df.loc[0,:]
 
-                        model_type = file.stem.split('_')[-1].replace('.csv','')
+                        model_type = file.stem.split('_')[-2]
                         best['model_type'] = model_type
                         best_file = file
                     else:
                         if new_best(best[f'{extremo}_{scoring}'],df.loc[0,f'{extremo}_{scoring}'],ascending):
                             best = df.loc[0,:]
-                            model_type = file.stem.split('_')[-1].replace('.csv','')
+                            model_type = file.stem.split('_')[-2]
                             best['model_type'] = model_type
                             best_file = file
                 if best is None:
                     continue
                 
                 print(best['model_type'])
-                AUC = f'[ {np.round(best[f"inf_roc_auc"],2)}, {np.round(best[f"mean_roc_auc"],2)}, {np.round(best[f"sup_roc_auc"],2)}]'
+                for metric in metrics_names:
+                    mean = np.round(best[f'mean_{metric}'],2)
+                    inf = np.round(best[f'inf_{metric}'],2)
+                    sup = np.round(best[f'sup_{metric}'],2)
+                    best[f'{metric}_dev'] = f'[ {inf}, {mean}, {sup}]'
                 
-                accuracy = f'[ {np.round(best["inf_accuracy"],2)}, {np.round(best["mean_accuracy"],2)}, {np.round(best["sup_accuracy"],2)}]'
+                if Path(best_file.parent,f'all_models_{best["model_type"]}_test.csv').exists():
                     
-                AUC_test = 'NA'
-                accuracy_test = 'NA'
-                if Path(best_file.parent,f'best_10_{best["model_type"]}_test.csv').exists():
-                    
-                    best_test = pd.read_csv(Path(best_file.parent,f'best_10_{best["model_type"]}_test.csv')).loc[0,:]
-                    AUC_test = f'[ {np.round(best_test[f"inf_roc_auc_test"],2)}, {np.round(best_test[f"mean_roc_auc_test"],2)}, {np.round(best_test[f"sup_roc_auc_test"],2)}]'
-                
-                    accuracy_test = f'[ {np.round(best_test["inf_accuracy_test"],2)}, {np.round(best_test["mean_accuracy_test"],2)}, {np.round(best_test["sup_accuracy_test"],2)}]'
-                
+                    best_test = pd.read_csv(Path(best_file.parent,f'all_models_{best["model_type"]}_test.csv')).sort_values(by=f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).loc[0,:]
+                    for metric in metrics_names:
+                        mean = np.round(best_test[f'mean_{metric}_test'],2)
+                        inf = np.round(best_test[f'inf_{metric}_test'],2)
+                        sup = np.round(best_test[f'sup_{metric}_test'],2)
+                        best[f'{metric}_holdout'] = f'[ {inf}, {mean}, {sup}]'
+                else:
+                    best_test = {}
+                    for metric in metrics_names:
+                        best[f'{metric}_holdout'] = '[]'
+        
                 model_type = file
-                best_classifiers.loc[len(best_classifiers),:] = pd.Series({'task':task,'dimension':dimension,'model_type':best['model_type'],'random_seed_test':random_seed_test,
-                                                                            'AUC_dev':AUC,
-                                                                            'AUC_holdout':AUC_test,
-                                                                            'accuracy_dev':accuracy,
-                                                                            'accuracy_holdout':accuracy_test,
-                                                                            })
+                
+                dict_append = {'task':task,'dimension':dimension,'model_type':best['model_type'],'random_seed_test':random_seed_test}
+                dict_append.update(dict((f'{metric}_dev',best[f'{metric}_dev']) for metric in metrics_names))
+                dict_append.update(dict((f'{metric}_holdout',best[f'{metric}_holdout']) for metric in metrics_names))
+
+                best_classifiers.loc[len(best_classifiers),:] = pd.Series(dict_append)
 
         filename_to_save = f'best_classifiers_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection.csv'
 

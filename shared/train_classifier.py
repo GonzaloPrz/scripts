@@ -228,13 +228,9 @@ for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dim
             path_to_save_final.mkdir(parents=True,exist_ok=True)
             assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-            if Path(path_to_save_final,f'outputs_best_model_{model}.pkl').exists() or Path(path_to_save_final,f'outputs_{model}.pkl').exists():
-                continue
-
             models,outputs,y_pred,y_dev,IDs_dev = BBCCV(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,cmatrix=cmatrix,parallel=parallel,scoring='roc_auc',problem_type='clf')        
         
             all_models = pd.DataFrame()
-            all_features = [col for col in X_train.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
             
             for model_index in range(models.shape[0]):
                 model_ = {}
