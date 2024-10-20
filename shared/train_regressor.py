@@ -35,7 +35,7 @@ parallel = True
 l2ocv = False
 
 project_name = 'GeroApathy_classifier'
-data_file = 'features_data.csv'
+data_file = {'GeroApathy':'all_data.csv'}
 
 tasks = {'GeroApathy':['Fugu']}
 
@@ -113,21 +113,17 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 
 results_dir = Path(str(data_dir).replace('data','results'))
 
-neuro_data = pd.read_csv(Path(data_dir,f'nps_data_filtered_no_missing.csv'))
-
 scoring = 'r2_score'
 
 extremo = 'sup' if 'error' in scoring else 'inf'
 
 ascending = True if 'error' in scoring else False
 
-data_features = pd.read_csv(Path(data_dir,'features_data.csv')) #CHANGE THIS LINE
+data = pd.read_csv(Path(data_dir,data_file[project_name])) #CHANGE THIS LINE
 
 for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensions):
-    held_out = True if hyp_tuning else held_out_default
+    held_out = True if hyp_tuning else False
     for y_label in y_labels:
-        data = pd.merge(data_features,neuro_data,on=id_col,how='inner')
-
         print(task,y_label)
         if shuffle_labels:
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
