@@ -126,8 +126,7 @@ for task in tasks[project_name]:
                         if 'random_state' in params.keys():
                             params['random_state'] = int(params['random_state'])
                         
-                        mod = Model(models_dict[model_name](**params),scaler,imputer)
-                        metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(mod,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test)
+                        metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(models_dict[model_name],params,scaler,imputer,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test)
 
                         result_append = params.copy()
                         result_append.update(features_dict)
