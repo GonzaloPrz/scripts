@@ -50,8 +50,8 @@ for ndim in range(1,len(single_dimensions[project_name])+1):
 
 stratify = False
 
-n_iter = 5
-n_iter_features = 5
+n_iter = 50
+n_iter_features = 50
 
 feature_sample_ratio = .5 
 
@@ -82,8 +82,6 @@ else:
 random_seeds_train = np.arange(n_seeds_train)
 
 id_col = 'id'
-
-tasks = ['Fugu']
 
 n_seeds_test = 1
 random_seeds_test = np.arange(n_seeds_test)
@@ -117,8 +115,10 @@ extremo = 'sup' if 'error' in scoring else 'inf'
 ascending = True if 'error' in scoring else False
 
 data = pd.read_csv(Path(data_dir,data_file[project_name])) #CHANGE THIS LINE
-
-for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensions):
+if data.shape[0] == 0:
+    data = pd.read_csv(Path(data_dir,data_file[project_name]),sep=';') #CHANGE THIS LINE
+    
+for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks[project_name],dimensions):
     held_out = True if hyp_tuning else False
     for y_label in y_labels[project_name]:
         print(task,y_label)
@@ -196,19 +196,24 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 num_comb += math.comb(len(features),k+1)
 
             feature_sets = list()
-            
+
             if n_iter_features > num_comb:
-                for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size))-1,len(features)-1))):
-                    for comb in itertools.combinations(features,k+1):
+                for k in range(np.min((int(feature_sample_ratio * data.shape[0] * (1 - test_size)) - 1, len(features) - 1))):
+                    for comb in itertools.combinations(features, k + 1):
                         feature_sets.append(list(comb))
+                
+                # Remove duplicates by converting to a set and back to list
+                feature_sets = [list(t) for t in set(tuple(sorted(fs)) for fs in feature_sets)]
+                
                 n_iter_features = len(feature_sets)
             else:
-                feature_sets = [np.unique([np.random.choice(features,int(feature_sample_ratio*data.shape[0]*(1-test_size)),replace=True) for _ in range(n_iter_features)])]
-            
+                feature_sets = [np.unique([np.random.choice(features, int(feature_sample_ratio * data.shape[0] * (1 - test_size)), replace=True) for _ in range(n_iter_features)], axis=0).tolist()]
+
+            # Add the full set of features
             feature_sets.append(features)
-            
-            #Drop duplicate feature sets:
-            feature_sets = [list(x) for x in set(tuple(x) for x in feature_sets)]
+
+            # Optionally remove duplicates from the final list
+            feature_sets = [list(t) for t in set(tuple(sorted(fs)) for fs in feature_sets)]
 
             for random_seed_test in random_seeds_test:
             
@@ -237,7 +242,7 @@ for hyp_tuning,task,dimension in itertools.product(hyp_tuning_list,tasks,dimensi
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,parallel=parallel,problem_type='reg')        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train[features],y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,parallel=parallel,problem_type='reg')        
             
                 all_models = pd.DataFrame()
                 
