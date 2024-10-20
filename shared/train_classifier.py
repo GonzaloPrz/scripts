@@ -204,6 +204,8 @@ for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dim
             feature_sets = [np.unique(np.random.choice(features,int(feature_sample_ratio*data.shape[0]*(1-test_size)),replace=True)) for _ in range(n_iter_features)]
         
         feature_sets.append(features)
+        #Drop duplicate feature sets:
+        feature_sets = [list(x) for x in set(tuple(x) for x in feature_sets)]
 
         for random_seed_test in random_seeds_test:
                                                                                                                                                                                                                                                                                                                             
