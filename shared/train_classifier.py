@@ -34,7 +34,9 @@ parallel = True
 l2ocv = False
 
 project_name = 'MCI_classifier'
-data_file = 'features_data.csv'
+
+data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
+            'MCI_classifier':'features_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean']}
@@ -106,7 +108,7 @@ results_dir = Path(str(data_dir).replace('data','results'))
 
 for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dimensions):
     print(task,dimension)
-    data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
+    data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
     if shuffle_labels:
         data[y_label] = pd.Series(np.random.permutation(data[y_label]))
@@ -235,7 +237,7 @@ for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dim
             with open(Path(path_to_save_final,'config.json'),'w') as f:
                 json.dump(config,f)
 
-            models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,thresholds,ID_train,cmatrix=cmatrix,parallel=parallel,problem_type='clf')        
+            models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds,cmatrix=cmatrix,parallel=parallel,problem_type='clf')        
         
             all_models = pd.DataFrame()
             
