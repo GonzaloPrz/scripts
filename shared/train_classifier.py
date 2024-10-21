@@ -196,23 +196,23 @@ for y_label,task,dimension in itertools.product(y_labels,tasks[project_name],dim
             num_comb += math.comb(len(features),k+1)
 
         feature_sets = list()
-        
+
         if n_iter_features > num_comb:
+            # Generate combinations of features with different lengths
             for k in range(np.min((int(feature_sample_ratio * data.shape[0] * (1 - test_size)) - 1, len(features) - 1))):
                 for comb in itertools.combinations(features, k + 1):
                     feature_sets.append(list(comb))
-            
-            # Remove duplicates by converting to a set and back to list
-            feature_sets = [list(t) for t in set(tuple(sorted(fs)) for fs in feature_sets)]
-            
-            n_iter_features = len(feature_sets)
         else:
-            feature_sets = [np.unique([np.random.choice(features, int(feature_sample_ratio * data.shape[0] * (1 - test_size)), replace=True) for _ in range(n_iter_features)], axis=0).tolist()]
+            # Generate random feature samples
+            feature_sets = [
+                list(np.unique(np.random.choice(features, int(feature_sample_ratio * data.shape[0] * (1 - test_size)), replace=True)))
+                for _ in range(n_iter_features)
+            ]
 
         # Add the full set of features
         feature_sets.append(features)
 
-        # Optionally remove duplicates from the final list
+        # Remove duplicates by converting to set and back to list of lists
         feature_sets = [list(t) for t in set(tuple(sorted(fs)) for fs in feature_sets)]
 
         for random_seed_test in random_seeds_test:

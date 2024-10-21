@@ -16,16 +16,51 @@ from xgboost import XGBClassifier
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
+def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test):
+    results_r = row.dropna().to_dict()
+                                        
+    params = dict((key,value) for (key,value) in results_r.items() if all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold']))
+
+    features = [col for col in all_features if results_r[col] == 1]
+    features_dict = {col:results_r[col] for col in all_features}
+
+    if 'gamma' in params.keys():
+        try: 
+            params['gamma'] = float(params['gamma'])
+        except:
+            pass
+    if 'random_state' in params.keys():
+        params['random_state'] = int(params['random_state'])
+    
+    metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(model_class,params,scaler,imputer,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test)
+
+    result_append = params.copy()
+    result_append.update(features_dict)
+
+    for metric in metrics_names:
+        mean, inf, sup = conf_int_95(metrics_test_bootstrap[metric])
+
+        result_append[f'inf_{metric}_test'] = np.round(inf,2)
+        result_append[f'mean_{metric}_test'] = np.round(mean,2)
+        result_append[f'sup_{metric}_test'] = np.round(sup,2)
+
+        result_append[f'inf_{metric}_dev'] = np.round(results_r[f'inf_{metric}'],2)
+        result_append[f'mean_{metric}_dev'] = np.round(results_r[f'mean_{metric}'],2)
+        result_append[f'sup_{metric}_dev'] = np.round(results_r[f'sup_{metric}'],2)
+    
+    return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
+
 from utils import *
 
 from expected_cost.ec import *
 from psrcal import *
 
-project_name = 'tell_classifier'
+project_name = 'MCI_classifier'
 l2ocv = False
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean']}
+         'MCI_classifier':['fas',#'animales','fas__animales','grandmean'
+                           ]}
 
 y_labels = ['target']
 
@@ -105,60 +140,26 @@ for task in tasks[project_name]:
 
                     print(model_name)
                     
-                    if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                        continue
+                    #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                    #    continue
                     
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     results_test = pd.DataFrame()
                     
-                    for r, row in tqdm.tqdm(results.iterrows()):
-                        results_r = row.dropna().to_dict()
-                                        
-                        params = dict((key,value) for (key,value) in results_r.items() if all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0']))
-
-                        features = [col for col in all_features if results_r[col] == 1]
-                        features_dict = {col:results_r[col] for col in all_features}
-
-                        if 'gamma' in params.keys():
-                            try: 
-                                params['gamma'] = float(params['gamma'])
-                            except:
-                                pass
-                        if 'random_state' in params.keys():
-                            params['random_state'] = int(params['random_state'])
-                        
-                        metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(models_dict[model_name],params,scaler,imputer,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test)
-
-                        result_append = params.copy()
-                        result_append.update(features_dict)
-                        
-                        for metric in metrics_names:
-                            mean, inf, sup = conf_int_95(metrics_test_bootstrap[metric])
-                            
-                            result_append[f'inf_{metric}_test'] = np.round(inf,2)
-                            result_append[f'mean_{metric}_test'] = np.round(mean,2)
-                            result_append[f'sup_{metric}_test'] = np.round(sup,2)
-                            
-                            result_append[f'inf_{metric}_dev'] = np.round(results_r[f'inf_{metric}'],2)
-                            result_append[f'mean_{metric}_dev'] = np.round(results_r[f'mean_{metric}'],2)
-                            result_append[f'sup_{metric}_dev'] = np.round(results_r[f'sup_{metric}'],2)
-
-                        if results_test.empty:
-                            results_test = pd.DataFrame(columns=result_append.keys())
-                        
-                        results_test.loc[len(results_test.index),:] = result_append
+                    results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[model_name],row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test) for r,row in results.iloc[:10].iterrows())
+                    
+                    results_test = pd.concat([pd.DataFrame(result[0],index=[r]) for r,result in enumerate(results)])
+                    outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
+                    y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
+                    y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
+                    IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
 
                     pd.DataFrame(results_test).to_csv(Path(file.parent,f'all_models_{model_name}_test.csv'),index=False)
                     
                     with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
-                        pickle.dump(y_test,f)
+                        pickle.dump(y_true_bootstrap,f)
                     with open(Path(file.parent,f'y_pred_bootstrap_{model_name}.pkl'),'wb') as f:
                         pickle.dump(y_pred_bootstrap,f)
                     
                     with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:
                         pickle.dump(IDs_test_bootstrap,f)
-
-                    scores_df = {'ID':IDs_test_bootstrap.flatten(),'y_true':y_true_bootstrap.flatten(),'output':outputs_bootstrap[:,1].flatten(),'y_pred':y_pred_bootstrap.flatten()}
-                    scores_df = pd.DataFrame(scores_df).sort_values(by='ID',ascending=True)
-                    scores_df.drop_duplicates(subset='ID',keep='first',inplace=True)
-                    scores_df.to_csv(Path(file.parent,f'scores_test_{model_name}.csv'))

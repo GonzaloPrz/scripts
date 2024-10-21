@@ -10,15 +10,31 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
+def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratify=None, cmatrix=None, priors=None, problem_type='clf'):
+    assert samples.shape[0] == targets.shape[0]
+    indices = np.arange(targets.shape[0])
+
+    sel_indices = resample(indices, replace=True, n_samples=len(samples), stratify=stratify,random_state=random_state)
+    
+    if problem_type == 'clf':
+        metrics, y_pred = get_metrics_clf(samples[sel_indices], targets[sel_indices], metrics_names, cmatrix, priors)
+    else:
+        metrics = get_metrics_reg(samples[sel_indices], targets[sel_indices], metrics_names)
+        y_pred = samples[sel_indices]
+    
+    return samples[sel_indices],targets[sel_indices],y_pred,metrics
+
 parallel = True
 
-project_name = 'Proyecto_Ivo'
+project_name = 'MCI_classifier'
 l2ocv = False
 
 models = ['lr','svc','knn','xgb']
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
+         'MCI_classifier':['fas',
+                           #'animales','fas__animales','grandmean'
+                           ],
          'Proyecto_Ivo':['Animales','P','Animales_P','cog','brain','AAL','conn']}
 
 single_dimensions = {'tell_classifier':['voice-quality',
@@ -75,7 +91,8 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels,t
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
             outputs_bootstrap = np.expand_dims(np.empty(outputs.shape),axis=0)
-            y_dev_bootstrap = np.expand_dims(np.empty(y_dev.shape,dtype=y_dev.dtype),axis=0)
+            y_dev_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
+            y_pred_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
 
             metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names)
 
@@ -84,26 +101,23 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels,t
                     delayed(lambda b, model_index,r: (
                         b, 
                         model_index, r,
-                        create_bootstrap_set(outputs[model_index,r], y_dev[r], b,stratify=y_dev[r])
+                        get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names,b,stratify=y_dev[r])
                     ))(b, model_index,r)
                     for b, model_index,r in itertools.product(range(n_boot), all_models.index,range(outputs.shape[1]))
                 )          
                 for b,model_index, r, result in tqdm.tqdm(results):
-
-                    metrics_,y_pred = get_metrics_clf(result[0], result[1], metrics_names, cmatrix, None)
-
                     for metric in metrics_names:
-                        metrics[metric][b,model_index,r] = metrics_[metric]
-                
+                        metrics[metric][b,model_index,r] = result[3][metric]
+                    y_pred_bootstrap[b,model_index,r,:] = result[2]
             else:
                 for b,model_index,r in itertools.product(range(n_boot),all_models.index,range(outputs.shape[1])):
-                    outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r],_ = create_bootstrap_set(outputs[model_index,r],y_dev[r],b,stratify=y_dev[r])
-
-                    metrics_,y_pred = get_metrics_clf(outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r], metrics_names, cmatrix, None)
+                    outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r],y_pred,metrics_ = get_metrics_bootstrap(outputs[model_index,r],y_dev[r],metrics_names,b,stratify=y_dev[r])
 
                     for metric in metrics_names:
-                        metrics[metric][b,model_index,r] = metrics_[metric]
+                        metrics[metric][b,model_index,r,:] = metrics_[metric]
                     
+                    y_pred_bootstrap[b,model_index,r,:] = y_pred
+
             for model_index in all_models.index:
                 for metric in metrics_names:
                     mean, inf, sup = conf_int_95(metrics[metric][:,model_index,:].squeeze())
