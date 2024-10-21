@@ -29,19 +29,39 @@ parallel = True
 project_name = 'MCI_classifier'
 l2ocv = False
 
-models = ['lr','svc','knn','xgb']
+models = {'MCI_classifier':['lr','svc','knn','xgb'],
+          'tell_classifier':['lr','svc','knn','xgb'],
+          'Proyecto_Ivo':['lr','svc','knn','xgb'],
+          'GeroApathy':['lasso','ridge','knn']
+            }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas',
-                           #'animales','fas__animales','grandmean'
+         'MCI_classifier':['fas','animales','fas__animales','grandmean'
                            ],
-         'Proyecto_Ivo':['Animales','P','Animales_P','cog','brain','AAL','conn']}
+         'Proyecto_Ivo':['Animales','P','Animales_P','cog','brain','AAL','conn'],
+         'GeroApathy':['Fugu']}
 
 single_dimensions = {'tell_classifier':['voice-quality',
                                         'talking-intervals','pitch'
                                         ],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':[]}
+                     'Proyecto_Ivo':[],
+                     'GeroApathy':[]}
+
+problem_type = {'tell_classifier':'clf',
+                'MCI_classifier':'clf',
+                'Proyecto_Ivo':'clf',
+                'GeroApathy':'reg'}
+
+metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                    'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                    'GeroApathy':['r2','mean_squared_error','mean_absolute_error']}
+
+y_labels = {'MCI_classifier':['target'],
+            'tell_classifier':['target'],
+            'Proyecto_Ivo':['target'],
+            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
 
 n_boot = 10
 
@@ -50,9 +70,7 @@ shuffle_labels = False
 held_out_default = False
 hyp_opt_list = [True]
 feature_selection_list = [True]
-metrics_names = ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy']
 
-y_labels = ['target']
 id_col = 'id'
 scaler_name = 'StandardScaler'
 
@@ -64,7 +82,7 @@ else:
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
-for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels,tasks[project_name],models,hyp_opt_list,feature_selection_list):    
+for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[project_name],tasks[project_name],models[project_name],hyp_opt_list,feature_selection_list):    
     
     dimensions = list()
 
@@ -101,7 +119,7 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels,t
                     delayed(lambda b, model_index,r: (
                         b, 
                         model_index, r,
-                        get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names,b,stratify=y_dev[r])
+                        get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names,b,stratify=y_dev[r],problem_type=problem_type[project_name])
                     ))(b, model_index,r)
                     for b, model_index,r in itertools.product(range(n_boot), all_models.index,range(outputs.shape[1]))
                 )          
