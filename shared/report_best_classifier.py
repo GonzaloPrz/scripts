@@ -46,7 +46,8 @@ y_label = 'target'
 
 feature_selection_list = [True]
 
-scoring = 'norm_expected_cost'
+scoring = 'norm_cross_entropy'
+
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
@@ -68,12 +69,17 @@ for feature_selection in feature_selection_list:
 
             for random_seed_test in random_seeds_test:
                 
-                files = [file for file in Path(path,random_seed_test).iterdir() if 'all_models_' in file.stem and 'test' in file.stem]
+                files = [file for file in Path(path,random_seed_test).iterdir() if 'all_models_' in file.stem and '_dev' in file.stem]
                 best = None
                 for file in files:
                     
                     df = pd.read_csv(file)
-                    df = df.sort_values(by=f'{extremo}_{scoring}',ascending=ascending).reset_index(drop=True)
+                    
+                    try: 
+                        df = df.sort_values(by=f'{extremo}_{scoring}',ascending=ascending)
+                    except: 
+                        continue
+                    
                     print(f'{file.stem.split("_")[-2]}:{df.loc[0,f"{extremo}_{scoring}"]}')
                     if best is None:
                         best = df.loc[0,:]
@@ -97,9 +103,9 @@ for feature_selection in feature_selection_list:
                     sup = np.round(best[f'sup_{metric}'],2)
                     best[f'{metric}_dev'] = f'[ {inf}, {mean}, {sup}]'
                 
-                if Path(best_file.parent,f'all_models_{best["model_type"]}_test.csv').exists():
+                if Path(best_file.parent,f'best_models_{scoring}_{best["model_type"]}_test.csv').exists():
                     
-                    best_test = pd.read_csv(Path(best_file.parent,f'all_models_{best["model_type"]}_test.csv')).sort_values(by=f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).loc[0,:]
+                    best_test = pd.read_csv(Path(best_file.parent,f'best_models_{scoring}_{best["model_type"]}_test.csv')).sort_values(by=f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).loc[0,:]
                     for metric in metrics_names:
                         mean = np.round(best_test[f'mean_{metric}_test'],2)
                         inf = np.round(best_test[f'inf_{metric}_test'],2)

@@ -24,7 +24,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
     
     return samples[sel_indices],targets[sel_indices],y_pred,metrics
 
-parallel = True
+parallel = False
 
 project_name = 'tell_classifier'
 l2ocv = False
@@ -132,7 +132,7 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
                     outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r],y_pred,metrics_ = get_metrics_bootstrap(outputs[model_index,r],y_dev[r],metrics_names[project_name],b,stratify=y_dev[r])
 
                     for metric in metrics_names[project_name]:
-                        metrics[metric][b,model_index,r,:] = metrics_[metric]
+                        metrics[metric][b,model_index,r] = metrics_[metric]
                     
                     y_pred_bootstrap[b,model_index,r,:] = y_pred
 
@@ -142,4 +142,4 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
                     all_models.loc[model_index,f'inf_{metric}'] = inf
                     all_models.loc[model_index,f'mean_{metric}'] = mean
                     all_models.loc[model_index,f'sup_{metric}'] = sup
-            all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev.csv'))
+            all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_not_parallel.csv'))

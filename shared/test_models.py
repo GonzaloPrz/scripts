@@ -101,6 +101,10 @@ metrics_names = ['roc_auc','accuracy','f1','recall','norm_expected_cost','norm_c
 
 random_seeds_test = np.arange(n_seeds_test)
 
+scoring = 'norm_cross_entropy'
+extremo = 'sup' if 'norm' in scoring else 'inf'
+ascending = True if 'norm' in scoring else False
+
 for task in tasks[project_name]:
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
@@ -143,18 +147,23 @@ for task in tasks[project_name]:
                     #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
                     #    continue
                     
-                    results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
-                    results_test = pd.DataFrame()
+                    results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
+                    results_dev = results_dev.sort_values(by=f'{extremo}_{scoring}',ascending=ascending)
                     
-                    results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[model_name],row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,threshold=row['threshold']) for r,row in results.iterrows())
+                    results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
+                                                                                 X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,
+                                                                                 boot_test,threshold=results_dev.loc[r,'threshold']) 
+                                                                                 for r in results_dev.index)
                     
-                    results_test = pd.concat([pd.DataFrame(result[0],index=[r]) for r,result in enumerate(results)])
+                    results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
+                    results_test['index'] = results_dev.index
+
                     outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
                     y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
                     y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
                     IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
 
-                    pd.DataFrame(results_test).to_csv(Path(file.parent,f'all_models_{model_name}_test.csv'),index=False)
+                    results_test.to_csv(Path(file.parent,f'best_models_{scoring}_{model_name}_test.csv'))
                     
                     with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
                         pickle.dump(y_true_bootstrap,f)
