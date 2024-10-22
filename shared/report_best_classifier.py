@@ -8,7 +8,7 @@ def new_best(current_best,value,ascending):
     else:
         return value > current_best
     
-project_name = 'Proyecto_Ivo'
+project_name = 'tell_classifier'
 l2ocv = False
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -46,7 +46,7 @@ y_label = 'target'
 
 feature_selection_list = [True]
 
-scoring = 'roc_auc'
+scoring = 'norm_expected_cost'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
@@ -68,13 +68,13 @@ for feature_selection in feature_selection_list:
 
             for random_seed_test in random_seeds_test:
                 
-                files = [file for file in Path(path,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev' in file.stem]
+                files = [file for file in Path(path,random_seed_test).iterdir() if 'all_models_' in file.stem and 'test' in file.stem]
                 best = None
                 for file in files:
                     
                     df = pd.read_csv(file)
                     df = df.sort_values(by=f'{extremo}_{scoring}',ascending=ascending).reset_index(drop=True)
-                    print(f'{file.stem.split("_")[-1]}:{df.loc[0,f"{extremo}_{scoring}"]}')
+                    print(f'{file.stem.split("_")[-2]}:{df.loc[0,f"{extremo}_{scoring}"]}')
                     if best is None:
                         best = df.loc[0,:]
 
@@ -118,7 +118,7 @@ for feature_selection in feature_selection_list:
 
                 best_classifiers.loc[len(best_classifiers),:] = pd.Series(dict_append)
 
-        filename_to_save = f'best_classifiers_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection.csv'
+        filename_to_save = f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection.csv'
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')

@@ -16,7 +16,7 @@ from xgboost import XGBClassifier
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test):
+def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,threshold):
     results_r = row.dropna().to_dict()
                                         
     params = dict((key,value) for (key,value) in results_r.items() if all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold']))
@@ -32,7 +32,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     if 'random_state' in params.keys():
         params['random_state'] = int(params['random_state'])
     
-    metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(model_class,params,scaler,imputer,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test)
+    metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(model_class,params,scaler,imputer,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test,cmatrix=None,priors=None,problem_type='clf',threshold=threshold)
 
     result_append = params.copy()
     result_append.update(features_dict)
@@ -55,7 +55,7 @@ from utils import *
 from expected_cost.ec import *
 from psrcal import *
 
-project_name = 'MCI_classifier'
+project_name = 'tell_classifier'
 l2ocv = False
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -76,7 +76,7 @@ hyp_opt_list = [True]
 feature_selection_list = [True]
 
 boot_test = 50
-boot_train = 0
+boot_train = 10
 
 n_seeds_test = 1
 
@@ -146,7 +146,7 @@ for task in tasks[project_name]:
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     results_test = pd.DataFrame()
                     
-                    results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[model_name],row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test) for r,row in results.iloc[:10].iterrows())
+                    results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[model_name],row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,threshold=row['threshold']) for r,row in results.iterrows())
                     
                     results_test = pd.concat([pd.DataFrame(result[0],index=[r]) for r,result in enumerate(results)])
                     outputs_bootstrap = np.stack([result[1] for result in results],axis=0)

@@ -26,7 +26,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
 
 parallel = True
 
-project_name = 'MCI_classifier'
+project_name = 'tell_classifier'
 l2ocv = False
 
 models = {'MCI_classifier':['lr','svc','knn','xgb'],
@@ -63,7 +63,7 @@ y_labels = {'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
             'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
 
-n_boot = 10
+n_boot = 50
 
 cmatrix = None
 shuffle_labels = False
@@ -103,8 +103,8 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
         for random_seed in random_seeds:
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
         
-            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
-                continue
+            #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
+            #    continue
         
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
@@ -112,32 +112,32 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
             y_dev_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
             y_pred_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
 
-            metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names)
+            metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names[project_name])
 
             if parallel:
                 results = Parallel(n_jobs=-1)(
                     delayed(lambda b, model_index,r: (
                         b, 
                         model_index, r,
-                        get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names,b,stratify=y_dev[r],problem_type=problem_type[project_name])
+                        get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names[project_name],b,stratify=y_dev[r],problem_type=problem_type[project_name])
                     ))(b, model_index,r)
                     for b, model_index,r in itertools.product(range(n_boot), all_models.index,range(outputs.shape[1]))
                 )          
                 for b,model_index, r, result in tqdm.tqdm(results):
-                    for metric in metrics_names:
+                    for metric in metrics_names[project_name]:
                         metrics[metric][b,model_index,r] = result[3][metric]
                     y_pred_bootstrap[b,model_index,r,:] = result[2]
             else:
                 for b,model_index,r in itertools.product(range(n_boot),all_models.index,range(outputs.shape[1])):
-                    outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r],y_pred,metrics_ = get_metrics_bootstrap(outputs[model_index,r],y_dev[r],metrics_names,b,stratify=y_dev[r])
+                    outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r],y_pred,metrics_ = get_metrics_bootstrap(outputs[model_index,r],y_dev[r],metrics_names[project_name],b,stratify=y_dev[r])
 
-                    for metric in metrics_names:
+                    for metric in metrics_names[project_name]:
                         metrics[metric][b,model_index,r,:] = metrics_[metric]
                     
                     y_pred_bootstrap[b,model_index,r,:] = y_pred
 
             for model_index in all_models.index:
-                for metric in metrics_names:
+                for metric in metrics_names[project_name]:
                     mean, inf, sup = conf_int_95(metrics[metric][:,model_index,:].squeeze())
                     all_models.loc[model_index,f'inf_{metric}'] = inf
                     all_models.loc[model_index,f'mean_{metric}'] = mean

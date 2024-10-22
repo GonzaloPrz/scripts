@@ -17,21 +17,20 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
-project_name = 'Proyecto_Ivo'
+project_name = 'tell_classifier'
 scaler_name = 'StandardScaler'
-scoring = 'roc_auc'
+scoring = 'norm_expected_cost'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
 feature_selection_list = [True]
-bootstrap_list = [True]
 kfold_folder = '5_folds'
 n_seeds_train = 10
 n_seeds_test = 1
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path(Path.home(),'gonza','results',project_name)
 
-best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv')) 
+best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv')) 
 
 tasks = best_classifiers['task'].unique()
 y_label = 'target'
@@ -39,7 +38,7 @@ id_col = 'id'
 
 models_dict = {'lr':LogisticRegression,'knn':KNeighborsClassifier,'svc':SVC,'xgb':XGBClassifier}
 
-for task,feature_selection,bootstrap in itertools.product(tasks,feature_selection_list,bootstrap_list):
+for task,feature_selection in itertools.product(tasks,feature_selection_list):
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
@@ -47,7 +46,7 @@ for task,feature_selection,bootstrap in itertools.product(tasks,feature_selectio
         if not feature_selection:
             path = str(path).replace('feature_selection','')
 
-        random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and folder.name != 'final_model']
+        random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and folder.name != f'final_model_{scoring}']
         
         if len(random_seeds_test) == 0:
             random_seeds_test = ['']
@@ -55,11 +54,11 @@ for task,feature_selection,bootstrap in itertools.product(tasks,feature_selectio
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
             
-            Path(path_to_data,'final_model').mkdir(parents=True,exist_ok=True)
+            Path(path_to_data,f'final_model_{scoring}').mkdir(parents=True,exist_ok=True)
 
-            best_model = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension) & (best_classifiers['random_seed_test'] == int(random_seed_test.replace('random_seed_','')))]['model_type'].values[0] if random_seed_test != '' else best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
+            best_model = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension) & (best_classifiers['random_seed_test'] == random_seed_test)]['model_type'].values[0] if random_seed_test != '' else best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
         
-        best_classifier = pd.read_csv(Path(path_to_data,f'all_models_{best_model}_dev.csv')).sort_values(f'{extremo}_{scoring}',ascending=False).reset_index(drop=True).head(1)
+        best_classifier = pd.read_csv(Path(path_to_data,f'all_models_{best_model}_dev.csv')).sort_values(f'{extremo}_{scoring}',ascending=ascending).reset_index(drop=True).head(1)
 
         all_features = [col for col in best_classifier.columns if any(x in col for x in task.split('_'))]
         features = [col for col in all_features if best_classifier[col].values[0] == 1]

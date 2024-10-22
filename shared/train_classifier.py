@@ -73,8 +73,6 @@ else:
     scaler = None
 imputer = KNNImputer
 
-thresholds = [None]
-
 cmatrix = None
 shuffle_labels = False
 held_out_default = False
