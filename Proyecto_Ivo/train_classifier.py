@@ -53,7 +53,7 @@ imputer = KNNImputer
 
 id_col = 'id'
 
-tasks = [#'Animales','P','Animales_P','cog','brain','AAL',
+tasks = ['Animales','P','Animales_P','cog','brain','AAL',
     'conn'] 
 
 dimensions = {'cog':['neuropsico','neuropsico_mmse'],

@@ -69,18 +69,21 @@ for feature_selection in feature_selection_list:
 
             for random_seed_test in random_seeds_test:
                 
-                files = [file for file in Path(path,random_seed_test).iterdir() if 'all_models_' in file.stem and '_dev' in file.stem]
+                files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_norm_cross_entropy' in file.stem and 'test' in file.stem]
+                if len(files) == 0:
+                    files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem]
+
                 best = None
                 for file in files:
                     
                     df = pd.read_csv(file)
                     
                     try: 
-                        df = df.sort_values(by=f'{extremo}_{scoring}',ascending=ascending)
+                        df = df.sort_values(by=f'{extremo}_{scoring}_dev',ascending=ascending)
                     except: 
-                        continue
+                        df = df.sort_values(by=f'{extremo}_{scoring}',ascending=ascending)
                     
-                    print(f'{file.stem.split("_")[-2]}:{df.loc[0,f"{extremo}_{scoring}"]}')
+                    print(f'{file.stem.split("_")[-2]}:{df.loc[0,f"{extremo}_{scoring}_dev"]}')
                     if best is None:
                         best = df.loc[0,:]
 
@@ -88,7 +91,7 @@ for feature_selection in feature_selection_list:
                         best['model_type'] = model_type
                         best_file = file
                     else:
-                        if new_best(best[f'{extremo}_{scoring}'],df.loc[0,f'{extremo}_{scoring}'],ascending):
+                        if new_best(best[f'{extremo}_{scoring}_dev'],df.loc[0,f'{extremo}_{scoring}_dev'],ascending):
                             best = df.loc[0,:]
                             model_type = file.stem.split('_')[-2]
                             best['model_type'] = model_type
@@ -98,24 +101,16 @@ for feature_selection in feature_selection_list:
                 
                 print(best['model_type'])
                 for metric in metrics_names:
-                    mean = np.round(best[f'mean_{metric}'],2)
-                    inf = np.round(best[f'inf_{metric}'],2)
-                    sup = np.round(best[f'sup_{metric}'],2)
-                    best[f'{metric}_dev'] = f'[ {inf}, {mean}, {sup}]'
-                
-                if Path(best_file.parent,f'best_models_{scoring}_{best["model_type"]}_test.csv').exists():
-                    
-                    best_test = pd.read_csv(Path(best_file.parent,f'best_models_{scoring}_{best["model_type"]}_test.csv')).sort_values(by=f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).loc[0,:]
-                    for metric in metrics_names:
-                        mean = np.round(best_test[f'mean_{metric}_test'],2)
-                        inf = np.round(best_test[f'inf_{metric}_test'],2)
-                        sup = np.round(best_test[f'sup_{metric}_test'],2)
+                    best[f'{metric}_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],2)}, {np.round(best[f"mean_{metric}_dev"],2)}, {np.round(best[f"sup_{metric}_dev"],2)}]'
+                    best[f'{metric}_holdout'] = 'N/A'
+                    try:
+                        mean = np.round(best[f'mean_{metric}_test'],2)
+                        inf = np.round(best[f'inf_{metric}_test'],2)
+                        sup = np.round(best[f'sup_{metric}_test'],2)
                         best[f'{metric}_holdout'] = f'[ {inf}, {mean}, {sup}]'
-                else:
-                    best_test = {}
-                    for metric in metrics_names:
-                        best[f'{metric}_holdout'] = '[]'
-        
+                    except:
+                        continue
+
                 model_type = file
                 
                 dict_append = {'task':task,'dimension':dimension,'model_type':best['model_type'],'random_seed_test':random_seed_test}

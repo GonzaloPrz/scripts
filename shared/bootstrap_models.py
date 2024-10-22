@@ -63,7 +63,7 @@ y_labels = {'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
             'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
 
-n_boot = 50
+n_boot = 10
 
 cmatrix = None
 shuffle_labels = False

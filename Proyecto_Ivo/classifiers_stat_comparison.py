@@ -12,11 +12,9 @@ models = {'Animales':'xgb',
           'AAL':'lr'
           }
 
-kfold_folder = '10_folds'
-n_seeds_train = 10
-n_seeds_test = 10
+kfold_folder = '5_folds'
 scaler_name = 'StandardScaler'
-y_label = 'Grupo'
+y_label = 'target'
 
 df_stat = pd.DataFrame(columns=['roc_auc_dev','roc_auc_holdout','accuracy_dev','accuracy_holdout'])
 

@@ -19,7 +19,7 @@ from utils import *
 
 project_name = 'tell_classifier'
 scaler_name = 'StandardScaler'
-scoring = 'norm_expected_cost'
+scoring = 'norm_cross_entropy'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
@@ -51,6 +51,8 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
         if len(random_seeds_test) == 0:
             random_seeds_test = ['']
 
+        random_seeds_test = ['random_seed_0']
+
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
             
@@ -58,11 +60,11 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
 
             best_model = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension) & (best_classifiers['random_seed_test'] == random_seed_test)]['model_type'].values[0] if random_seed_test != '' else best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
         
-        best_classifier = pd.read_csv(Path(path_to_data,f'all_models_{best_model}_dev.csv')).sort_values(f'{extremo}_{scoring}',ascending=ascending).reset_index(drop=True).head(1)
+        best_classifier = pd.read_csv(Path(path_to_data,f'all_models_norm_cross_entropy_{best_model}_test.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)
 
         all_features = [col for col in best_classifier.columns if any(x in col for x in task.split('_'))]
         features = [col for col in all_features if best_classifier[col].values[0] == 1]
-        params = [col for col in best_classifier.columns if all(x not in col for x in  all_features + ['inf','sup','mean'] + [y_label,id_col,'Unnamed: 0','TIV','Edad','Lateralidad','Sexo','Educacion','Resonador'])]
+        params = [col for col in best_classifier.columns if all(x not in col for x in  all_features + ['inf','sup','mean'] + [y_label,id_col,'Unnamed: 0','threshold','index'])]
 
         if task == 'P':
             params = list(set(params) - set([x for x in params if 'Animales_' in x]))
@@ -97,9 +99,11 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
         scaler = model.scaler
         imputer = model.imputer
 
-        pickle.dump(trained_model,open(Path(path_to_data,'final_model',f'final_model_{task}_{dimension}.pkl'),'wb'))
-        pickle.dump(scaler,open(Path(path_to_data,'final_model',f'scaler_{task}_{dimension}.pkl'),'wb'))
-        pickle.dump(imputer,open(Path(path_to_data,'final_model',f'imputer_{task}_{dimension}.pkl'),'wb'))
+        Path(path_to_data,'final_model').mkdir(parents=True,exist_ok=True)
+        
+        pickle.dump(trained_model,open(Path(path_to_data,f'final_model_{scoring}',f'final_model_{task}_{dimension}.pkl'),'wb'))
+        pickle.dump(scaler,open(Path(path_to_data,f'final_model_{scoring}',f'scaler_{task}_{dimension}.pkl'),'wb'))
+        pickle.dump(imputer,open(Path(path_to_data,f'final_model_{scoring}',f'imputer_{task}_{dimension}.pkl'),'wb'))
 
         if best_model == 'svc':
             model.model.kernel = 'linear'
@@ -109,16 +113,16 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
         if hasattr(model.model,'feature_importance'):
             feature_importance = model.model.feature_importance
             feature_importance = pd.DataFrame({'feature':features,'importance':feature_importance}).sort_values('importance',ascending=False)
-            feature_importance.to_csv(Path(path_to_data,'final_model',f'feature_importance_{task}_{dimension}.csv'),index=False)
+            feature_importance.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
         elif hasattr(model.model,'coef_'):
             feature_importance = np.abs(model.model.coef_[0])
             coef = pd.DataFrame({'feature':features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
-            coef.to_csv(Path(path_to_data,'final_model',f'feature_importance_{task}_{dimension}.csv'),index=False)
+            coef.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
         elif hasattr(model.model,'get_booster'):
             feature_importance = list(model.model.get_booster().get_score(importance_type='weight').values())
             try:
                 feature_importance = pd.DataFrame({'feature':features,'importance':feature_importance/np.sum(feature_importance)}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(path_to_data,'final_model',f'feature_importance_{task}_{dimension}.csv'),index=False)
+                feature_importance.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
             except:
                 pass       
         else:
