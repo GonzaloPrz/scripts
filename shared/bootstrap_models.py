@@ -33,7 +33,7 @@ l2ocv = False
 n_boot = 10
 
 cmatrix = None
-shuffle_labels = False
+shuffle_labels = True
 held_out_default = False
 hyp_opt_list = [True]
 feature_selection_list = [True]
@@ -48,14 +48,14 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean'
-                           ],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
+         'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
+         'Proyecto_Ivo':[#'Animales','P',
+                         'Animales__P',
+                         #'cog','brain','AAL','conn'
+                         ],
          'GeroApathy':['Fugu']}
 
-single_dimensions = {'tell_classifier':['voice-quality',
-                                        'talking-intervals','pitch'
-                                        ],
+single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':[],
                      'GeroApathy':[]}
@@ -97,14 +97,18 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
     for dimension in dimensions:
         print(task,model,dimension)
         path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        
+        if not path.exists():  
+            continue
+
         random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name]
         if len(random_seeds) == 0:
             random_seeds = ['']
         
         for random_seed in random_seeds:
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
-        
-            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
+
+            if  Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
                 continue
         
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))

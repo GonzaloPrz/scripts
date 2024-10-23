@@ -14,7 +14,7 @@ project_name = 'Proyecto_Ivo'
 
 l2ocv = False
 
-shuffle_labels = False
+shuffle_labels = True
 
 hyp_opt = True
 
@@ -140,9 +140,9 @@ for feature_selection in feature_selection_list:
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
     if not feature_selection:
-        filename_to_save = filename_to_save.replace('feature_selection','')
+        filename_to_save = filename_to_save.replace('_feature_selection','')
     if not shuffle_labels:
-        filename_to_save = filename_to_save.replace('shuffled','')
+        filename_to_save = filename_to_save.replace('_shuffled','')
 
     best_classifiers.dropna(axis=1,inplace=True)
     best_classifiers.to_csv(Path(results_dir,filename_to_save),index=False)

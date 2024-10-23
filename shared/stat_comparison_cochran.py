@@ -21,11 +21,11 @@ planned_comparisons = {'Proyecto_Ivo':(('Animales___properties__vr','cog___neuro
                                         ('Animales___properties__vr','brain___norm_brain_lit'),
                                         ('Animales___properties__vr','AAL___norm_AAL'),
                                         ('Animales___properties__vr','conn___connectivity'),
-                                        ('Animales___properties','cog___neuropsico_mmse'),
-                                        ('Animales___properties','cog___neuropsico'),
-                                        ('Animales___properties','brain___norm_brain_lit'),
-                                        ('Animales___properties','AAL___norm_AAL'),
-                                        ('Animales___properties','conn___connectivity'))}
+                                        ('Animales___properties__timing','cog___neuropsico_mmse'),
+                                        ('Animales___properties__timing','cog___neuropsico'),
+                                        ('Animales___properties__timing','brain___norm_brain_lit'),
+                                        ('Animales___properties__timing','AAL___norm_AAL'),
+                                        ('Animales___properties__timing','conn___connectivity'))}
 y_labels = {'Proyecto_Ivo':['target']}
             
 if l2ocv:
@@ -49,6 +49,9 @@ for y_label,comparison in itertools.product(y_labels[project_name],planned_compa
 
     task2 = model2.split('___')[0]
     dimension2 = model2.split('___')[1]
+
+    if model1 == 'Animales___properties__vr' and model2 == 'AAL___norm_AAL':
+        print('hola')
 
     model_name1 = best_classifiers[(best_classifiers['task'] == task1) & (best_classifiers['dimension'] == dimension1)]['model_type'].values[0]
     model_name2 = best_classifiers[(best_classifiers['task'] == task2) & (best_classifiers['dimension'] == dimension2)]['model_type'].values[0]

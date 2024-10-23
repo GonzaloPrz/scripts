@@ -49,7 +49,7 @@ y_labels = ['target']
 id_col = 'id'
 
 cmatrix = None
-shuffle_labels = True
+shuffle_labels_list = [True]
 held_out_default = False
 hyp_tuning_list = [True]
 metrics_names = ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy']
@@ -74,13 +74,20 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','cog','brain','AAL','conn']}
+         'Proyecto_Ivo':[#'Animales','P',
+                         'Animales__P',
+                         #'cog','brain','AAL','conn'
+                         ]
+                         }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':{'Animales':['properties','properties__vr'],
-                                     #'P':['properties','timing','properties_timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     #'Animales__P': ['properties','timing','properties_timing','properties__vr','timing__vr','properties__timing__vr'],
+                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     'Animales__P': [#'properties','timing',
+                                         'properties__timing',
+                                         #'properties__vr','timing__vr','properties__timing__vr'
+                                         ],
                                      'cog':['neuropsico','neuropsico_mmse'],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
@@ -112,7 +119,7 @@ models_dict = {
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
 
-for y_label,task in itertools.product(y_labels,tasks[project_name]):
+for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name],shuffle_labels_list):
     dimensions = list()
     if isinstance(single_dimensions[project_name],list):
         for ndim in range(1,len(single_dimensions[project_name])+1):
@@ -141,7 +148,7 @@ for y_label,task in itertools.product(y_labels,tasks[project_name]):
 
         for hyp_tuning,model in itertools.product(hyp_tuning_list,models_dict.keys()):        
             print(model)
-            held_out = True if hyp_tuning else held_out_default
+            held_out = True if hyp_tuning else False
 
             if held_out:
                 if l2ocv:
@@ -217,7 +224,7 @@ for y_label,task in itertools.product(y_labels,tasks[project_name]):
 
                 if n_iter_features > num_comb:
                     # Generate combinations of features with different lengths
-                    for k in range(np.min((int(feature_sample_ratio * data.shape[0] * (1 - test_size)) - 1, len(features) - 1))):
+                    for k in range(np.min((int(feature_sample_ratio * data.shape[0] * (1 - test_size[project_name])) - 1, len(features) - 1))):
                         for comb in itertools.combinations(features, k + 1):
                             feature_sets.append(list(comb))
                 else:

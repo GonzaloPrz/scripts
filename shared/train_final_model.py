@@ -48,7 +48,7 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
         if not feature_selection:
             path = str(path).replace('feature_selection','')
 
-        random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir() and folder.name != 'final_model' not in folder.name]
+        random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir() and all(x not in folder.name for x in ['shuffle','final_model'])]
         
         if len(random_seeds_test) == 0:
             random_seeds_test = ['']
@@ -61,7 +61,7 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
             best_model = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension) & (best_classifiers['random_seed_test'] == random_seed_test)]['model_type'].values[0] if random_seed_test != '' else best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
         
         try:
-            best_classifier = pd.read_csv(Path(path_to_data,f'all_models_norm_cross_entropy_{best_model}_test.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)
+            best_classifier = pd.read_csv(Path(path_to_data,f'all_models_{scoring}_{best_model}_test.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)
         except:
             best_classifier = pd.read_csv(Path(path_to_data,f'all_models_{best_model}_dev.csv')).sort_values(f'{extremo}_{scoring}',ascending=ascending).reset_index(drop=True).head(1)
 

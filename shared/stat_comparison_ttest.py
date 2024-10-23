@@ -22,11 +22,11 @@ planned_comparisons = {'Proyecto_Ivo':(('Animales___properties__vr','cog___neuro
                                         ('Animales___properties__vr','brain___norm_brain_lit'),
                                         ('Animales___properties__vr','AAL___norm_AAL'),
                                         ('Animales___properties__vr','conn___connectivity'),
-                                        ('Animales___properties','cog___neuropsico_mmse'),
-                                        ('Animales___properties','cog___neuropsico'),
-                                        ('Animales___properties','brain___norm_brain_lit'),
-                                        ('Animales___properties','AAL___norm_AAL'),
-                                        ('Animales___properties','conn___connectivity'))}
+                                        ('Animales___properties__timing','cog___neuropsico_mmse'),
+                                        ('Animales___properties__timing','cog___neuropsico'),
+                                        ('Animales___properties__timing','brain___norm_brain_lit'),
+                                        ('Animales___properties__timing','AAL___norm_AAL'),
+                                        ('Animales___properties__timing','conn___connectivity'))}
 y_labels = {'Proyecto_Ivo':['target']}
             
 if l2ocv:

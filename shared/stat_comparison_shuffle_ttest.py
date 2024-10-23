@@ -23,7 +23,7 @@ models = {'Proyecto_Ivo':['Animales___properties__vr',
                         'brain___norm_brain_lit',
                         'AAL___norm_AAL',
                         'conn___connectivity',
-                        'Animales___properties']}
+                        'Animales___properties__timing']}
 
 y_labels = {'Proyecto_Ivo':['target']}
             
@@ -36,7 +36,7 @@ else:
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
 best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv'))
-best_classifiers_shuffle = pd.read_csv(Path(results_dir,f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection_shuffle.csv'))
+best_classifiers_shuffle = pd.read_csv(Path(results_dir,f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection_shuffled.csv'))
 
 stats = pd.DataFrame(columns=['comparison','t_statistic','p_value'])
 
@@ -46,10 +46,10 @@ for y_label,model in itertools.product(y_labels[project_name],models[project_nam
     dimension = model.split('___')[1]
 
     model_name = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
-    model_name_shuffle = best_classifiers[(best_classifiers_shuffle['task'] == task) & (best_classifiers_shuffle['dimension'] == dimension)]['model_type'].values[0]
+    model_name_shuffle = best_classifiers_shuffle[(best_classifiers_shuffle['task'] == task) & (best_classifiers_shuffle['dimension'] == dimension)]['model_type'].values[0]
 
     model_index = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_index'].values[0]
-    model_index_shuffle = best_classifiers_shuffle[(best_classifiers['task'] == task) & (best_classifiers_shuffle['dimension'] == dimension)]['model_index'].values[0]
+    model_index_shuffle = best_classifiers_shuffle[(best_classifiers_shuffle['task'] == task) & (best_classifiers_shuffle['dimension'] == dimension)]['model_index'].values[0]
 
     metrics = pickle.load(open(Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','feature_selection',f'metrics_bootstrap_{model_name}.pkl'),'rb'))[scoring][:,model_index,:].flatten()
     metrics_shuffle = pickle.load(open(Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','feature_selection','shuffle',f'metrics_bootstrap_{model_name_shuffle}.pkl'),'rb'))[scoring][:,model_index_shuffle,:].flatten()
