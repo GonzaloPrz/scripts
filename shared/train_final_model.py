@@ -17,9 +17,11 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
-project_name = 'tell_classifier'
+project_name = 'Proyecto_Ivo'
 scaler_name = 'StandardScaler'
-scoring = 'norm_cross_entropy'
+
+scoring = 'roc_auc'
+
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
@@ -46,12 +48,10 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
         if not feature_selection:
             path = str(path).replace('feature_selection','')
 
-        random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and folder.name != f'final_model_{scoring}']
+        random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir() and folder.name != 'final_model' not in folder.name]
         
         if len(random_seeds_test) == 0:
             random_seeds_test = ['']
-
-        random_seeds_test = ['random_seed_0']
 
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
@@ -60,18 +60,15 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
 
             best_model = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension) & (best_classifiers['random_seed_test'] == random_seed_test)]['model_type'].values[0] if random_seed_test != '' else best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
         
-        best_classifier = pd.read_csv(Path(path_to_data,f'all_models_norm_cross_entropy_{best_model}_test.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)
+        try:
+            best_classifier = pd.read_csv(Path(path_to_data,f'all_models_norm_cross_entropy_{best_model}_test.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)
+        except:
+            best_classifier = pd.read_csv(Path(path_to_data,f'all_models_{best_model}_dev.csv')).sort_values(f'{extremo}_{scoring}',ascending=ascending).reset_index(drop=True).head(1)
 
-        all_features = [col for col in best_classifier.columns if any(x in col for x in task.split('_'))]
+        all_features = [col for col in best_classifier.columns if any(x in col for x in task.split('__'))]
         features = [col for col in all_features if best_classifier[col].values[0] == 1]
         params = [col for col in best_classifier.columns if all(x not in col for x in  all_features + ['inf','sup','mean'] + [y_label,id_col,'Unnamed: 0','threshold','index'])]
 
-        if task == 'P':
-            params = list(set(params) - set([x for x in params if 'Animales_' in x]))
-        elif task == 'Animales':
-            params = list(set(params) - set([x for x in params if 'P_' in x]))
-        elif dimension == 'neuropsico':
-            params = list(set(params) - set([x for x in params if 'mmse' in x]))
         params_dict = {param:best_classifier.loc[0,param] for param in params if str(best_classifier.loc[0,param]) != 'nan'}
         
         if 'gamma' in params_dict.keys():
@@ -99,7 +96,7 @@ for task,feature_selection in itertools.product(tasks,feature_selection_list):
         scaler = model.scaler
         imputer = model.imputer
 
-        Path(path_to_data,'final_model').mkdir(parents=True,exist_ok=True)
+        Path(path_to_data,f'final_model_{scoring}').mkdir(parents=True,exist_ok=True)
         
         pickle.dump(trained_model,open(Path(path_to_data,f'final_model_{scoring}',f'final_model_{task}_{dimension}.pkl'),'wb'))
         pickle.dump(scaler,open(Path(path_to_data,f'final_model_{scoring}',f'scaler_{task}_{dimension}.pkl'),'wb'))

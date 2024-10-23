@@ -24,10 +24,22 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
     
     return samples[sel_indices],targets[sel_indices],y_pred,metrics
 
-parallel = False
+##---------------------------------PARAMETERS---------------------------------##
+parallel = True
 
-project_name = 'tell_classifier'
+project_name = 'Proyecto_Ivo'
 l2ocv = False
+
+n_boot = 10
+
+cmatrix = None
+shuffle_labels = False
+held_out_default = False
+hyp_opt_list = [True]
+feature_selection_list = [True]
+
+id_col = 'id'
+scaler_name = 'StandardScaler'
 
 models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
@@ -38,7 +50,7 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'
                            ],
-         'Proyecto_Ivo':['Animales','P','Animales_P','cog','brain','AAL','conn'],
+         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['Fugu']}
 
 single_dimensions = {'tell_classifier':['voice-quality',
@@ -63,17 +75,6 @@ y_labels = {'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
             'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
 
-n_boot = 10
-
-cmatrix = None
-shuffle_labels = False
-held_out_default = False
-hyp_opt_list = [True]
-feature_selection_list = [True]
-
-id_col = 'id'
-scaler_name = 'StandardScaler'
-
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
@@ -95,16 +96,16 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
 
     for dimension in dimensions:
         print(task,model,dimension)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '')
-        random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir()]
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name]
         if len(random_seeds) == 0:
             random_seeds = ['']
         
         for random_seed in random_seeds:
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
         
-            #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
-            #    continue
+            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
+                continue
         
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
@@ -123,7 +124,7 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
                     ))(b, model_index,r)
                     for b, model_index,r in itertools.product(range(n_boot), all_models.index,range(outputs.shape[1]))
                 )          
-                for b,model_index, r, result in tqdm.tqdm(results):
+                for b,model_index, r, result in results:
                     for metric in metrics_names[project_name]:
                         metrics[metric][b,model_index,r] = result[3][metric]
                     y_pred_bootstrap[b,model_index,r,:] = result[2]
@@ -142,4 +143,9 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
                     all_models.loc[model_index,f'inf_{metric}'] = inf
                     all_models.loc[model_index,f'mean_{metric}'] = mean
                     all_models.loc[model_index,f'sup_{metric}'] = sup
-            all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_not_parallel.csv'))
+            all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev.csv'))
+
+            pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
+            pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
+            pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
+            pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))

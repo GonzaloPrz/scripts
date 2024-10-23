@@ -55,30 +55,40 @@ from utils import *
 from expected_cost.ec import *
 from psrcal import *
 
+##---------------------------------PARAMETERS---------------------------------##
+
 project_name = 'tell_classifier'
+
+scoring = 'norm_cross_entropy'
+
 l2ocv = False
 
-tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas',#'animales','fas__animales','grandmean'
-                           ]}
+hyp_opt_list = [True]
+feature_selection_list = [True]
+shuffle_labels = False
+
+metrics_names = ['roc_auc','accuracy','f1','recall','norm_expected_cost','norm_cross_entropy']
 
 y_labels = ['target']
 
 scaler_name = 'StandardScaler'
+
+boot_test = 50
+boot_train = 10
+
+n_seeds_test = 1
+
+##---------------------------------PARAMETERS---------------------------------##
+
+tasks = {'tell_classifier':['MOTOR-LIBRE'],
+         'MCI_classifier':['fas',#'animales','fas__animales','grandmean'
+                           ]}
 
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
     n_folds = 5
     kfold_folder = f'{n_folds}_folds'
-
-hyp_opt_list = [True]
-feature_selection_list = [True]
-
-boot_test = 50
-boot_train = 10
-
-n_seeds_test = 1
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 save_dir = Path(str(data_dir).replace('data','results'))    
@@ -97,11 +107,6 @@ models_dict = {'lr': LogisticRegression,
                'knn': KNeighborsClassifier,
                }
 
-metrics_names = ['roc_auc','accuracy','f1','recall','norm_expected_cost','norm_cross_entropy']
-
-random_seeds_test = np.arange(n_seeds_test)
-
-scoring = 'norm_cross_entropy'
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 

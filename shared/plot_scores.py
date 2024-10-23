@@ -7,67 +7,69 @@ import itertools, sys, pickle, tqdm, warnings
 
 warnings.filterwarnings('ignore')
 
-project_name = 'MCI_classifier'
+l2ocv = False
 
-tasks = ['fas','animales','fas__animales','grandmean']
-y_labels = ['target']
+test_size = 0
+
+project_name = 'Proyecto_Ivo'
+
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 
 scaler_name = 'StandardScaler'
 
-l2ocv = False
+y_labels = ['target']
 
-n_seeds_train = 10
+id_col = 'id'
+
+hyp_tuning_list = [True]
+feature_selection_list = [True]
 
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 10
+    n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
-hyp_opt_list = [True]
-feature_selection_list = [True,False]
-bootstrap_list = [True]
+scoring = 'norm_cross_entropy'
+extremo = 'sup' if 'norm' in scoring else 'inf'
+ascending = True if extremo == 'sup' else False
 
-boot_test = 100
-boot_train = 0
+best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv'))
 
-n_seeds_test = 1
+tasks = best_classifiers['task'].unique()
+dimensions = best_classifiers.dimension.unique()
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
-
-random_seeds_test = np.arange(n_seeds_test)
-
-for task in tasks:
+for task,y_label in itertools.product(tasks,y_labels):
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
-        for y_label,hyp_opt,feature_selection,bootstrap in itertools.product(y_labels,hyp_opt_list,feature_selection_list,bootstrap_list):
-            path_to_results = results_dir / task / dimension / scaler_name / kfold_folder / f'{n_seeds_train}_seeds_train' / f'{n_seeds_test}_seeds_test' / y_label / 'no_hyp_opt' / 'feature_selection' / 'bootstrap'
+        for y_label,hyp_opt,feature_selection in itertools.product(y_labels,hyp_tuning_list,feature_selection_list):
+            path_to_results = results_dir / task / dimension / scaler_name / kfold_folder / y_label / 'no_hyp_opt' / 'feature_selection'
             
             path_to_results = Path(str(path_to_results).replace('no_hyp_opt', 'hyp_opt')) if hyp_opt else path_to_results
             path_to_results = Path(str(path_to_results).replace('feature_selection', '')) if not feature_selection else path_to_results
-            path_to_results = Path(str(path_to_results).replace('bootstrap', '')) if not bootstrap else path_to_results
+
+            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir()]
+            if len(random_seeds_test) == 0:
+                continue
 
             for random_seed_test in random_seeds_test:
-                files = [file for file in Path(path_to_results,f'random_seed_{random_seed_test}').iterdir() if 'all_performances' in file.stem and 'test' not in file.stem]
+                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev' in file.stem]
 
-                X_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_dev.pkl'),'rb'))
-                try:
-                    y_dev = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
-                except:
-                    y_dev = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','y_dev.pkl'),'rb'))
+                X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
+            
+                y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb'))
                 
-                X_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','X_test.pkl'),'rb'))
                 try:
-                    y_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
+                    X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
+                
+                    y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
+                
+                    IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
+                
                 except:
-                    y_test = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','y_test.pkl'),'rb'))
+                    pass
 
-                try:
-                    IDs_test = pickle.load(open(Path(path_to_results,f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
-                except:
-                    IDs_test = pickle.load(open(Path(str(path_to_results).replace('feature_selection',''),f'random_seed_{random_seed_test}','IDs_test.pkl'),'rb'))
-                    
                 all_features = X_dev.columns
 
                 for file in files:
@@ -79,13 +81,14 @@ for task in tasks:
                     #    continue
                     
                     results = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
-                    results = results.sort_values(by=[f'{extremo}_{scoring}_bootstrap'],ascending=ascending).reset_index(drop=True)
+                    results = results.sort_values(by=[f'{extremo}_{scoring}_bootstrap'],ascending=ascending).head(1)
+
                     results_test = pd.DataFrame()
                     
-                    for r, row in tqdm.tqdm(results.iloc[:n_models,].iterrows()):
+                    for r, row in tqdm.tqdm(results.iterrows()):
                         results_r = row.dropna().to_dict()
                                         
-                        params = dict((key,value) for (key,value) in results_r.items() if 'inf' not in key and 'sup' not in key and 'mean' not in key and 'std' not in key and all(x not in key for x in all_features))
+                        params = dict((key,value) for (key,value) in results_r.items() if all (x not in key for key in ['inf','mean','sup','threshold'] + all_features))
 
                         features = [col for col in all_features if results_r[col] == 1]
                         features_dict = {col:results_r[col] for col in all_features}
