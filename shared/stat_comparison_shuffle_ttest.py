@@ -17,13 +17,7 @@ project_name = 'Proyecto_Ivo'
 scaler_name = 'StandardScaler'
 scoring = 'roc_auc'
 
-models = {'Proyecto_Ivo':['Animales___properties__vr',
-                        'cog___neuropsico_mmse',
-                        'cog___neuropsico',
-                        'brain___norm_brain_lit',
-                        'AAL___norm_AAL',
-                        'conn___connectivity',
-                        'Animales___properties__timing']}
+models = {'Proyecto_Ivo':[]}
 
 y_labels = {'Proyecto_Ivo':['target']}
             
@@ -40,21 +34,26 @@ best_classifiers_shuffle = pd.read_csv(Path(results_dir,f'best_classifiers_{scor
 
 stats = pd.DataFrame(columns=['comparison','t_statistic','p_value'])
 
+if len(models[project_name]) == 0:
+    models[project_name] = [f'{task}___{dimension}' for (task,dimension) in itertools.product(best_classifiers['task'].unique(),best_classifiers['dimension'].unique())]
+
 for y_label,model in itertools.product(y_labels[project_name],models[project_name]):
-   
     task = model.split('___')[0]
     dimension = model.split('___')[1]
 
-    model_name = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
-    model_name_shuffle = best_classifiers_shuffle[(best_classifiers_shuffle['task'] == task) & (best_classifiers_shuffle['dimension'] == dimension)]['model_type'].values[0]
-
-    model_index = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_index'].values[0]
-    model_index_shuffle = best_classifiers_shuffle[(best_classifiers_shuffle['task'] == task) & (best_classifiers_shuffle['dimension'] == dimension)]['model_index'].values[0]
+    try:
+        model_name = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_type'].values[0]
+        model_name_shuffle = best_classifiers_shuffle[(best_classifiers_shuffle['task'] == task) & (best_classifiers_shuffle['dimension'] == dimension)]['model_type'].values[0]
+            
+        model_index = best_classifiers[(best_classifiers['task'] == task) & (best_classifiers['dimension'] == dimension)]['model_index'].values[0]
+        model_index_shuffle = best_classifiers_shuffle[(best_classifiers_shuffle['task'] == task) & (best_classifiers_shuffle['dimension'] == dimension)]['model_index'].values[0]
+    except:
+        continue
 
     metrics = pickle.load(open(Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','feature_selection',f'metrics_bootstrap_{model_name}.pkl'),'rb'))[scoring][:,model_index,:].flatten()
     metrics_shuffle = pickle.load(open(Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','feature_selection','shuffle',f'metrics_bootstrap_{model_name_shuffle}.pkl'),'rb'))[scoring][:,model_index_shuffle,:].flatten()
 
-    t_statistic,p_value = ttest_rel(metrics,metrics_shuffle)
+    t_statistic,p_value = ttest_rel(metrics,metrics_shuffle,alternative='less') if 'norm' in scoring else ttest_rel(metrics,metrics_shuffle,alternative='greater') 
 
     stats_append = {'comparison':f'{task}_{dimension}','t_statistic':np.round(t_statistic,3),'p_value':np.round(p_value,3)}
     

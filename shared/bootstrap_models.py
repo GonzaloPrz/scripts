@@ -27,13 +27,13 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'Proyecto_Ivo'
+project_name = 'GeroApathy'
 l2ocv = False
 
-n_boot = 10
+n_boot = 1
 
 cmatrix = None
-shuffle_labels = True
+shuffle_labels = False
 held_out_default = False
 hyp_opt_list = [True]
 feature_selection_list = [True]
@@ -49,9 +49,9 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':[#'Animales','P',
+         'Proyecto_Ivo':['Animales','P',
                          'Animales__P',
-                         #'cog','brain','AAL','conn'
+                         'cog','brain','AAL','conn'
                          ],
          'GeroApathy':['Fugu']}
 
@@ -68,7 +68,7 @@ problem_type = {'tell_classifier':'clf',
 metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'GeroApathy':['r2','mean_squared_error','mean_absolute_error']}
+                    'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error']}
 
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
@@ -83,7 +83,7 @@ else:
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
-for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[project_name],tasks[project_name],models[project_name],hyp_opt_list,feature_selection_list):    
+for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[project_name],models[project_name],y_labels[project_name],hyp_opt_list,feature_selection_list):    
     
     dimensions = list()
 
@@ -95,8 +95,8 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
     for dimension in dimensions:
-        print(task,model,dimension)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        print(task,model,dimension,y_label)
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,'mean_std' if project_name=='GeroApathy' else '',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         
         if not path.exists():  
             continue
@@ -108,7 +108,7 @@ for y_label,task,model,hyp_opt,feature_selection in itertools.product(y_labels[p
         for random_seed in random_seeds:
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
 
-            if  Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or not Path(path,random_seed,f'outputs_{model}.pkl').exists():
+            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
                 continue
         
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))

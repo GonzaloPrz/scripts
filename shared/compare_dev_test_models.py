@@ -10,7 +10,7 @@ scoring = 'norm_cross_entropy'
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
             'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-            'Proyecto_Ivo':['Animales','P','Animales_P','cog','brain','AAL','conn'],
+            'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
             'GeroApathy':['Fugu']}
 
 scaler_name = 'StandardScaler'

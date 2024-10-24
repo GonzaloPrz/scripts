@@ -31,8 +31,6 @@ project_name = 'Proyecto_Ivo'
 
 parallel = True
 
-predefined_models = True
-
 l2ocv = False
 
 stratify = False
@@ -74,7 +72,7 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':[#'Animales','P',
+         'Proyecto_Ivo':['Animales','P',
                          'Animales__P',
                          #'cog','brain','AAL','conn'
                          ]
@@ -84,10 +82,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'Animales__P': [#'properties','timing',
-                                         'properties__timing',
-                                         #'properties__vr','timing__vr','properties__timing__vr'
-                                         ],
+                                     'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'cog':['neuropsico','neuropsico_mmse'],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
@@ -135,7 +130,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name
 
         if shuffle_labels:
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
-
+                
         all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
         
         data = data[all_features + [y_label,id_col]]
@@ -170,6 +165,9 @@ for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name
             path_to_save = Path(str(path_to_save).replace('shuffle','')) if not shuffle_labels else path_to_save
             
             path_to_save.mkdir(parents=True,exist_ok=True)
+
+            if shuffle_labels:
+                predefined_models = True if Path(path_to_save_final,f'all_models_{model}').exists() else False
 
             config = {'n_iter':n_iter,
             'test_size':test_size[project_name],
