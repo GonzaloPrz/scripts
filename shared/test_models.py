@@ -88,8 +88,8 @@ thresholds = {'tell_classifier':[0.5],
 
 scaler_name = 'StandardScaler'
 
-boot_test = 50
-boot_train = 10
+boot_test = 10
+boot_train = 0
 
 n_seeds_test = 1
 
@@ -161,6 +161,9 @@ for task in tasks[project_name]:
                 
             for random_seed_test in random_seeds_test:
                 files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev' in file.stem]
+                
+                if len(files) == 0:
+                    continue
 
                 X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
 
