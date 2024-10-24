@@ -27,13 +27,13 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'GeroApathy'
+project_name = 'Proyecto_Ivo'
 l2ocv = False
 
-n_boot = 1
+n_boot = 10
 
 cmatrix = None
-shuffle_labels = False
+shuffle_labels = True
 held_out_default = False
 hyp_opt_list = [True]
 feature_selection_list = [True]
@@ -49,10 +49,9 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':['Animales','P',
-                         'Animales__P',
-                         'cog','brain','AAL','conn'
-                         ],
+         'Proyecto_Ivo':['Animales',
+             #'P','Animales__P',
+             'cog','brain','AAL','conn'],
          'GeroApathy':['Fugu']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -108,8 +107,8 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         for random_seed in random_seeds:
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
 
-            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
-                continue
+            #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
+            #    continue
         
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))

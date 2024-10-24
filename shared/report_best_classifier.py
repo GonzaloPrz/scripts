@@ -31,7 +31,9 @@ n_folds = 5
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn']}
+         'Proyecto_Ivo':['Animales',
+                         #'P','Animales__P',
+                         'cog','brain','AAL','conn']}
 
 metrics_names = ['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1']
 
@@ -89,10 +91,14 @@ for feature_selection in feature_selection_list:
                     if f'{extremo}_{scoring}' in df.columns:
                         scoring_col = f'{extremo}_{scoring}'
                     else:
-                        scoring_col = f'{extremo}_{scoring}'
+                        scoring_col = f'{extremo}_{scoring}_dev'
 
-                    df = df.sort_values(by=scoring_col,ascending=ascending)
-                    
+                    try:
+                        df = df.sort_values(by=scoring_col,ascending=ascending)
+                    except:
+                        print(df)
+                        continue
+
                     print(f'{file.stem.split("_")[-2]}:{df.loc[0,scoring_col]}')
                     if best is None:
                         best = df.loc[0,:]

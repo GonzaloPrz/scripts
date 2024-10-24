@@ -50,11 +50,14 @@ cmatrix = None
 shuffle_labels_list = [True]
 held_out_default = False
 hyp_tuning_list = [True]
+
+predefined_models = True
+
 metrics_names = ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy']
 
 n_seeds_train = 10
 
-random_seeds_train = np.arange(n_seeds_train) if n_seeds_train > 0 else ['']
+random_seeds_train = [3**x for x in np.arange(1,n_seeds_train+1)] if n_seeds_train > 0 else ['']
 
 thresholds = [0.5]
 
@@ -72,17 +75,20 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P',
-                         'Animales__P',
-                         #'cog','brain','AAL','conn'
-                         ]
-                         }
+         'Proyecto_Ivo':['Animales',
+                         #'P','Animales__P',
+                         'cog','brain','AAL','conn']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                     'Proyecto_Ivo':{'Animales':[#'properties','timing',
+                                                'properties__timing',
+                                                #'properties__vr',
+                                                'timing__vr',
+                                                #properties__timing__vr'
+                                                ],
+                                     #'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     #'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'cog':['neuropsico','neuropsico_mmse'],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
@@ -129,6 +135,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name
         data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
         if shuffle_labels:
+            np.random.seed(42)
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
                 
         all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
@@ -165,9 +172,6 @@ for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name
             path_to_save = Path(str(path_to_save).replace('shuffle','')) if not shuffle_labels else path_to_save
             
             path_to_save.mkdir(parents=True,exist_ok=True)
-
-            if shuffle_labels:
-                predefined_models = True if Path(path_to_save_final,f'all_models_{model}').exists() else False
 
             config = {'n_iter':n_iter,
             'test_size':test_size[project_name],
@@ -263,7 +267,11 @@ for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name
                 path_to_save_final.mkdir(parents=True,exist_ok=True)
 
                 if predefined_models:
-                    models = pd.read_csv(Path(str(path_to_save_final).replace('shuffle',''),f'all_models_{model}.csv'))
+                    random_seed_test_predefined = [folder for folder in path_to_save.iterdir()  if 'random_seed_' in folder.name]
+                    if len(random_seed_test_predefined) == 0:
+                        random_seed_test_predefined = ['']
+
+                    models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
                     
                     all_features = models[[col for col in models.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]].drop_duplicates()
 
@@ -281,8 +289,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    continue
+                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                #    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
