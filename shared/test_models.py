@@ -184,8 +184,8 @@ for task in tasks[project_name]:
 
                     print(model_name)
                     
-                    #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                    #    continue
+                    if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                        continue
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     results_dev = results_dev.sort_values(by=f'{extremo}_{scoring}',ascending=ascending)
