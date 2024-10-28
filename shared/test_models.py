@@ -142,11 +142,12 @@ extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
 for task in tasks[project_name]:
-    dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
+    #dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
+    dimensions = ['emotions-logit']
     for dimension in dimensions:
         print(task,dimension)
         for y_label,hyp_opt,feature_selection in itertools.product(y_labels[project_name],hyp_opt_list,feature_selection_list):
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder,'mean_std' if project_name == 'GeroApathy' else '', y_label, 'no_hyp_opt', 'feature_selection')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label, 'no_hyp_opt', 'feature_selection')
             
             path_to_results = Path(str(path_to_results).replace('no_hyp_opt', 'hyp_opt')) if hyp_opt else path_to_results
             path_to_results = Path(str(path_to_results).replace('feature_selection', '')) if not feature_selection else path_to_results

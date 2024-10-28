@@ -22,7 +22,7 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
-mean_std = True
+mean_std = False
 
 test_size = .3
 
@@ -38,7 +38,7 @@ data_file = {'GeroApathy':'all_data.csv'}
 
 tasks = {'GeroApathy':['Fugu']}
 
-single_dimensions = {'GeroApathy':['voice-quality','pitch','talking-intervals','mfcc','formants']}
+single_dimensions = {'GeroApathy':['emotions-logit']}
 
 y_labels = {'GeroApathy': ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
 

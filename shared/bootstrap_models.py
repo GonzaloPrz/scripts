@@ -49,8 +49,7 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':['Animales','P',
-                         'Animales__P',
+         'Proyecto_Ivo':['Animales','P','Animales__P',
                          'cog','brain','AAL','conn'
                          ],
          'GeroApathy':['Fugu']}
@@ -94,9 +93,10 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
     if len(dimensions) == 0:
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
+    dimensions = ['emotions-logit']
     for dimension in dimensions:
         print(task,model,dimension,y_label)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,'mean_std' if project_name=='GeroApathy' else '',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         
         if not path.exists():  
             continue
