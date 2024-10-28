@@ -170,7 +170,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
         y = data.pop(y_label)
 
-        for hyp_tuning,model in itertools.product(hyp_tuning_list,models_dict.keys()):        
+        for hyp_tuning,model in itertools.product(hyp_tuning_list,models_dict[project_name].keys()):        
             print(model)
             held_out = True if hyp_tuning else False
 
@@ -234,7 +234,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 
                 if hyp_tuning:
                     for n in range(n_iter):
-                        new_combination = dict((key,{}) for key in models_dict.keys())
+                        new_combination = dict((key,{}) for key in models_dict[project_name].keys())
                         new_combination['lr'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])}
                         new_combination['svc'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
                                                 'kernel': np.random.choice(['linear', 'rbf', 'sigmoid']),
@@ -259,7 +259,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                                 'gamma': 'scale'}
                         
                         
-                        for key in models_dict.keys():
+                        for key in models_dict[project_name].keys():
                             hyperp[key].loc[len(hyperp[key].index),:] = new_combination[key]
                 
                     hyperp[model].drop_duplicates(inplace=True)
@@ -343,7 +343,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds,cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name],metrics_names=metrics_names[project_name])        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds,cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name],metrics_names=metrics_names[project_name])        
             
                 all_models = pd.DataFrame()
                 
