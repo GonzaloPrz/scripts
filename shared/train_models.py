@@ -6,8 +6,10 @@ import math
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier as KNN
-from sklearn.model_selection import train_test_split,StratifiedShuffleSplit,LeavePOut
+from sklearn.neighbors import KNeighborsClassifier as KNNC
+from sklearn.linear_model import Lasso, Ridge
+from sklearn.neighbors import KNeighborsRegressor as KNNR
+from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier as xgboost
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
@@ -42,25 +44,31 @@ feature_sample_ratio = .5
 
 scaler_name = 'StandardScaler'
 
-y_labels = ['target']
-
 id_col = 'id'
 
 cmatrix = None
 shuffle_labels_list = [True]
 held_out_default = False
 hyp_tuning_list = [True]
-metrics_names = ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy']
+
+metrics_names = {'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                'GeroApathy':['r2_score','mean_absolute_error']}
 
 n_seeds_train = 10
 
 random_seeds_train = np.arange(n_seeds_train) if n_seeds_train > 0 else ['']
 
-thresholds = [0.5]
+thresholds = {'tell_classifier':[0.5],
+              'MCI_classifier':[0.5],
+                'Proyecto_Ivo':[0.5],
+                'GeroApathy':[]}
 
 test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
-            'Proyecto_Ivo':0}
+            'Proyecto_Ivo':0,
+            'GeroApathy':0.3}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -68,15 +76,14 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
-            'Proyecto_Ivo':'data_total.csv'}
+            'Proyecto_Ivo':'data_total.csv',
+            'GeroApathy':'data_total.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P',
-                         'Animales__P',
-                         #'cog','brain','AAL','conn'
-                         ]
-                         }
+         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
+         'GeroApathy':['Fugu']
+        }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
@@ -87,7 +94,9 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
-                                     }}
+                                     },
+                        'GeroApathy':['emotions-logit','sentiment-logit','pitch','talking-intervals']
+}
 
 
 if scaler_name == 'StandardScaler':
@@ -104,17 +113,37 @@ else:
     n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
-models_dict = {
-    'lr':LR,
-    'svc':SVC,
-    'knn':KNN,
-    'xgb':xgboost
-    }
+models_dict = {'tell_classifier':{'lr':LR,
+                                'svc':SVC,
+                                'knn':KNNC,
+                                'xgb':xgboost},
+                'MCI_classifier':{'lr':LR,
+                                'svc':SVC,
+                                'knn':KNNC,
+                                'xgb':xgboost},
+                'Proyecto_Ivo':{'lr':LR,
+                                'svc':SVC,
+                                'knn':KNNC,
+                                'xgb':xgboost},
+                'GeroApathy':{'lasso':Lasso,
+                                'ridge':Ridge,
+                                'knn':KNNR}
+                }
+
+y_labels = {'tell_classifier':['target'],
+            'MCI_classifier':['target'],
+            'Proyecto_Ivo':['target'],
+            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
+
+problem_type = {'tell_classifier':'clf',
+                'MCI_classifier':'clf',
+                'Proyecto_Ivo':'clf',
+                'GeroApathy':'reg'}
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
 
-for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name],shuffle_labels_list):
+for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],tasks[project_name],shuffle_labels_list):
     dimensions = list()
     if isinstance(single_dimensions[project_name],list):
         for ndim in range(1,len(single_dimensions[project_name])+1):
@@ -287,7 +316,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels,tasks[project_name
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds,cmatrix=cmatrix,parallel=parallel,problem_type='clf')        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds,cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name],metrics_names=metrics_names[project_name])        
             
                 all_models = pd.DataFrame()
                 
