@@ -65,7 +65,8 @@ models_dict = {'ridge':RR,
                'svm':SVR
                }
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','results',project_name)
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+
 for feature_selection in feature_selection_list:
     for task in tasks:
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
