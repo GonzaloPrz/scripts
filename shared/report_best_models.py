@@ -43,7 +43,7 @@ scoring = {'tell_classifier':'norm_cross_entropy',
 stats = {'tell_classifier':'',
             'MCI_classifier':'',
             'Proyecto_Ivo':'',
-            'GeroApathy':'mean_std'}
+            'GeroApathy':''}
 
 best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_dev' for metric in metrics_names[project_name]] + [f'{metric}_holdout' for metric in metrics_names[project_name]])
 
@@ -117,7 +117,7 @@ for feature_selection in feature_selection_list:
                         continue
                     
                     print(best['model_type'])
-                    for metric in metrics_names:
+                    for metric in metrics_names[project_name]:
                         try:
                             best[f'{metric}_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],2)}, {np.round(best[f"mean_{metric}_dev"],2)}, {np.round(best[f"sup_{metric}_dev"],2)}]'
                         except:
@@ -135,8 +135,8 @@ for feature_selection in feature_selection_list:
                     model_type = file
                     
                     dict_append = {'task':task,'dimension':dimension,'model_type':best['model_type'],'model_index':best['model_index'],'random_seed_test':random_seed_test}
-                    dict_append.update(dict((f'{metric}_dev',best[f'{metric}_dev']) for metric in metrics_names))
-                    dict_append.update(dict((f'{metric}_holdout',best[f'{metric}_holdout']) for metric in metrics_names))
+                    dict_append.update(dict((f'{metric}_dev',best[f'{metric}_dev']) for metric in metrics_names[project_name]))
+                    dict_append.update(dict((f'{metric}_holdout',best[f'{metric}_holdout']) for metric in metrics_names[project_name]))
 
                     best_models.loc[len(best_models),:] = pd.Series(dict_append)
 
