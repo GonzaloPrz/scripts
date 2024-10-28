@@ -79,7 +79,7 @@ for feature_selection in feature_selection_list:
 
                 for random_seed_test in random_seeds_test:
                     
-                    files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'test' in file.stem and any(x in file.stem for x in metrics_names[project_name])]
+                    files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'test' in file.stem and any(x in file.stem for x in metrics_names[project_name])]
                     if len(files) == 0:
                         files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem]
 
