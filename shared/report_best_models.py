@@ -137,7 +137,7 @@ for feature_selection in feature_selection_list:
 
                     model_type = file
                     
-                    dict_append = {'task':task,'dimension':dimension,'model_type':best['model_type'],'model_index':best['model_index'],'random_seed_test':random_seed_test}
+                    dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':best['model_type'],'model_index':best['model_index'],'random_seed_test':random_seed_test}
                     dict_append.update(dict((f'{metric}_dev',best[f'{metric}_dev']) for metric in metrics_names[project_name]))
                     dict_append.update(dict((f'{metric}_holdout',best[f'{metric}_holdout']) for metric in metrics_names[project_name]))
 
@@ -152,5 +152,4 @@ for feature_selection in feature_selection_list:
     if not shuffle_labels:
         filename_to_save = filename_to_save.replace('_shuffled','')
 
-    best_models.dropna(axis=1,inplace=True)
     best_models.to_csv(Path(results_dir,filename_to_save),index=False)
