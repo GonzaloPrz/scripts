@@ -39,8 +39,8 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-n_iter = 50
-n_iter_features = 10
+n_iter = 0
+n_iter_features = 200
 
 feature_sample_ratio = .5 
 
@@ -49,7 +49,6 @@ scaler_name = 'StandardScaler'
 id_col = 'id'
 
 cmatrix = None 
-hyp_tuning_list = [True]
 
 n_seeds_train = 10
 
@@ -63,7 +62,7 @@ thresholds = {'tell_classifier':[0.5],
 test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
             'Proyecto_Ivo':0,
-            'GeroApathy':0.3}
+            'GeroApathy':0}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -167,9 +166,9 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
         y = data.pop(y_label)
 
-        for hyp_tuning,model in itertools.product(hyp_tuning_list,models_dict[project_name].keys()):        
+        for model in models_dict[project_name].keys():        
             print(model)
-            held_out = True if hyp_tuning else False
+            held_out = True if n_iter > 0 or n_iter_features > 0 else False
 
             if held_out:
                 if l2ocv:
@@ -180,13 +179,12 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                     n_folds = int(data.shape[0]/2)
                 n_seeds_test = 1
             
-            random_seeds_test = np.arange(n_seeds_test) if n_seeds_test > 0 else ['']
+            random_seeds_test = np.arange(n_seeds_test) if test_size[project_name] > 0 else ['']
 
             CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify else KFold(n_splits=n_folds,shuffle=True)
 
             path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'no_hyp_opt','feature_selection','shuffle')
 
-            path_to_save = Path(str(path_to_save).replace('no_hyp_opt','hyp_opt')) if hyp_tuning else path_to_save
             path_to_save = Path(str(path_to_save).replace('feature_selection','')) if n_iter_features == 0 else path_to_save
             path_to_save = Path(str(path_to_save).replace('shuffle','')) if not shuffle_labels else path_to_save
             
@@ -229,38 +227,40 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                         
                         }
                 
-                if hyp_tuning:
-                    for n in range(n_iter):
-                        new_combination = dict((key,{}) for key in models_dict[project_name].keys())
-                        new_combination['lr'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])}
-                        new_combination['svc'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
-                                                'kernel': np.random.choice(['linear', 'rbf', 'sigmoid']),
-                                                'gamma': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
-                                                'probability': True}
-                        new_combination['knnc'] = {'n_neighbors': int(randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs())}
-                        new_combination['xgb'] = {'n_estimators': int(randint(10,1000).rvs()),
-                                                'max_depth': randint(1, 10).rvs(),
-                                                'learning_rate': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])
-                                                }
-                        new_combination['ridge'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
+                for n in range(n_iter):
+                    new_combination = dict((key,{}) for key in models_dict[project_name].keys())
+                    new_combination['lr'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])}
+                    new_combination['svc'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
+                                            'kernel': np.random.choice(['linear', 'rbf', 'sigmoid']),
+                                            'gamma': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
+                                            'probability': True}
+                    new_combination['knnc'] = {'n_neighbors': int(randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs())}
+                    new_combination['xgb'] = {'n_estimators': int(randint(10,1000).rvs()),
+                                            'max_depth': randint(1, 10).rvs(),
+                                            'learning_rate': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])
+                                            }
+                    new_combination['ridge'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
+                                            'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
+                                            'solver':'auto',
+                                            'random_state':42}
+                    new_combination['lasso'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
                                                 'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
-                                                'solver':'auto',
                                                 'random_state':42}
-                        new_combination['lasso'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
-                                                    'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
-                                                    'random_state':42}
 
-                        new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs()}
-                        new_combination['svm'] = {'C': loguniform(1e-1, 1e3).rvs(),
-                                                'kernel': np.random.choice(['linear','poly','rbf','sigmoid']),
-                                                'gamma': 'scale'}
-                        
-                        
-                        for key in models_dict[project_name].keys():
-                            hyperp[key].loc[len(hyperp[key].index),:] = new_combination[key]
+                    new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs()}
+                    new_combination['svm'] = {'C': loguniform(1e-1, 1e3).rvs(),
+                                            'kernel': np.random.choice(['linear','poly','rbf','sigmoid']),
+                                            'gamma': 'scale'}
+                    
+                    
+                    for key in models_dict[project_name].keys():
+                        hyperp[key].loc[len(hyperp[key].index),:] = new_combination[key]
                 
                     hyperp[model].drop_duplicates(inplace=True)
                     hyperp[model] = hyperp[model].reset_index(drop=True)
+
+                path_to_save = Path(str(path_to_save).replace('no_hyp_opt','hyp_opt')) if n_iter > 0 else path_to_save
+                
                 if model == 'knnr' or model == 'knnc':
                     hyperp[model] = hyperp[model].astype(int)
                 elif model == 'xgb':
@@ -304,9 +304,9 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                     ID_train.reset_index(drop=True,inplace=True)
                     ID_test.reset_index(drop=True,inplace=True)
                 else:
-                    X_train = data
-                    y_train = y
-                    ID_train = ID
+                    X_train = data.reset_index(drop=True)
+                    y_train = y.reset_index(drop=True)
+                    ID_train = ID.reset_index(drop=True)
 
                     X_test = pd.DataFrame()
                     y_test = pd.Series()
