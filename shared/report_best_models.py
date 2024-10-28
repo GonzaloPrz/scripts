@@ -83,6 +83,9 @@ for feature_selection in feature_selection_list:
                     if len(files) == 0:
                         files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem]
 
+                    if len(files) == 0:
+                        continue
+                    
                     best = None
                     for file in files:
                         
