@@ -51,11 +51,6 @@ id_col = 'id'
 cmatrix = None 
 hyp_tuning_list = [True]
 
-metrics_names = {'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                 'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                'GeroApathy':['r2_score','mean_absolute_error']}
-
 n_seeds_train = 10
 
 random_seeds_train = np.arange(n_seeds_train) if n_seeds_train > 0 else ['']
@@ -343,7 +338,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds,cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name],metrics_names=metrics_names[project_name])        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds,cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
                 all_models = pd.DataFrame()
                 
