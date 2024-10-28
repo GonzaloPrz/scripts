@@ -77,7 +77,7 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
             'Proyecto_Ivo':'data_total.csv',
-            'GeroApathy':'data_total.csv'}
+            'GeroApathy':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
@@ -197,6 +197,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
             if shuffle_labels:
                 predefined_models = True if Path(path_to_save,random_seeds_test[0],f'all_models_{model}').exists() else False
+            else:
+                predefined_models == False
 
             config = {'n_iter':n_iter,
             'test_size':test_size[project_name],
