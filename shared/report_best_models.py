@@ -68,7 +68,7 @@ for feature_selection in feature_selection_list:
             if not path.exists():
                 continue
             
-            y_labels = [folder.name for folder in path.iterdir() if folder.is_dir()]
+            y_labels = [folder.name for folder in path.iterdir() if folder.is_dir() and folder.name != 'mean_std']
             for y_label in y_labels:
                 path = Path(results_dir,task,dimension,scaler_name,kfold_folder,stats[project_name],y_label,'hyp_opt' if hyp_opt else 'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
             
@@ -85,7 +85,7 @@ for feature_selection in feature_selection_list:
 
                     if len(files) == 0:
                         continue
-                    
+
                     best = None
                     for file in files:
                         
