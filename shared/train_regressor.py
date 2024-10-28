@@ -28,7 +28,7 @@ test_size = .3
 
 project_name = 'GeroApathy'
 
-stats_exclude = ['skewness','kurtosis','min','max'] if mean_std else []
+stats_exclude = ['skewness','kurtosis','min','max','delta','iqr','q1','q3','median'] if mean_std else []
 
 parallel = True
 
