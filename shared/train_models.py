@@ -198,7 +198,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
             if shuffle_labels:
                 predefined_models = True if Path(path_to_save,random_seeds_test[0],f'all_models_{model}').exists() else False
             else:
-                predefined_models == False
+                predefined_models = False
 
             config = {'n_iter':n_iter,
             'test_size':test_size[project_name],
