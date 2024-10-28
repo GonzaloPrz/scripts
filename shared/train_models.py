@@ -115,19 +115,19 @@ else:
 
 models_dict = {'tell_classifier':{'lr':LR,
                                 'svc':SVC,
-                                'knn':KNNC,
+                                'knnc':KNNC,
                                 'xgb':xgboost},
                 'MCI_classifier':{'lr':LR,
                                 'svc':SVC,
-                                'knn':KNNC,
+                                'knnc':KNNC,
                                 'xgb':xgboost},
                 'Proyecto_Ivo':{'lr':LR,
                                 'svc':SVC,
-                                'knn':KNNC,
+                                'knnc':KNNC,
                                 'xgb':xgboost},
                 'GeroApathy':{'lasso':Lasso,
                                 'ridge':Ridge,
-                                'knn':KNNR}
+                                'knnr':KNNR}
                 }
 
 y_labels = {'tell_classifier':['target'],
@@ -208,16 +208,28 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
             
             if predefined_models == False:
                 hyperp = {'lr': pd.DataFrame({'C': 1},index=[0]),
-                                    'lda':pd.DataFrame({'solver':'lsqr'},index=[0]),
-                                    'knn': pd.DataFrame({'n_neighbors':5},index=[0]),
-                                    'svc': pd.DataFrame({'C': 1,
-                                            'gamma': 'scale',
-                                            'kernel':'rbf',
-                                            'probability':True},index=[0]),
-                                    'xgb': pd.DataFrame({'n_estimators':100,
-                                            'max_depth':6,
-                                            'learning_rate':0.3
-                                            },index=[0])
+                            'lda':pd.DataFrame({'solver':'lsqr'},index=[0]),
+                            'knnc': pd.DataFrame({'n_neighbors':5},index=[0]),
+                            'svc': pd.DataFrame({'C': 1,
+                                    'gamma': 'scale',
+                                    'kernel':'rbf',
+                                    'probability':True},index=[0]),
+                            'xgb': pd.DataFrame({'n_estimators':100,
+                                    'max_depth':6,
+                                    'learning_rate':0.3
+                                    },index=[0]),
+                            'ridge': pd.DataFrame({'alpha': 1,
+                                            'tol':.0001,
+                                            'solver':'auto',
+                                            'random_state':42},index=[0]),
+                            'knnr': pd.DataFrame({'n_neighbors':5},index=[0]),
+                            'lasso': pd.DataFrame({'alpha': 1,
+                                                'tol':.0001,
+                                                'random_state':42},index=[0]),
+                            'svm': pd.DataFrame({'C':1,
+                                                'kernel':'rbf',
+                                                'gamma':'scale'},index=[0])
+                                        
                         }
                 
                 if hyp_tuning:
@@ -228,18 +240,31 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                                 'kernel': np.random.choice(['linear', 'rbf', 'sigmoid']),
                                                 'gamma': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
                                                 'probability': True}
-                        new_combination['knn'] = {'n_neighbors': int(randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs())}
+                        new_combination['knnc'] = {'n_neighbors': int(randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs())}
                         new_combination['xgb'] = {'n_estimators': int(randint(10,1000).rvs()),
                                                 'max_depth': randint(1, 10).rvs(),
                                                 'learning_rate': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])
                                                 }
+                        new_combination['ridge'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
+                                                'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
+                                                'solver':'auto',
+                                                'random_state':42}
+                        new_combination['lasso'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
+                                                    'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
+                                                    'random_state':42}
+
+                        new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * test_size))).rvs()} if test_size > 0 else {'n_neighbors': randint(1,int((n_folds - 1) / n_folds * data.shape[0])).rvs()}
+                        new_combination['svm'] = {'C': loguniform(1e-1, 1e3).rvs(),
+                                                'kernel': np.random.choice(['linear','poly','rbf','sigmoid']),
+                                                'gamma': 'scale'}
+                        
                         
                         for key in models_dict.keys():
                             hyperp[key].loc[len(hyperp[key].index),:] = new_combination[key]
                 
                     hyperp[model].drop_duplicates(inplace=True)
                     hyperp[model] = hyperp[model].reset_index(drop=True)
-                if model == 'knn':
+                if model == 'knnr' or model == 'knnc':
                     hyperp[model] = hyperp[model].astype(int)
                 elif model == 'xgb':
                     hyperp[model] = hyperp[model].astype({'n_estimators':int,'max_depth':int})
