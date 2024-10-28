@@ -138,7 +138,7 @@ for feature_selection in feature_selection_list:
 
                     best_classifiers.loc[len(best_classifiers),:] = pd.Series(dict_append)
 
-            filename_to_save = f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
+    filename_to_save = f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
