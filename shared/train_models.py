@@ -29,13 +29,15 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = ''
+project_name = 'GeroApathy'
 
 parallel = True
 
 l2ocv = False
 
 stratify = False
+
+shuffle_labels_list = [False]
 
 n_iter = 50
 n_iter_features = 10
@@ -46,9 +48,7 @@ scaler_name = 'StandardScaler'
 
 id_col = 'id'
 
-cmatrix = None
-shuffle_labels_list = [False]
-held_out_default = False
+cmatrix = None 
 hyp_tuning_list = [True]
 
 metrics_names = {'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
@@ -196,7 +196,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
-                predefined_models = True if Path(path_to_save_final,f'all_models_{model}').exists() else False
+                predefined_models = True if Path(path_to_save,random_seeds_test[0],f'all_models_{model}').exists() else False
 
             config = {'n_iter':n_iter,
             'test_size':test_size[project_name],
