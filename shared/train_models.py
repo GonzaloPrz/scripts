@@ -159,6 +159,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
         
         data = data[all_features + [y_label,id_col]]
         
+        data = data.dropna(subset=[y_label])
+
         features = all_features
         
         ID = data.pop(id_col)
