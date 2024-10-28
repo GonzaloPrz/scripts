@@ -47,7 +47,7 @@ scaler_name = 'StandardScaler'
 id_col = 'id'
 
 cmatrix = None
-shuffle_labels_list = [True]
+shuffle_labels_list = [False]
 held_out_default = False
 hyp_tuning_list = [True]
 
