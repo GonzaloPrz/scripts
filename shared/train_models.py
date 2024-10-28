@@ -253,7 +253,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                                     'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
                                                     'random_state':42}
 
-                        new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * test_size))).rvs()} if test_size > 0 else {'n_neighbors': randint(1,int((n_folds - 1) / n_folds * data.shape[0])).rvs()}
+                        new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs()} if test_size > 0 else {'n_neighbors': randint(1,int((n_folds - 1) / n_folds * data.shape[0])).rvs()}
                         new_combination['svm'] = {'C': loguniform(1e-1, 1e3).rvs(),
                                                 'kernel': np.random.choice(['linear','poly','rbf','sigmoid']),
                                                 'gamma': 'scale'}
