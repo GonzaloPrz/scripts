@@ -14,15 +14,11 @@ project_name = 'GeroApathy'
 
 l2ocv = False
 
-shuffle_labels = True
+shuffle_labels = False
 
 hyp_opt = True
 
 feature_selection_list = [True]
-
-y_label = 'target'
-
-scoring = 'roc_auc'
 
 scaler_name = 'StandardScaler'
 
