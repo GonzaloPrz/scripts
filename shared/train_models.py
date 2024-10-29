@@ -39,7 +39,7 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-n_iter = 0
+n_iter = 5
 n_iter_features = 200
 
 feature_sample_ratio = .5 
@@ -57,7 +57,7 @@ random_seeds_train = np.arange(n_seeds_train) if n_seeds_train > 0 else ['']
 thresholds = {'tell_classifier':[0.5],
               'MCI_classifier':[0.5],
                 'Proyecto_Ivo':[0.5],
-                'GeroApathy':[]}
+                'GeroApathy':[None]}
 
 test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
@@ -91,7 +91,6 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      },
                         'GeroApathy':['emotions-logit','sentiment-logit','pitch','talking-intervals']
 }
-
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -288,8 +287,17 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 # Add the full set of features
                 feature_sets.append(features)
 
-                # Remove duplicates by converting to set and back to list of lists
-                feature_sets = [list(t) for t in set(tuple(sorted(fs)) for fs in feature_sets)]
+            features_df = pd.DataFrame(index=np.arange(len(feature_sets)),columns=features)
+            for f, feature_set in enumerate(feature_sets):
+                features_df.loc[f,features] = [1 if feature in feature_set else 0 for feature in features]
+            
+            features_df.drop_duplicates(inplace=True)
+            features_df = features_df.reset_index(drop=True)
+
+            feature_sets = list()
+            
+            for r in features_df.index:
+                feature_sets.append(list(features_df.columns[features_df.loc[r,:]==1]))
 
             for random_seed_test in random_seeds_test:
                                                                                                                                                                                                                                                                                                                                 
@@ -340,7 +348,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds,cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
                 all_models = pd.DataFrame()
                 

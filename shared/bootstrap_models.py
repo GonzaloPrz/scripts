@@ -49,9 +49,7 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':['Animales','P','Animales__P',
-                         'cog','brain','AAL','conn'
-                         ],
+         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['Fugu']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
