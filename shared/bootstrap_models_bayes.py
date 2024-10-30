@@ -25,16 +25,13 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
     return samples[sel_indices],targets[sel_indices],y_pred,metrics
 
 ##---------------------------------PARAMETERS---------------------------------##
-parallel = True
-
-project_name = 'GeroApathy'
+project_name = 'Proyecto_Ivo'
 l2ocv = False
 
-n_boot = 10
+n_boot = 100
 
 cmatrix = None
 shuffle_labels = False
-held_out_default = False
 hyp_opt_list = [True]
 feature_selection_list = [True]
 
@@ -104,17 +101,21 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         
         for random_seed in random_seeds:
 
-            #if not Path(path,random_seed,f'outputs_best_{model}.pkl').exists() or Path(path,random_seed,f'conf_int_{model}_dev.json').exists():
-            #    continue
+            if not Path(path,random_seed,f'outputs_best_{model}.pkl').exists() or Path(path,random_seed,f'conf_int_{model}_dev.json').exists():
+                continue
             
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_best_{model}.pkl'),'rb'))
-            y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
+            try:
+                y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
+            except:
+                y_dev = pickle.load(open(Path(path,random_seed,'y_true.pkl'),'rb'))
+
             outputs_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2])) if outputs.ndim == 3 else np.empty((n_boot,outputs.shape[0],outputs.shape[1]))
             y_dev_bootstrap = np.empty((n_boot,y_dev.shape[0],y_dev.shape[1]),dtype=y_dev.dtype)
             y_pred_bootstrap = np.empty((n_boot,y_dev.shape[0],y_dev.shape[1]),dtype=y_dev.dtype)
             
             metrics = dict((metric,np.empty((n_boot,outputs.shape[0]))) for metric in metrics_names[project_name])
-            conf_int_metrics = dict((metric,[]) for metric in metrics_names[project_name])
+            conf_int_metrics = pd.DataFrame(columns=['metric','inf','mean','sup'])
 
             for b,r in itertools.product(range(n_boot),range(outputs.shape[0])):
                 outputs_bootstrap[b,r,:], y_dev_bootstrap[b,r,:],y_pred_bootstrap[b,r,:],metrics_ = get_metrics_bootstrap(outputs[r], y_dev[r], metrics_names[project_name],b,stratify=y_dev[r],problem_type=problem_type[project_name])
@@ -122,12 +123,15 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
                     metrics[metric][b,r] = metrics_[metric]
             for metric in metrics_names[project_name]:
                 mean, inf, sup = conf_int_95(metrics[metric].squeeze())
-                conf_int_metrics[metric] = f'[{np.round(inf,2)},{np.round(mean,2)},{np.round(sup,2)}]'
+
+                conf_int_metrics.loc[len(conf_int_metrics.index),'metric'] = metric 
+                conf_int_metrics.loc[len(conf_int_metrics.index)-1,['inf','mean','sup']] = [np.round(mean,3),np.round(inf,3),np.round(sup,3)]
 
             pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_best_{model}.pkl'),'wb'))
             pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap.pkl'),'wb'))
             pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
             pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
-            with open(Path(path,random_seed,f'conf_int_{model}_dev.json'),'w') as f:
-                json.dump(conf_int_metrics,f)
+
+            conf_int_metrics.to_csv(Path(path,random_seed,f'metrics_{model}_dev.csv'),index=False)
+            
             

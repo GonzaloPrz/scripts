@@ -31,15 +31,13 @@ from expected_cost.utils import *
 ##---------------------------------PARAMETERS---------------------------------##
 project_name = 'GeroApathy'
 
-parallel = True
-
 l2ocv = False
 
 stratify = False
 
 shuffle_labels_list = [False]
 
-n_iter = 2
+n_iter = 20
 
 scaler_name = 'StandardScaler'
 
@@ -47,7 +45,7 @@ id_col = 'id'
 
 cmatrix = None 
 
-n_seeds_train = 2
+n_seeds_train = 10
 
 random_seeds_train = np.arange(n_seeds_train) if n_seeds_train > 0 else ['']
 
@@ -110,6 +108,7 @@ else:
 
 models_dict = {'tell_classifier':{'lr':LR,
                                 'knnc':KNNC,
+                                'svc':SVC,
                                 'xgb':xgboost},
                 'MCI_classifier':{'lr':LR,
                                 'svc':SVC,
@@ -117,6 +116,7 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'xgb':xgboost},
                 'Proyecto_Ivo':{'lr':LR,
                                 'knnc':KNNC,
+                                'svc':SVC,
                                 'xgb':xgboost},
                 'GeroApathy':{'lasso':Lasso,
                                 'ridge':Ridge,
@@ -135,8 +135,7 @@ problem_type = {'tell_classifier':'clf',
 
 hyperp = {'lr':{'C':(1e-4,100)},
           'svc':{'C':(1e-4,100),
-                 'gamma':(1e-4,1e4),
-                 'degree':(1,10)},
+                 'gamma':(1e-4,1e4)},
             'knnc':{'n_neighbors':(1,40)},
             'xgb':{'max_depth':(1,10),
                    'n_estimators':(1,1000),
@@ -238,6 +237,6 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
                 all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
                 pickle.dump(outputs_best,open(Path(path_to_save_final,f'outputs_best_{model}.pkl'),'wb'))
-                pickle.dump(y_true,open(Path(path_to_save_final,f'y_true.pkl'),'wb'))
+                pickle.dump(y_true,open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb'))
                 pickle.dump(y_pred_best,open(Path(path_to_save_final,f'y_pred_best_{model}.pkl'),'wb'))
                 pickle.dump(IDs_val,open(Path(path_to_save_final,f'IDs_val.pkl'),'wb'))
