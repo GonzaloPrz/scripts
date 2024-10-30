@@ -29,6 +29,7 @@ parallel = True
 
 project_name = 'GeroApathy'
 l2ocv = False
+bayes = True
 
 n_boot = 10
 
@@ -91,10 +92,9 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
     if len(dimensions) == 0:
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
-    dimensions = ['emotions-logit']
     for dimension in dimensions:
         print(task,model,dimension,y_label)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         
         if not path.exists():  
             continue
@@ -110,11 +110,11 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
 
                 if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
                     continue
-                outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
+                outputs = pickle.load(open(Path(path,random_seed,f'outputs_best_{model}.pkl' if bayes else f'outputs_{model}.pkl'),'rb'))
                 y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
                 outputs_bootstrap = np.expand_dims(np.empty(outputs.shape),axis=0)
-                y_dev_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
-                y_pred_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
+                y_dev_bootstrap = np.expand_dims(np.empty(y_dev.shape),axis=0)
+                y_pred_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype) if outputs.ndim == 2  else np.empty((n_boot,outputs.shape[0],outputs.shape[1]),dtype=y_dev.dtype)
 
                 metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names[project_name])
 
