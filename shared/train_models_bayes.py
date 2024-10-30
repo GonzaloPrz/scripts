@@ -39,7 +39,7 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-n_iter = 10
+n_iter = 2
 
 scaler_name = 'StandardScaler'
 
@@ -47,7 +47,7 @@ id_col = 'id'
 
 cmatrix = None 
 
-n_seeds_train = 10
+n_seeds_train = 2
 
 random_seeds_train = np.arange(n_seeds_train) if n_seeds_train > 0 else ['']
 
