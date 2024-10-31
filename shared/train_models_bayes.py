@@ -37,6 +37,8 @@ stratify = False
 
 shuffle_labels_list = [False]
 
+feature_selection_list = [False]
+
 n_iter = 20
 
 scaler_name = 'StandardScaler'
@@ -152,7 +154,7 @@ hyperp = {'lr':{'C':(1e-4,100)},
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
 
-for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],tasks[project_name],shuffle_labels_list):
+for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[project_name],tasks[project_name],feature_selection_list,shuffle_labels_list):
     dimensions = list()
     if isinstance(single_dimensions[project_name],list):
         for ndim in range(1,len(single_dimensions[project_name])+1):
@@ -188,9 +190,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
             CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify else KFold(n_splits=n_folds,shuffle=True)
 
-            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','bayes','feature_selection','shuffle')
-
-            path_to_save = Path(str(path_to_save).replace('shuffle','')) if not shuffle_labels else path_to_save
+            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','bayes','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
             
             path_to_save.mkdir(parents=True,exist_ok=True)
 
@@ -236,7 +236,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                all_models,outputs_best,y_true,y_pred_best,IDs_val = nestedCVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,n_iter,CV_type,CV_type,random_seeds_train,hyperp[model],ID_train,scoring[project_name],problem_type[project_name],cmatrix,priors=None,threshold=thresholds[project_name])
+                all_models,outputs_best,y_true,y_pred_best,IDs_val = nestedCVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,n_iter,CV_type,CV_type,random_seeds_train,hyperp[model],ID_train,scoring[project_name],problem_type[project_name],cmatrix,priors=None,threshold=thresholds[project_name],feature_selection=feature_selection)
 
                 all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
                 pickle.dump(outputs_best,open(Path(path_to_save_final,f'outputs_best_{model}.pkl'),'wb'))
