@@ -7,7 +7,7 @@ from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
-from sklearn.linear_model import Lasso, Ridge
+from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier as xgboost
@@ -37,7 +37,7 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-feature_selection_list = [False,True]
+feature_selection_list = [True,False]
 
 n_iter = 20
 
@@ -90,7 +90,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
 }
 
 scoring = {'tell_classifier':'norm_cross_entropy',
-            'MCI_classifier':'roc_auc_score',
+            'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc_score',
             'GeroApathy':'r2_score'}
 
@@ -120,7 +120,8 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'knnc':KNNC,
                                 'svc':SVC,
                                 'xgb':xgboost},
-                'GeroApathy':{'lasso':Lasso,
+                'GeroApathy':{ 'elastic':ElasticNet,
+                               'lasso':Lasso,
                                 'ridge':Ridge,
                                 'knnr':KNNR,
                                 'svr':SVR}
@@ -146,6 +147,8 @@ hyperp = {'lr':{'C':(1e-4,100)},
             'lasso':{'alpha':(1e-4,1e4),
                      'random_state':(42,42),},
             'ridge':{'alpha':(1e-4,1e4)},
+            'elastic':{'alpha':(1e-4,1e4),
+                       'l1_ratio':(0,1)},
             'knnr':{'n_neighbors':(1,40)},
             'svr':{'C':(1e-4,100),
                     'gamma':(1e-4,1e4)}
