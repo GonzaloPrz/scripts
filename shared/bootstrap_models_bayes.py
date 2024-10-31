@@ -38,9 +38,9 @@ feature_selection_list = [True]
 id_col = 'id'
 scaler_name = 'StandardScaler'
 
-models = {'MCI_classifier':['lr','svc','knn','xgb'],
-          'tell_classifier':['lr','svc','knn','xgb'],
-          'Proyecto_Ivo':['lr','svc','knn','xgb'],
+models = {'MCI_classifier':['lr','svc','knnc','xgb'],
+          'tell_classifier':['lr','svc','knnc','xgb'],
+          'Proyecto_Ivo':['lr','svc','knnr','xgb'],
           'GeroApathy':['lasso','ridge','knn']
             }
 
@@ -77,6 +77,8 @@ else:
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
+conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model','metric','inf','mean','sup'])
+
 for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[project_name],models[project_name],y_labels[project_name],hyp_opt_list,feature_selection_list):    
     
     dimensions = list()
@@ -84,6 +86,9 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
     for ndim in range(1,len(single_dimensions[project_name])+1):
         for dimension in itertools.combinations(single_dimensions[project_name],ndim):
             dimensions.append('__'.join(dimension))
+    
+    if not Path(results_dir,task).exists():
+        continue
 
     if len(dimensions) == 0:
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
@@ -115,7 +120,6 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
             y_pred_bootstrap = np.empty((n_boot,y_dev.shape[0],y_dev.shape[1]),dtype=y_dev.dtype)
             
             metrics = dict((metric,np.empty((n_boot,outputs.shape[0]))) for metric in metrics_names[project_name])
-            conf_int_metrics = pd.DataFrame(columns=['metric','inf','mean','sup'])
 
             for b,r in itertools.product(range(n_boot),range(outputs.shape[0])):
                 outputs_bootstrap[b,r,:], y_dev_bootstrap[b,r,:],y_pred_bootstrap[b,r,:],metrics_ = get_metrics_bootstrap(outputs[r], y_dev[r], metrics_names[project_name],b,stratify=y_dev[r],problem_type=problem_type[project_name])
@@ -123,15 +127,13 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
                     metrics[metric][b,r] = metrics_[metric]
             for metric in metrics_names[project_name]:
                 mean, inf, sup = conf_int_95(metrics[metric].squeeze())
-
-                conf_int_metrics.loc[len(conf_int_metrics.index),'metric'] = metric 
-                conf_int_metrics.loc[len(conf_int_metrics.index)-1,['inf','mean','sup']] = [np.round(mean,3),np.round(inf,3),np.round(sup,3)]
+                conf_int_metrics.loc[len(conf_int_metrics.index),:] = [task,dimension,y_label,model,metric,np.round(inf,3),np.round(mean,3),np.round(sup,3)]
 
             pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_best_{model}.pkl'),'wb'))
             pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap.pkl'),'wb'))
             pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
             pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
 
-            conf_int_metrics.to_csv(Path(path,random_seed,f'metrics_{model}_dev.csv'),index=False)
+conf_int_metrics.to_csv(Path(results_dir,f'metrics_dev.csv'),index=False)
             
             

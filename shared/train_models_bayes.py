@@ -5,7 +5,7 @@ import math
 
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
-from sklearn.svm import SVC
+from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
 from sklearn.linear_model import Lasso, Ridge
 from sklearn.neighbors import KNeighborsRegressor as KNNR
@@ -120,13 +120,14 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'xgb':xgboost},
                 'GeroApathy':{'lasso':Lasso,
                                 'ridge':Ridge,
-                                'knnr':KNNR}
+                                'knnr':KNNR,
+                                'svr':SVR}
                 }
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
+            'GeroApathy':['DASS_21_Depression','Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
@@ -143,7 +144,9 @@ hyperp = {'lr':{'C':(1e-4,100)},
             'lasso':{'alpha':(1e-4,10),
                      'random_state':(42,42),},
             'ridge':{'alpha':(1e-4,10)},
-            'knnr':{'n_neighbors':(1,40)}
+            'knnr':{'n_neighbors':(1,40)},
+            'svr':{'C':(1e-4,100),
+                    'gamma':(1e-4,1e4)}
             }
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -227,7 +230,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists() and model != 'lasso':
                     continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
