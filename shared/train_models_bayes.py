@@ -37,7 +37,7 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-feature_selection_list = [False]
+feature_selection_list = [False,True]
 
 n_iter = 20
 
@@ -143,9 +143,9 @@ hyperp = {'lr':{'C':(1e-4,100)},
             'xgb':{'max_depth':(1,10),
                    'n_estimators':(1,1000),
                    'learning_rate':(1e-4,1)},
-            'lasso':{'alpha':(1e-4,10),
+            'lasso':{'alpha':(1e-4,1e4),
                      'random_state':(42,42),},
-            'ridge':{'alpha':(1e-4,10)},
+            'ridge':{'alpha':(1e-4,1e4)},
             'knnr':{'n_neighbors':(1,40)},
             'svr':{'C':(1e-4,100),
                     'gamma':(1e-4,1e4)}
