@@ -88,8 +88,8 @@ thresholds = {'tell_classifier':[0.5],
 
 scaler_name = 'StandardScaler'
 
-boot_test = 50
-boot_train = 10
+boot_test = 10
+boot_train = 0
 
 n_seeds_test = 1
 
@@ -142,11 +142,12 @@ extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
 for task in tasks[project_name]:
-    dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
+    #dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
+    dimensions = ['emotions-logit']
     for dimension in dimensions:
         print(task,dimension)
         for y_label,hyp_opt,feature_selection in itertools.product(y_labels[project_name],hyp_opt_list,feature_selection_list):
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder,'mean_std' if project_name == 'GeroApathy' else '', y_label, 'no_hyp_opt', 'feature_selection')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label, 'no_hyp_opt', 'feature_selection')
             
             path_to_results = Path(str(path_to_results).replace('no_hyp_opt', 'hyp_opt')) if hyp_opt else path_to_results
             path_to_results = Path(str(path_to_results).replace('feature_selection', '')) if not feature_selection else path_to_results
@@ -161,6 +162,9 @@ for task in tasks[project_name]:
                 
             for random_seed_test in random_seeds_test:
                 files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev' in file.stem]
+                
+                if len(files) == 0:
+                    continue
 
                 X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
 
@@ -181,8 +185,8 @@ for task in tasks[project_name]:
 
                     print(model_name)
                     
-                    #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                    #    continue
+                    if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                        continue
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     results_dev = results_dev.sort_values(by=f'{extremo}_{scoring}',ascending=ascending)
