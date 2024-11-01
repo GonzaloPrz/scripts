@@ -48,18 +48,7 @@ scaler_name = 'StandardScaler'
 
 id_col = 'id'
 
-<<<<<<< HEAD:shared/train_classifier.py
-cmatrix = None
-shuffle_labels_list = [True]
-held_out_default = False
-hyp_tuning_list = [True]
-
-predefined_models = True
-
-metrics_names = ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy']
-=======
 cmatrix = None 
->>>>>>> 7b02f91941fc7d98bb3ebe4063f1a43dc9410b3b:shared/train_models.py
 
 n_seeds_train = 10
 
@@ -86,15 +75,9 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-<<<<<<< HEAD:shared/train_classifier.py
-         'Proyecto_Ivo':['Animales',
-                         #'P','Animales__P',
-                         'cog','brain','AAL','conn']}
-=======
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['Fugu']
         }
->>>>>>> 7b02f91941fc7d98bb3ebe4063f1a43dc9410b3b:shared/train_models.py
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
@@ -212,14 +195,11 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
             
             path_to_save.mkdir(parents=True,exist_ok=True)
 
-<<<<<<< HEAD:shared/train_classifier.py
-=======
             if shuffle_labels:
                 predefined_models = True if Path(path_to_save,random_seeds_test[0],f'all_models_{model}').exists() else False
             else:
                 predefined_models = False
 
->>>>>>> 7b02f91941fc7d98bb3ebe4063f1a43dc9410b3b:shared/train_models.py
             config = {'n_iter':n_iter,
             'test_size':test_size[project_name],
             'n_feature_sets': n_iter_features,

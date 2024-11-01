@@ -39,7 +39,7 @@ shuffle_labels_list = [False]
 
 feature_selection_list = [True,False]
 
-n_iter = 20
+n_iter = 30
 
 scaler_name = 'StandardScaler'
 
@@ -47,9 +47,9 @@ id_col = 'id'
 
 cmatrix = None 
 
-n_seeds_train = 5
+n_seeds_train = 10
 
-random_seeds_train = np.arange(n_seeds_train) if n_seeds_train > 0 else ['']
+random_seeds_train = [5**x for x in range(n_seeds_train)] if n_seeds_train > 0 else ['']
 
 thresholds = {'tell_classifier':[0.5],
               'MCI_classifier':[0.5],
@@ -232,8 +232,8 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists() and model != 'lasso':
-                    continue
+                #if Path(path_to_save_final,f'all_models_{model}.csv').exists() and model != 'lasso':
+                #    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
