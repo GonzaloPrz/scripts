@@ -238,7 +238,11 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                             'lasso': pd.DataFrame({'alpha': 1,
                                                 'tol':.0001,
                                                 'random_state':42},index=[0]),
-                            'svm': pd.DataFrame({'C':1,
+                            'elastic': pd.DataFrame({'alpha': 1,
+                                                'l1_ratio':.5,
+                                                'tol':.0001,
+                                                'random_state':42},index=[0]),
+                            'svr': pd.DataFrame({'C':1,
                                                 'kernel':'rbf',
                                                 'gamma':'scale'},index=[0])
                                         
@@ -263,9 +267,12 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                     new_combination['lasso'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
                                                 'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
                                                 'random_state':42}
-
+                    new_combination['elastic'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
+                                                'l1_ratio': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
+                                                'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
+                                                'random_state':42}
                     new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs()}
-                    new_combination['svm'] = {'C': loguniform(1e-1, 1e3).rvs(),
+                    new_combination['svr'] = {'C': loguniform(1e-1, 1e3).rvs(),
                                             'kernel': np.random.choice(['linear','poly','rbf','sigmoid']),
                                             'gamma': 'scale'}
                     
