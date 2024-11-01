@@ -7,7 +7,7 @@ from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
-from sklearn.linear_model import Lasso, Ridge
+from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier as xgboost
@@ -30,7 +30,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'Proyecto_Ivo'
+project_name = 'GERO_Ivo'
 
 parallel = True
 
@@ -65,7 +65,7 @@ test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
             'Proyecto_Ivo':0,
             'GeroApathy':0,
-            'GERO_Ivo':0}
+            'GERO_Ivo':0.3}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -126,12 +126,14 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'xgb':xgboost},
                 'GeroApathy':{'lasso':Lasso,
                                 'ridge':Ridge,
+                                'elastic':ElasticNet,
                                 'knnr':KNNR,
                                 'svr':SVR,
                                 #'xgb':xgboostr
                                 },
                 'GERO_Ivo':{'lasso':Lasso,
                                 'ridge':Ridge,
+                                'elastic':ElasticNet,
                                 'knnr':KNNR,
                                 'svr':SVR,
                                 #'xgb':xgboostr
