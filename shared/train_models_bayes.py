@@ -29,7 +29,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'MCI_classifier'
+project_name = 'GeroApathy'
 
 l2ocv = False
 
@@ -47,7 +47,7 @@ id_col = 'id'
 
 cmatrix = None 
 
-n_seeds_train = 10
+n_seeds_train = 5
 
 random_seeds_train = np.arange(n_seeds_train) if n_seeds_train > 0 else ['']
 
@@ -205,7 +205,6 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
                 json.dump(config,f)
             
             for random_seed_test in random_seeds_test:
-                                                                                                                                                                                                                                                                                                                                
                 if test_size[project_name] > 0:
                     path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
 
