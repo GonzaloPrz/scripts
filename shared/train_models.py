@@ -5,12 +5,13 @@ import math
 
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
-from sklearn.svm import SVC
+from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
 from sklearn.linear_model import Lasso, Ridge
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier as xgboost
+from xgboost import XGBRegressor as xgboostr
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
 from tqdm import tqdm
@@ -39,8 +40,8 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-n_iter = 5
-n_iter_features = 200
+n_iter = 50
+n_iter_features = 50
 
 feature_sample_ratio = .5 
 
@@ -57,12 +58,14 @@ random_seeds_train = [3**x for x in np.arange(1,n_seeds_train+1)] if n_seeds_tra
 thresholds = {'tell_classifier':[0.5],
               'MCI_classifier':[0.5],
                 'Proyecto_Ivo':[0.5],
-                'GeroApathy':[None]}
+                'GeroApathy':[None],
+                'GERO_Ivo':[None]}
 
 test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
             'Proyecto_Ivo':0,
-            'GeroApathy':0}
+            'GeroApathy':0,
+            'GERO_Ivo':0}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -71,30 +74,28 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
             'Proyecto_Ivo':'data_total.csv',
-            'GeroApathy':'all_data.csv'}
+            'GeroApathy':'all_data.csv',
+            'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu']
-        }
+         'GeroApathy':['Fugu'],
+         'GERO_Ivo':['fas','animales','fas__animales','grandmean']
+         }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':{'Animales':[#'properties','timing',
-                                                'properties__timing',
-                                                #'properties__vr',
-                                                'timing__vr',
-                                                #properties__timing__vr'
-                                                ],
-                                     #'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     #'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'cog':['neuropsico','neuropsico_mmse'],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['emotions-logit','sentiment-logit','pitch','talking-intervals']
+                        'GeroApathy':['emotions-logit','sentiment-logit','pitch','talking-intervals'],
+                        'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
 if scaler_name == 'StandardScaler':
@@ -125,13 +126,24 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'xgb':xgboost},
                 'GeroApathy':{'lasso':Lasso,
                                 'ridge':Ridge,
-                                'knnr':KNNR}
+                                'knnr':KNNR,
+                                'svr':SVR,
+                                #'xgb':xgboostr
+                                },
+                'GERO_Ivo':{'lasso':Lasso,
+                                'ridge':Ridge,
+                                'knnr':KNNR,
+                                'svr':SVR,
+                                #'xgb':xgboostr
+                                }
                 }
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
+            'GeroApathy':['DASS_21_Depression','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD']
+}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
