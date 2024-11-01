@@ -11,6 +11,7 @@ from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier as xgboost
+from xgboost import XGBRegressor as xgboostr
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
 from tqdm import tqdm
@@ -18,7 +19,7 @@ import itertools,pickle,sys, json
 from scipy.stats import loguniform, uniform, randint
 from random import randint as randint_random 
 from joblib import Parallel, delayed
-
+from skopt.space import Real, Integer, Categorical
 from random import randint as randint_random 
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
@@ -29,7 +30,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy'
+project_name = 'GERO_Ivo'
 
 l2ocv = False
 
@@ -37,9 +38,9 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-feature_selection_list = [True,False]
+feature_selection_list = [True]
 
-n_iter = 30
+n_iter = 15
 
 scaler_name = 'StandardScaler'
 
@@ -76,7 +77,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['Fugu'],
-         'GERO_Ivo':['fas','animales','fas__animales','grandmean']
+         'GERO_Ivo':['animales','grandmean','fas__animales','fas']
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -89,7 +90,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['emotions-logit','sentiment-logit','pitch','talking-intervals'],
+                        'GeroApathy':['formants','mfcc','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
@@ -98,7 +99,7 @@ scoring = {'tell_classifier':'norm_cross_entropy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc_score',
             'GeroApathy':'r2_score',
-            'GERO_Ivo':'r2_score'}
+            'GERO_Ivo':'mean_absolute_error'}
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -125,25 +126,23 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'svc':SVC,
                                 'knnc':KNNC,
                                 'xgb':xgboost},
-                'GeroApathy':{'lasso':Lasso,
-                                'ridge':Ridge,
+                'GeroApathy':{  'ridge':Ridge,
                                 'knnr':KNNR,
                                 'svr':SVR,
                                 #'xgb':xgboostr
                                 },
-                'GERO_Ivo':{'lasso':Lasso,
-                                'ridge':Ridge,
-                                'knnr':KNNR,
-                                'svr':SVR,
-                                #'xgb':xgboostr
+                'GERO_Ivo':{'ridge':Ridge,
+                            #'xgb':xgboostr,
+                            'knnr':KNNR,
+                            'svr':SVR
                                 }
 }
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD']
+            'GeroApathy':['MiniSea_minisea_total','DASS_21_Depression','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces'],
+            'GERO_Ivo':['norm_vol_mask_AD','GM_norm','WM_norm','norm_vol_bilateral_HIP']
 }
 
 problem_type = {'tell_classifier':'clf',
@@ -160,8 +159,7 @@ hyperp = {'lr':{'C':(1e-4,100)},
             'xgb':{'max_depth':(1,10),
                    'n_estimators':(1,1000),
                    'learning_rate':(1e-4,1)},
-            'lasso':{'alpha':(1e-4,1e4),
-                     'random_state':(42,42),},
+            'lasso':{'alpha':(1e-4,1e4)},
             'ridge':{'alpha':(1e-4,1e4)},
             'elastic':{'alpha':(1e-4,1e4),
                        'l1_ratio':(0,1)},
@@ -194,7 +192,7 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
         
         data = data[all_features + [y_label,id_col]]
         
-        data = data.dropna(subset=[y_label])
+        data = data.dropna()
 
         features = all_features
         
@@ -241,8 +239,8 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
                     ID_test = pd.Series()
                     path_to_save_final = path_to_save
 
-                hyperp['knnc']['n_neighbors'] = (1,X_train.shape[0]*(1-test_size[project_name])*(1-1/n_folds)**2-1)
-                hyperp['knnr']['n_neighbors'] = (1,X_train.shape[0]*(1-test_size[project_name])*(1-1/n_folds)**2-1)
+                hyperp['knnc']['n_neighbors'] = (1,int(X_train.shape[0]*(1-test_size[project_name])*(1-1/n_folds)**2-1))
+                hyperp['knnr']['n_neighbors'] = (1,int(X_train.shape[0]*(1-test_size[project_name])*(1-1/n_folds)**2-1))
 
                 path_to_save_final.mkdir(parents=True,exist_ok=True)
 
@@ -253,7 +251,7 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
-
+                
                 all_models,outputs_best,y_true,y_pred_best,IDs_val = nestedCVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,n_iter,CV_type,CV_type,random_seeds_train,hyperp[model],ID_train,scoring[project_name],problem_type[project_name],cmatrix,priors=None,threshold=thresholds[project_name],feature_selection=feature_selection)
 
                 all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)

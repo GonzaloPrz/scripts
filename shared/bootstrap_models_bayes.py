@@ -33,7 +33,7 @@ n_boot = 100
 cmatrix = None
 shuffle_labels = False
 hyp_opt_list = [True]
-feature_selection_list = [True,False]
+feature_selection_list = [True]
 
 id_col = 'id'
 scaler_name = 'StandardScaler'
@@ -72,7 +72,7 @@ y_labels = {'MCI_classifier':['target'],
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 5
+    n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
@@ -107,7 +107,7 @@ for feature_selection in feature_selection_list:
             
             for random_seed in random_seeds:
 
-                if not Path(path,random_seed,f'outputs_best_{model}.pkl').exists() or Path(path,random_seed,f'conf_int_{model}_dev.json').exists():
+                if not Path(path,random_seed,f'outputs_best_{model}.pkl').exists():
                     continue
                 
                 outputs = pickle.load(open(Path(path,random_seed,f'outputs_best_{model}.pkl'),'rb'))
