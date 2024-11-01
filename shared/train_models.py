@@ -150,7 +150,8 @@ y_labels = {'tell_classifier':['target'],
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg'}
+                'GeroApathy':'reg',
+                'GERO_Ivo':'reg'}
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
