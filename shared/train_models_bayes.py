@@ -105,7 +105,7 @@ imputer = KNNImputer
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 5
+    n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 
 models_dict = {'tell_classifier':{'lr':LR,
