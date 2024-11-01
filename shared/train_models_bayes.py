@@ -30,7 +30,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 
 l2ocv = False
 
@@ -98,7 +98,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
 scoring = {'tell_classifier':'norm_cross_entropy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc_score',
-            'GeroApathy':'r2_score',
+            'GeroApathy':'mean_absolute_error',
             'GERO_Ivo':'mean_absolute_error'}
 
 if scaler_name == 'StandardScaler':
@@ -129,19 +129,21 @@ models_dict = {'tell_classifier':{'lr':LR,
                 'GeroApathy':{  'ridge':Ridge,
                                 'knnr':KNNR,
                                 'svr':SVR,
-                                #'xgb':xgboostr
+                                'xgb':xgboostr,
+                                'elastic':ElasticNet
                                 },
                 'GERO_Ivo':{'ridge':Ridge,
-                            #'xgb':xgboostr,
+                            'xgb':xgboostr,
                             'knnr':KNNR,
-                            'svr':SVR
+                            'svr':SVR,
+                            'elastic':ElasticNet
                                 }
 }
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['MiniSea_minisea_total','DASS_21_Depression','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces'],
+            'GeroApathy':['DASS_21_Depression','Depression_Total_Score','MiniSea_MiniSea_Total_FauxPas','MiniSea_minisea_total','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces'],
             'GERO_Ivo':['norm_vol_mask_AD','GM_norm','WM_norm','norm_vol_bilateral_HIP']
 }
 
