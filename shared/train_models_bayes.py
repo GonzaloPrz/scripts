@@ -29,7 +29,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy'
+project_name = 'MCI_classifier'
 
 l2ocv = False
 
