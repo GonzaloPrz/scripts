@@ -50,9 +50,7 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':['Animales',
-             #'P','Animales__P',
-             'cog','brain','AAL','conn'],
+         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['Fugu']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -78,7 +76,7 @@ y_labels = {'MCI_classifier':['target'],
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 5
+    n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
@@ -109,7 +107,7 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
 
             #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
             #    continue
-        
+            all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'),index_col=0)
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
             outputs_bootstrap = np.expand_dims(np.empty(outputs.shape),axis=0)
