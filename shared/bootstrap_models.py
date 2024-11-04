@@ -27,14 +27,14 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'Proyecto_Ivo'
+project_name = 'GERO_Ivo'
 l2ocv = False
-bayes = True
+bayes = False
 
 n_boot = 10
 
 cmatrix = None
-shuffle_labels = True
+shuffle_labels = False
 held_out_default = False
 hyp_opt_list = [True]
 feature_selection_list = [True]
@@ -45,38 +45,44 @@ scaler_name = 'StandardScaler'
 models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
           'Proyecto_Ivo':['lr','svc','knn','xgb'],
-          'GeroApathy':['lasso','ridge','knn']
+          'GeroApathy':['lasso','ridge','knnr','svr','elastic'],
+          'GERO_Ivo':['lasso','ridge','knnr','svr','elastic']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu']}
+         'GeroApathy':['Fugu'],
+         'GERO_Ivo':['animales','fas','grandmean','fas__animales']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':[],
-                     'GeroApathy':[]}
+                     'GeroApathy':[],
+                     'GERO_Ivo':[]}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg'}
+                'GeroApathy':'reg',
+                'GERO_Ivo':'reg'}	
 
 metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error']}
+                    'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error'],
+                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error']}
 
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
+            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD']}
 
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 10
+    n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
@@ -94,7 +100,7 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
 
     for dimension in dimensions:
         print(task,model,dimension,y_label)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         
         if not path.exists():  
             continue
@@ -105,9 +111,9 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         
         for random_seed in random_seeds:
 
-            #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
-            #    continue
-            all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'),index_col=0)
+            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
+                continue
+            all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
             outputs_bootstrap = np.expand_dims(np.empty(outputs.shape),axis=0)
@@ -116,27 +122,18 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
 
             metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names[project_name])
 
-            if parallel:
-                results = Parallel(n_jobs=-1)(
-                    delayed(lambda b, model_index,r: (
-                        b, 
-                        model_index, r,
-                        get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names[project_name],b,stratify=y_dev[r],problem_type=problem_type[project_name])
-                    ))(b, model_index,r)
-                    for b, model_index,r in itertools.product(range(n_boot), all_models.index,range(outputs.shape[1]))
-                )          
-                for b,model_index, r, result in results:
-                    for metric in metrics_names[project_name]:
-                        metrics[metric][b,model_index,r] = result[3][metric]
-                    y_pred_bootstrap[b,model_index,r,:] = result[2]
-            else:
-                for b,model_index,r in itertools.product(range(n_boot),all_models.index,range(outputs.shape[1])):
-                    outputs_bootstrap[b,model_index,r], y_dev_bootstrap[b,model_index,r],y_pred,metrics_ = get_metrics_bootstrap(outputs[model_index,r],y_dev[r],metrics_names[project_name],b,stratify=y_dev[r])
-
-                    for metric in metrics_names[project_name]:
-                        metrics[metric][b,model_index,r] = metrics_[metric]
-                    
-                    y_pred_bootstrap[b,model_index,r,:] = y_pred
+            results = Parallel(n_jobs=1 if parallel else 1)(
+                delayed(lambda b, model_index,r: (
+                    b, 
+                    model_index, r,
+                    get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names[project_name],b,stratify=y_dev[r],problem_type=problem_type[project_name])
+                ))(b, model_index,r)
+                for b, model_index,r in itertools.product(range(n_boot), all_models.index,range(outputs.shape[1]))
+            )          
+            for b,model_index, r, result in results:
+                for metric in metrics_names[project_name]:
+                    metrics[metric][b,model_index,r] = result[3][metric]
+                y_pred_bootstrap[b,model_index,r,:] = result[2]
 
             for model_index in all_models.index:
                 for metric in metrics_names[project_name]:

@@ -65,7 +65,7 @@ test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
             'Proyecto_Ivo':0,
             'GeroApathy':0,
-            'GERO_Ivo':0.3}
+            'GERO_Ivo':0}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -271,7 +271,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                                 'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
                                                 'random_state':42}
                     new_combination['elastic'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
-                                                'l1_ratio': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
+                                                'l1_ratio': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-4, -1))]),
                                                 'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
                                                 'random_state':42}
                     new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs()}
