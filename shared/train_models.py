@@ -167,7 +167,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
         dimensions = single_dimensions[project_name][task]
     
     for dimension in dimensions:
-        print(task,dimension)
+        print(y_label,task,dimension)
         data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
         if shuffle_labels:
@@ -279,7 +279,6 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                             'kernel': np.random.choice(['linear','poly','rbf','sigmoid']),
                                             'gamma': 'scale'}
                     
-                    
                     for key in models_dict[project_name].keys():
                         hyperp[key].loc[len(hyperp[key].index),:] = new_combination[key]
                 
@@ -374,8 +373,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                #    continue
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)

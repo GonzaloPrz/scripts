@@ -29,13 +29,12 @@ parallel = True
 
 project_name = 'GERO_Ivo'
 l2ocv = False
-bayes = False
 
 n_boot = 10
+n_folds = 5
 
 cmatrix = None
 shuffle_labels = False
-held_out_default = False
 hyp_opt_list = [True]
 feature_selection_list = [True]
 
@@ -45,8 +44,8 @@ scaler_name = 'StandardScaler'
 models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
           'Proyecto_Ivo':['lr','svc','knn','xgb'],
-          'GeroApathy':['lasso','ridge','knnr','svr','elastic'],
-          'GERO_Ivo':['lasso','ridge','knnr','svr','elastic']
+          'GeroApathy':['lasso','ridge','knnr','svr','xgb','elastic'],
+          'GERO_Ivo':['lasso','ridge','knnr','svr','xgb','elastic']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -82,7 +81,6 @@ y_labels = {'MCI_classifier':['target'],
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
@@ -113,28 +111,30 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
 
             if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
                 continue
+            
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
-            outputs_bootstrap = np.expand_dims(np.empty(outputs.shape),axis=0)
-            y_dev_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
-            y_pred_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
-
+            outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
+            y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
+            y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
+            
             metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names[project_name])
 
-            results = Parallel(n_jobs=1 if parallel else 1)(
+            results = Parallel(n_jobs=-1 if parallel else 1)(
                 delayed(lambda b, model_index,r: (
                     b, 
                     model_index, r,
                     get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names[project_name],b,stratify=y_dev[r],problem_type=problem_type[project_name])
                 ))(b, model_index,r)
-                for b, model_index,r in itertools.product(range(n_boot), all_models.index,range(outputs.shape[1]))
+                for b, model_index,r in tqdm.tqdm(itertools.product(range(n_boot), all_models.index,range(outputs.shape[1])))
             )          
             for b,model_index, r, result in results:
                 for metric in metrics_names[project_name]:
                     metrics[metric][b,model_index,r] = result[3][metric]
                 y_pred_bootstrap[b,model_index,r,:] = result[2]
-
+                y_dev_bootstrap[b,r,:] = result[1]
+                outputs_bootstrap[b,model_index,r] = result[0]
             for model_index in all_models.index:
                 for metric in metrics_names[project_name]:
                     mean, inf, sup = conf_int_95(metrics[metric][:,model_index,:].squeeze())

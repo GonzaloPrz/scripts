@@ -32,6 +32,8 @@ from expected_cost.utils import *
 ##---------------------------------PARAMETERS---------------------------------##
 project_name = 'GeroApathy'
 
+n_folds = 10
+
 l2ocv = False
 
 stratify = False
@@ -41,6 +43,7 @@ shuffle_labels_list = [False]
 feature_selection_list = [True]
 
 n_iter = 15
+init_points = 20
 
 scaler_name = 'StandardScaler'
 
@@ -58,8 +61,8 @@ thresholds = {'tell_classifier':[0.5],
                 'GeroApathy':[None],
                 'GERO_Ivo':[None]}
 
-test_size = {'tell_classifier':0.3,
-             'MCI_classifier':0.3,
+test_size = {'tell_classifier':0,
+             'MCI_classifier':0,
             'Proyecto_Ivo':0,
             'GeroApathy':0,
             'GERO_Ivo':0}
@@ -98,8 +101,8 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
 scoring = {'tell_classifier':'norm_cross_entropy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc_score',
-            'GeroApathy':'mean_absolute_error',
-            'GERO_Ivo':'mean_absolute_error'}
+            'GeroApathy':'r2_score',
+            'GERO_Ivo':'r2_score'}
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -112,7 +115,6 @@ imputer = KNNImputer
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 models_dict = {'tell_classifier':{'lr':LR,
                                 'svc':SVC,
@@ -126,17 +128,19 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'svc':SVC,
                                 'knnc':KNNC,
                                 'xgb':xgboost},
-                'GeroApathy':{  'ridge':Ridge,
+                'GeroApathy':{  'lasso':Lasso,
+                                'ridge':Ridge,
+                                'elastic':ElasticNet,
                                 'knnr':KNNR,
                                 'svr':SVR,
-                                'xgb':xgboostr,
-                                'elastic':ElasticNet
+                                'xgb':xgboostr
                                 },
-                'GERO_Ivo':{'ridge':Ridge,
-                            'xgb':xgboostr,
+                'GERO_Ivo':{#'lasso':Lasso,
+                            #'ridge':Ridge,
+                            'elastic':ElasticNet,
                             'knnr':KNNR,
                             'svr':SVR,
-                            'elastic':ElasticNet
+                            #'xgb':xgboostr
                                 }
 }
 
@@ -214,6 +218,7 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             config = {'n_iter':n_iter,
+                      'init_points':init_points,
             'test_size':test_size[project_name],
             'cmatrix':str(cmatrix)}
 
@@ -254,7 +259,9 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
                 
-                all_models,outputs_best,y_true,y_pred_best,IDs_val = nestedCVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,n_iter,CV_type,CV_type,random_seeds_train,hyperp[model],ID_train,scoring[project_name],problem_type[project_name],cmatrix,priors=None,threshold=thresholds[project_name],feature_selection=feature_selection)
+                all_models,outputs_best,y_true,y_pred_best,IDs_val = nestedCVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,n_iter,CV_type,CV_type,random_seeds_train,hyperp[model],ID_train,
+                                                                               init_points=init_points,scoring=scoring[project_name],problem_type=problem_type[project_name],cmatrix=cmatrix,priors=None,
+                                                                               threshold=thresholds[project_name],feature_selection=feature_selection)
 
                 all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
                 pickle.dump(outputs_best,open(Path(path_to_save_final,f'outputs_best_{model}.pkl'),'wb'))
