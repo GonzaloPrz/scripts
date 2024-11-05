@@ -167,7 +167,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
         dimensions = single_dimensions[project_name][task]
     
     for dimension in dimensions:
-        print(task,dimension)
+        print(y_label,task,dimension)
         data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
         if shuffle_labels:
@@ -271,14 +271,13 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                                 'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
                                                 'random_state':42}
                     new_combination['elastic'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
-                                                'l1_ratio': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
+                                                'l1_ratio': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-4, -1))]),
                                                 'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
                                                 'random_state':42}
                     new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs()}
                     new_combination['svr'] = {'C': loguniform(1e-1, 1e3).rvs(),
                                             'kernel': np.random.choice(['linear','poly','rbf','sigmoid']),
                                             'gamma': 'scale'}
-                    
                     
                     for key in models_dict[project_name].keys():
                         hyperp[key].loc[len(hyperp[key].index),:] = new_combination[key]
@@ -374,8 +373,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                #    continue
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
