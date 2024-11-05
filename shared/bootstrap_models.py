@@ -27,14 +27,14 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'Proyecto_Ivo'
+project_name = 'GERO_Ivo'
 l2ocv = False
 
 n_boot = 10
 n_folds = 5
 
 cmatrix = None
-shuffle_labels = True
+shuffle_labels = False
 hyp_opt_list = [True]
 feature_selection_list = [True]
 
@@ -63,7 +63,8 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg'}
+                'GeroApathy':'reg',
+                'GERO_Ivo':'reg'}
 
 metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
@@ -74,7 +75,8 @@ metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expe
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
+            'GeroApathy':['DASS_21_Depression','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'GERO_Ivo':['GM_norm','VM_norm','norm_vol_mask_AD','norm_vol_bilateral_HIP']}
 
 if l2ocv:
     kfold_folder = 'l2ocv'
@@ -107,15 +109,15 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         
         for random_seed in random_seeds:
 
-            #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
-            #    continue
+            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
+                continue
             
-            all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'),index_col=0)
+            all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
-            outputs_bootstrap = np.broadcast_to(np.empty(outputs.shape), (n_boot,)+outputs.shape)
-            y_dev_bootstrap = np.broadcast_to(np.empty(y_dev.shape), (n_boot,)+y_dev.shape)
-            y_pred_bootstrap = np.broadcast_to(np.empty(outputs.shape), (n_boot,)+outputs.shape)
+            outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
+            y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
+            y_pred_bootstrap = np.empty((n_boot,)+outputs.shape)
             
             metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names[project_name])
 
