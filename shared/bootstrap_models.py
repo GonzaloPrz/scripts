@@ -113,10 +113,10 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'),index_col=0)
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
-            outputs_bootstrap = np.expand_dims(np.empty(outputs.shape),axis=0)
-            y_dev_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
-            y_pred_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2]),dtype=y_dev.dtype)
-
+            outputs_bootstrap = np.broadcast_to(np.empty(outputs.shape), (n_boot,)+outputs.shape)
+            y_dev_bootstrap = np.broadcast_to(np.empty(y_dev.shape), (n_boot,)+y_dev.shape)
+            y_pred_bootstrap = np.broadcast_to(np.empty(outputs.shape), (n_boot,)+outputs.shape)
+            
             metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names[project_name])
 
             results = Parallel(n_jobs=-1 if parallel else 1)(
