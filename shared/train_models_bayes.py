@@ -31,6 +31,7 @@ from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 project_name = 'GERO_Ivo'
+n_folds = 10
 
 l2ocv = False
 
@@ -58,8 +59,8 @@ thresholds = {'tell_classifier':[0.5],
                 'GeroApathy':[None],
                 'GERO_Ivo':[None]}
 
-test_size = {'tell_classifier':0.3,
-             'MCI_classifier':0.3,
+test_size = {'tell_classifier':0,
+             'MCI_classifier':0,
             'Proyecto_Ivo':0,
             'GeroApathy':0,
             'GERO_Ivo':0}
@@ -99,7 +100,7 @@ scoring = {'tell_classifier':'norm_cross_entropy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc_score',
             'GeroApathy':'r2_score',
-            'GERO_Ivo':'mean_absolute_error'}
+            'GERO_Ivo':'r2_score'}
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -112,7 +113,6 @@ imputer = KNNImputer
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 10
     kfold_folder = f'{n_folds}_folds'
 models_dict = {'tell_classifier':{'lr':LR,
                                 'svc':SVC,
@@ -126,15 +126,19 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'svc':SVC,
                                 'knnc':KNNC,
                                 'xgb':xgboost},
-                'GeroApathy':{  'ridge':Ridge,
+                'GeroApathy':{  'lasso':Lasso,
+                                'ridge':Ridge,
+                                'elastic':ElasticNet,
                                 'knnr':KNNR,
                                 'svr':SVR,
-                                #'xgb':xgboostr
+                                'xgb':xgboostr
                                 },
-                'GERO_Ivo':{'ridge':Ridge,
-                            #'xgb':xgboostr,
+                'GERO_Ivo':{'lasso':Lasso,
+                            'ridge':Ridge,
+                            'elastic':ElasticNet,
                             'knnr':KNNR,
-                            'svr':SVR
+                            'svr':SVR,
+                            'xgb':xgboostr
                                 }
 }
 
