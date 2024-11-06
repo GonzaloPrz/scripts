@@ -109,7 +109,7 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         
         for random_seed in random_seeds:
 
-            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists():
+            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
                 continue
             
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
@@ -120,30 +120,32 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
             y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
             
             metrics = dict((metric,np.empty((n_boot,len(all_models),outputs.shape[1]))) for metric in metrics_names[project_name])
+            try:
+                results = Parallel(n_jobs=-1 if parallel else 1)(
+                    delayed(lambda b, model_index,r: (
+                        b, 
+                        model_index, r,
+                        get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names[project_name],b,stratify=y_dev[r],problem_type=problem_type[project_name])
+                    ))(b, model_index,r)
+                    for b, model_index,r in tqdm.tqdm(itertools.product(range(n_boot), all_models.index,range(outputs.shape[1])))
+                )          
+                for b,model_index, r, result in results:
+                    for metric in metrics_names[project_name]:
+                        metrics[metric][b,model_index,r] = result[3][metric]
+                    y_pred_bootstrap[b,model_index,r,:] = result[2]
+                    y_dev_bootstrap[b,r,:] = result[1]
+                    outputs_bootstrap[b,model_index,r] = result[0]
+                for model_index in all_models.index:
+                    for metric in metrics_names[project_name]:
+                        mean, inf, sup = conf_int_95(metrics[metric][:,model_index,:].squeeze())
+                        all_models.loc[model_index,f'inf_{metric}'] = inf
+                        all_models.loc[model_index,f'mean_{metric}'] = mean
+                        all_models.loc[model_index,f'sup_{metric}'] = sup
+                all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev.csv'))
 
-            results = Parallel(n_jobs=-1 if parallel else 1)(
-                delayed(lambda b, model_index,r: (
-                    b, 
-                    model_index, r,
-                    get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names[project_name],b,stratify=y_dev[r],problem_type=problem_type[project_name])
-                ))(b, model_index,r)
-                for b, model_index,r in tqdm.tqdm(itertools.product(range(n_boot), all_models.index,range(outputs.shape[1])))
-            )          
-            for b,model_index, r, result in results:
-                for metric in metrics_names[project_name]:
-                    metrics[metric][b,model_index,r] = result[3][metric]
-                y_pred_bootstrap[b,model_index,r,:] = result[2]
-                y_dev_bootstrap[b,r,:] = result[1]
-                outputs_bootstrap[b,model_index,r] = result[0]
-            for model_index in all_models.index:
-                for metric in metrics_names[project_name]:
-                    mean, inf, sup = conf_int_95(metrics[metric][:,model_index,:].squeeze())
-                    all_models.loc[model_index,f'inf_{metric}'] = inf
-                    all_models.loc[model_index,f'mean_{metric}'] = mean
-                    all_models.loc[model_index,f'sup_{metric}'] = sup
-            all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev.csv'))
-
-            pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
-            pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
-            pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
-            pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
+                pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
+                pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
+                pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
+                pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
+            except:
+                pass
