@@ -30,7 +30,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 
 n_folds = 10
 
@@ -73,13 +73,13 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
             'Proyecto_Ivo':'data_total.csv',
-            'GeroApathy':'all_data.csv',
+            'GeroApathy':'all_data_DiaTipico.csv',
             'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu'],
+         'GeroApathy':['DiaTipico'],
          'GERO_Ivo':['animales','grandmean','fas__animales','fas']
          }
 
@@ -193,7 +193,7 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
         if shuffle_labels:
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
                 
-        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and isinstance(data.loc[0,col],(int,float))]
         
         data = data[all_features + [y_label,id_col]]
         
@@ -252,7 +252,7 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists() and model != 'lasso':
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
                     continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
