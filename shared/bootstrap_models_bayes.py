@@ -25,10 +25,10 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
     return samples[sel_indices],targets[sel_indices],y_pred,metrics
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy'
+project_name = 'GERO_Ivo'
 l2ocv = False
 
-n_boot = 100
+n_boot = 1000
 
 cmatrix = None
 shuffle_labels = False
@@ -41,33 +41,41 @@ scaler_name = 'StandardScaler'
 models = {'MCI_classifier':['lr','svc','knnc','xgb'],
           'tell_classifier':['lr','svc','knnc','xgb'],
           'Proyecto_Ivo':['lr','svc','knnr','xgb'],
-          'GeroApathy':['elastic','lasso','ridge','knnr','svr','xgb']
+          'GeroApathy':['elastic','lasso','ridge','knnr','svr','xgb'],
+            'GERO_Ivo':['elastic','lasso','ridge','knnr','svr']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
+         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu']}
+         'GeroApathy':['Fugu'],
+         'GERO_Ivo':['animales','grandmean','fas__animales','fas']
+         }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':[],
+                     'GERO_Ivo':[],
                      'GeroApathy':[]}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
+                'GERO_Ivo':'reg',
                 'GeroApathy':'reg'}
 
 metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error']}
+                    'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error'],
+                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error']}
 
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
+            'GERO_Ivo':['MMSE_Total_Score'],
+            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            }
 
 if l2ocv:
     kfold_folder = 'l2ocv'

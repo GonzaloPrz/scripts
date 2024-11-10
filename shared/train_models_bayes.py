@@ -30,7 +30,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy'
+project_name = 'GERO_Ivo'
 
 n_folds = 10
 
@@ -135,8 +135,8 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'svr':SVR,
                                 'xgb':xgboostr
                                 },
-                'GERO_Ivo':{#'lasso':Lasso,
-                            #'ridge':Ridge,
+                'GERO_Ivo':{'lasso':Lasso,
+                            'ridge':Ridge,
                             'elastic':ElasticNet,
                             'knnr':KNNR,
                             'svr':SVR,
@@ -148,7 +148,7 @@ y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
             'GeroApathy':['DASS_21_Depression','Depression_Total_Score','MiniSea_MiniSea_Total_FauxPas','MiniSea_minisea_total','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces'],
-            'GERO_Ivo':['norm_vol_mask_AD','GM_norm','WM_norm','norm_vol_bilateral_HIP']
+            'GERO_Ivo':['MMSE_Total_Score','IFS_Total_Score','ACEIII_Total_Score']
 }
 
 problem_type = {'tell_classifier':'clf',
@@ -156,7 +156,6 @@ problem_type = {'tell_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'reg',
                 'GERO_Ivo':'reg'}
-
 
 hyperp = {'lr':{'C':(1e-4,100)},
           'svc':{'C':(1e-4,100),
@@ -253,8 +252,8 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                #if Path(path_to_save_final,f'all_models_{model}.csv').exists() and model != 'lasso':
-                #    continue
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists() and model != 'lasso':
+                    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)

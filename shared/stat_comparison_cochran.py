@@ -16,11 +16,11 @@ project_name = 'Proyecto_Ivo'
 scaler_name = 'StandardScaler'
 scoring = 'roc_auc'
 
-planned_comparisons = {'Proyecto_Ivo':(('Animales___properties__vr','cog___neuropsico_mmse'),
-                                        ('Animales___properties__vr','cog___neuropsico'),
-                                        ('Animales___properties__vr','brain___norm_brain_lit'),
-                                        ('Animales___properties__vr','AAL___norm_AAL'),
-                                        ('Animales___properties__vr','conn___connectivity'),
+planned_comparisons = {'Proyecto_Ivo':(('Animales___timing__vr','cog___neuropsico_mmse'),
+                                        ('Animales___timing__vr','cog___neuropsico'),
+                                        ('Animales___timing__vr','brain___norm_brain_lit'),
+                                        ('Animales___timing__vr','AAL___norm_AAL'),
+                                        ('Animales___timing__vr','conn___connectivity'),
                                         ('Animales___properties__timing','cog___neuropsico_mmse'),
                                         ('Animales___properties__timing','cog___neuropsico'),
                                         ('Animales___properties__timing','brain___norm_brain_lit'),
@@ -50,7 +50,7 @@ for y_label,comparison in itertools.product(y_labels[project_name],planned_compa
     task2 = model2.split('___')[0]
     dimension2 = model2.split('___')[1]
 
-    if model1 == 'Animales___properties__vr' and model2 == 'AAL___norm_AAL':
+    if model1 == 'Animales___timing__vr' and model2 == 'AAL___norm_AAL':
         print('hola')
 
     model_name1 = best_classifiers[(best_classifiers['task'] == task1) & (best_classifiers['dimension'] == dimension1)]['model_type'].values[0]
