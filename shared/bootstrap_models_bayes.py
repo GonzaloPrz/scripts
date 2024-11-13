@@ -25,7 +25,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
     return samples[sel_indices],targets[sel_indices],y_pred,metrics
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 l2ocv = False
 
 n_boot = 1000
@@ -85,7 +85,7 @@ else:
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
-conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model','metric','inf','mean','sup'])
+conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model_type','metric','inf','mean','sup'])
 
 for feature_selection in feature_selection_list:
     for task,model,y_label,hyp_opt in itertools.product(tasks[project_name],models[project_name],y_labels[project_name],hyp_opt_list):    
@@ -119,6 +119,7 @@ for feature_selection in feature_selection_list:
                     continue
                 
                 outputs = pickle.load(open(Path(path,random_seed,f'outputs_best_{model}.pkl'),'rb'))
+                
                 try:
                     y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
                 except:
@@ -144,5 +145,3 @@ for feature_selection in feature_selection_list:
                 pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
 
     conf_int_metrics.to_csv(Path(results_dir,'metrics_feature_selection_dev.csv' if feature_selection else 'metrics_dev.csv'),index=False)
-            
-            

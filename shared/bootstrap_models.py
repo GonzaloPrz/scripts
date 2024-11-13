@@ -27,10 +27,10 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state, stratif
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'GERO_Ivo'
+project_name = 'tell_classifier'
 l2ocv = False
 
-n_boot = 10
+n_boot = 1000
 n_folds = 5
 
 cmatrix = None
@@ -109,12 +109,30 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         
         for random_seed in random_seeds:
 
-            if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
-                continue
+            #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
+            #    continue
             
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
+            
+            scorings = np.empty(outputs.shape[0])
+
+            for i in range(outputs.shape[0]):
+                scorings_i = np.empty(outputs.shape[1])
+                for r in range(outputs.shape[1]):
+                    if problem_type[project_name] == 'clf':
+                        metrics, y_pred = get_metrics_clf(outputs[i,r], y_dev[r], ['roc_auc'], cmatrix)
+                        scorings_i[r] = metrics['roc_auc']
+                    else:
+                        metrics = get_metrics_reg(outputs[i,r], y_dev[r],['r2_score'])
+                        scorings_i[r] = metrics['r2_score']
+                scorings[i] = np.nanmean(scorings_i)
+            
+            best_models = np.argsort(-scorings)[:100]
+            all_models = all_models.iloc[best_models]
+            outputs = outputs[best_models]
+            
             outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
             y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
             y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
