@@ -136,7 +136,9 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
                         scorings_i[r] = metrics[scoring[project_name]]
                 scorings[i] = np.nanmean(scorings_i)
             
-            best_models = np.argsort(-scorings if any(x in scoring[project_name] for x in ['norm','error']) else scorings)[:n_models]
+            scorings = scorings if any(x in scoring[project_name] for x in ['norm','error']) else -scorings
+
+            best_models = np.argsort(scorings)[:n_models]
             all_models = all_models.iloc[best_models]
             outputs = outputs[best_models]
             
