@@ -86,7 +86,7 @@ thresholds = {'tell_classifier':[0.5],
 
 scaler_name = 'StandardScaler'
 
-boot_test = 10
+boot_test = 1000
 boot_train = 0
 
 n_seeds_test = 1
@@ -129,21 +129,21 @@ imputer = KNNImputer
 models_dict = {'tell_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knnc': KNeighborsClassifier},
+                                    'knn': KNeighborsClassifier},
                 'MCI_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knnc': KNeighborsClassifier},
+                                    'knn': KNeighborsClassifier},
                 'MCI_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knnc': KNeighborsClassifier},
+                                    'knn': KNeighborsClassifier},
                 'GeroApathy':{'ridge':RR,
                             'knnr':KNeighborsRegressor,
                             'lasso':Lasso}}
 
-extremo = 'sup' if 'norm' in scoring else 'inf'
-ascending = True if 'norm' in scoring else False
+extremo = 'sup' if 'norm' in scoring[project_name] else 'inf'
+ascending = True if 'norm' in scoring[project_name] else False
 
 for task in tasks[project_name]:
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
@@ -203,14 +203,14 @@ for task in tasks[project_name]:
                                                                                  for r in results_dev.index)
                     
                     results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
-                    results_test['index'] = results_dev.index
+                    results_test['index'] = results_dev['Unnamed: 0'].values
 
                     outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
                     y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
                     y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
                     IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
 
-                    results_test.to_csv(Path(file.parent,f'best_models_{scoring}_{model_name}_test.csv'))
+                    results_test.to_csv(Path(file.parent,f'best_models_{scoring[project_name]}_{model_name}_test.csv'))
                     
                     with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
                         pickle.dump(y_true_bootstrap,f)
