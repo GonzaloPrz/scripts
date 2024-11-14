@@ -32,7 +32,7 @@ l2ocv = False
 
 n_boot = 1000
 n_folds = 5
-n_models = 50
+n_models = 100
 
 cmatrix = None
 shuffle_labels = False
@@ -140,6 +140,7 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
 
             best_models = np.argsort(scorings)[:n_models]
             all_models = all_models.iloc[best_models]
+            all_models['index'] = best_models
             outputs = outputs[best_models]
             
             outputs_bootstrap = np.empty((n_boot,) + outputs.shape)

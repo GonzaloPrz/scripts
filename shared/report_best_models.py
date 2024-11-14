@@ -10,7 +10,7 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'GERO_Ivo'
+project_name = 'tell_classifier'
 
 l2ocv = False
 
@@ -98,7 +98,7 @@ for feature_selection in feature_selection_list:
                         if f'{extremo}_{scoring[project_name]}' in df.columns:
                             scoring_col = f'{extremo}_{scoring[project_name]}'
                         else:
-                            scoring_col = f'{extremo}_{scoring[project_name]}'
+                            scoring_col = f'{extremo}_{scoring[project_name]}_dev'
 
                         df = df.sort_values(by=scoring_col,ascending=ascending)
                         

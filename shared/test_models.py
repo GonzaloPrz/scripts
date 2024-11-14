@@ -16,7 +16,7 @@ from xgboost import XGBClassifier
 
 from sklearn.linear_model import Ridge as RR
 from sklearn.linear_model import Lasso
-from sklearn.neighbors import KNeighborsRegressor as KNN
+from sklearn.neighbors import KNeighborsRegressor
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -61,9 +61,7 @@ from psrcal import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'GeroApathy'
-
-scoring = 'r2_score'
+project_name = 'tell_classifier'
 
 l2ocv = False
 
@@ -105,6 +103,12 @@ problem_type = {'tell_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'reg'}
 
+scoring = {'tell_classifier':'norm_cross_entropy',
+            'MCI_classifier':'norm_cross_entropy',
+            'Proyecto_Ivo':'roc_auc',
+            'GeroApathy':'r2_score',
+            'GERO_Ivo':'r2_score'}
+
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
@@ -122,28 +126,27 @@ else:
     scaler = None
 imputer = KNNImputer
 
-models_dict = {'tell)_classifier':{'lr': LogisticRegression,
+models_dict = {'tell_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knn': KNeighborsClassifier},
+                                    'knnc': KNeighborsClassifier},
                 'MCI_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knn': KNeighborsClassifier},
+                                    'knnc': KNeighborsClassifier},
                 'MCI_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knn': KNeighborsClassifier},
+                                    'knnc': KNeighborsClassifier},
                 'GeroApathy':{'ridge':RR,
-                            'knn':KNN,
+                            'knnr':KNeighborsRegressor,
                             'lasso':Lasso}}
 
 extremo = 'sup' if 'norm' in scoring else 'inf'
 ascending = True if 'norm' in scoring else False
 
 for task in tasks[project_name]:
-    #dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
-    dimensions = ['emotions-logit']
+    dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
         for y_label,hyp_opt,feature_selection in itertools.product(y_labels[project_name],hyp_opt_list,feature_selection_list):
@@ -185,11 +188,11 @@ for task in tasks[project_name]:
 
                     print(model_name)
                     
-                    if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                        continue
+                    #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                    #    continue
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
-                    results_dev = results_dev.sort_values(by=f'{extremo}_{scoring}',ascending=ascending)
+                    results_dev = results_dev.sort_values(by=f'{extremo}_{scoring[project_name]}',ascending=ascending)
                     
                     if 'threshold' not in results_dev.columns:
                         results_dev['threshold'] = thresholds[project_name][0]
