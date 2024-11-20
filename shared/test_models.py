@@ -23,7 +23,7 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold):
     results_r = row.dropna().to_dict()
                                         
-    params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold']))
+    params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold','index']))
 
     features = [col for col in all_features if col in results_r.keys() and results_r[col] == 1]
     features_dict = {col:results_r[col] for col in all_features if col in results_r.keys()}
@@ -192,7 +192,13 @@ for task in tasks[project_name]:
                     #    continue
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
-                    results_dev = results_dev.sort_values(by=f'{extremo}_{scoring[project_name]}',ascending=ascending)
+                    
+                    if f'{extremo}_{scoring[project_name]}' in results_dev.columns:
+                        scoring_col = f'{extremo}_{scoring[project_name]}'
+                    else:
+                        scoring_col = f'{extremo}_{scoring[project_name]}_dev'
+
+                    results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
                     
                     if 'threshold' not in results_dev.columns:
                         results_dev['threshold'] = thresholds[project_name][0]

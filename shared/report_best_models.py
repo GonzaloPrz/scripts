@@ -37,7 +37,7 @@ metrics_names = {'tell_classifier':['roc_auc','accuracy','norm_expected_cost','n
                     'GeroApathy':['r2_score','mean_absolute_error'],
                     'GERO_Ivo':['r2_score','mean_absolute_error']}
 
-scoring = {'tell_classifier':'norm_cross_entropy',
+scoring = {'tell_classifier':'accuracy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc',
             'GeroApathy':'r2_score',

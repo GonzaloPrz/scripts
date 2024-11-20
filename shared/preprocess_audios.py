@@ -16,9 +16,9 @@ for task in tasks:
     for audio in tqdm.tqdm(path_to_audios.rglob('*.wav')):
         print(f'Preprocessing {audio.stem}')
 
-        if Path(path_to_audios.parent,'diarize',f'{audio.stem}_mono_16khz_diarize.wav').exists():
+        if Path(path_to_audios.parent,'diarize',f'{audio.stem}_mono_16khz_loudnorm_denoised.wav').exists():
             continue
 
         preprocess_audio(audio,str(path_to_audios),
-                        diarize_config=True,
-                        vad_config=False)
+                        diarize_config=False,
+                        vad_config=True)
