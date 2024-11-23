@@ -12,7 +12,16 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
-def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_boot=2000, cmatrix=None, priors=None, problem_type='clf'):
+def compute_metrics(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name):
+    # Calculate the metrics using the bootstrap method
+    results = get_metrics_bootstrap(outputs[model_index, r], y_dev[r], metrics_names[project_name], n_boot=n_boot, problem_type=problem_type[project_name])
+    
+    metrics_result = {}
+    for metric in metrics_names[project_name]:
+        metrics_result[metric] = results[1][metric]
+    return model_index, r, metrics_result
+
+def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_boot=2000, decimals=5,cmatrix=None, priors=None, problem_type='clf'):
     assert samples.shape[0] == targets.shape[0]
     
     metrics_ci = dict((metric,(np.empty(0),np.empty((0,2)))) for metric in metrics_names)
@@ -26,7 +35,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
                 metric_value = get_metrics_reg(samples[indices], targets[indices], [metric])
             return metric_value[metric]
                     
-        results = compute_bootci(x=np.arange(targets.shape[0]),func=get_metric,n_boot=n_boot,method='cper',seed=random_state,return_dist=True)
+        results = compute_bootci(x=np.arange(targets.shape[0]),func=get_metric,n_boot=n_boot,method='cper',seed=random_state,return_dist=True,decimals=decimals)
         metrics_ci[metric] = (np.round(np.nanmean(results[1]),2),results[0])
         all_metrics[metric] = results[1]
 
@@ -156,17 +165,19 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
             
             metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],n_boot))) for metric in metrics_names[project_name])
             
-            for model_index in tqdm.tqdm(range(outputs.shape[0])):
-                for r in range(outputs.shape[1]):
-                    results = get_metrics_bootstrap(outputs[model_index,r], y_dev[r], metrics_names[project_name],n_boot=n_boot,problem_type=problem_type[project_name])
-                    for metric in metrics_names[project_name]:
-                        metrics[metric][model_index,r,:] = results[1][metric]
-                
+            all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index in tqdm.tqdm(range(outputs.shape[0])) for r in range(outputs.shape[1]))
+
+            # Update the metrics array with the computed results
+            for model_index, r, metrics_result in all_results:
                 for metric in metrics_names[project_name]:
-                    all_models.loc[model_index,f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(2)
-                    all_models.loc[model_index,f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(),2.5).round(2)
-                    all_models.loc[model_index,f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(),97.5).round(2)
-            
+                    metrics[metric][model_index, r, :] = metrics_result[metric]
+
+            # Update the summary statistics in all_models
+            for model_index in tqdm.tqdm(range(outputs.shape[0])):
+                for metric in metrics_names[project_name]:
+                    all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(2)
+                    all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(2)
+                    all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(2)
             all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_bca.csv'))
 
             #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
