@@ -30,7 +30,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 
 parallel = True
 
@@ -74,13 +74,13 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
             'Proyecto_Ivo':'data_total.csv',
-            'GeroApathy':'all_data.csv',
+            'GeroApathy':'all_data_DiaTipico.csv',
             'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu'],
+         'GeroApathy':['DiaTipico'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']
          }
 
@@ -94,7 +94,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['emotions-logit','sentiment-logit','pitch','talking-intervals'],
+                        'GeroApathy':['formants','mfcc','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
@@ -127,15 +127,15 @@ models_dict = {'tell_classifier':{'lr':LR,
                 'GeroApathy':{'lasso':Lasso,
                                 'ridge':Ridge,
                                 'elastic':ElasticNet,
-                                'knnr':KNNR,
-                                'svr':SVR,
+                                #'knnr':KNNR,
+                                #'svr':SVR,
                                 #'xgb':xgboostr
                                 },
                 'GERO_Ivo':{'lasso':Lasso,
                                 'ridge':Ridge,
                                 'elastic':ElasticNet,
-                                'knnr':KNNR,
-                                'svr':SVR,
+                                #'knnr':KNNR,
+                                #'svr':SVR,
                                 #'xgb':xgboostr
                                 }
                 }
@@ -143,8 +143,13 @@ models_dict = {'tell_classifier':{'lr':LR,
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD']
+            'GeroApathy':['DASS_21_Depression','Depression_Total_Score','AES_Total_Score',
+                          'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        #'MMSE_Total_Score','ACEIII_Total_Score',
+                        #'IFS_Total_Score',
+                        'MoCA_Total_Boni_3'
+                        ]
 }
 
 problem_type = {'tell_classifier':'clf',

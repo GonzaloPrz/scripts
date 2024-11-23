@@ -43,10 +43,10 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'tell_classifier'
+project_name = 'GERO_Ivo'
 l2ocv = False
 
-n_boot = 200
+n_boot = 2000
 n_folds = 5
 n_models = 100
 
@@ -61,8 +61,8 @@ scaler_name = 'StandardScaler'
 models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
           'Proyecto_Ivo':['lr','svc','knn','xgb'],
-          'GeroApathy':['lasso','ridge','knnr','svr','xgb','elastic'],
-          'GERO_Ivo':['lasso','ridge','knnr','svr','xgb','elastic']
+          'GeroApathy':['lasso','ridge','knnr','svr','elastic'],
+          'GERO_Ivo':['lasso','ridge','knnr','svr','elastic']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -132,8 +132,8 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         
         for random_seed in random_seeds:
 
-            #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
-            #    continue
+            if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
+                continue
             
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
@@ -183,4 +183,4 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
             #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
             #pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
             #pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
-            pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
+            pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca.pkl'),'wb'))

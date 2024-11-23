@@ -10,7 +10,7 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'tell_classifier'
+project_name = 'GERO_Ivo'
 
 l2ocv = False
 
@@ -75,7 +75,8 @@ for feature_selection in feature_selection_list:
             y_labels = [folder.name for folder in path.iterdir() if folder.is_dir() and folder.name != 'mean_std']
             for y_label in y_labels:
                 path = Path(results_dir,task,dimension,scaler_name,kfold_folder,stats[project_name],y_label,'hyp_opt' if hyp_opt else 'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
-            
+                if not path.exists():
+                    continue
                 random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
 
                 if len(random_seeds_test) == 0:
@@ -85,7 +86,7 @@ for feature_selection in feature_selection_list:
                     
                     files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'test' in file.stem and any(x in file.stem for x in metrics_names[project_name])]
                     if len(files) == 0:
-                        files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem]
+                        files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem]
 
                     if len(files) == 0:
                         continue
@@ -97,16 +98,18 @@ for feature_selection in feature_selection_list:
                         
                         if f'{extremo}_{scoring[project_name]}' in df.columns:
                             scoring_col = f'{extremo}_{scoring[project_name]}'
-                        else:
+                        elif f'{extremo}_{scoring[project_name]}_dev' in df.columns:
                             scoring_col = f'{extremo}_{scoring[project_name]}_dev'
+                        else:
+                            scoring_col = f'{scoring[project_name]}_{extremo}'
 
                         df = df.sort_values(by=scoring_col,ascending=ascending)
                         
-                        print(f'{file.stem.split("_")[-2]}:{df.loc[0,scoring_col]}')
+                        print(f'{file.stem.split("_")[-3]}:{df.loc[0,scoring_col]}')
                         if best is None:
                             best = df.loc[0,:]
                             
-                            model_type = file.stem.split('_')[-2]
+                            model_type = file.stem.split('_')[-2] if 'bca' not in file.stem else file.stem.split('_')[-3]
                             best['y_label'] = y_label
                             best['model_type'] = model_type
                             best['model_index'] = df.index[0]
@@ -115,7 +118,7 @@ for feature_selection in feature_selection_list:
                             if new_best(best[scoring_col],df.loc[0,scoring_col],ascending):
                                 best = df.loc[0,:]
 
-                                model_type = file.stem.split('_')[-2]
+                                model_type = file.stem.split('_')[-2] if 'bca' not in file.stem else file.stem.split('_')[-3]
                                 best['y_label'] = y_label
                                 best['model_type'] = model_type
                                 best['model_index'] = df.index[0]
@@ -125,10 +128,12 @@ for feature_selection in feature_selection_list:
                     
                     print(best['model_type'])
                     for metric in metrics_names[project_name]:
-                        try:
+                        if f'inf_{metric}_dev' in best.index:
                             best[f'{metric}_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],2)}, {np.round(best[f"mean_{metric}_dev"],2)}, {np.round(best[f"sup_{metric}_dev"],2)}]'
-                        except:
+                        elif f'inf_{metric}' in best.index:
                             best[f'{metric}_dev'] = f'[{np.round(best[f"inf_{metric}"],2)}, {np.round(best[f"mean_{metric}"],2)}, {np.round(best[f"sup_{metric}"],2)}]'
+                        else:
+                            best[f'{metric}_dev'] = f'[{np.round(best[f"{metric}_inf"],2)}, {np.round(best[f"{metric}_mean"],2)}, {np.round(best[f"{metric}_sup"],2)}]'
 
                         best[f'{metric}_holdout'] = np.nan
                         try:
