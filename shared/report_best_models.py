@@ -10,7 +10,7 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'GeroApathy'
+project_name = 'GERO_Ivo'
 
 l2ocv = False
 
@@ -49,7 +49,10 @@ stats = {'tell_classifier':'',
             'GeroApathy':'',
             'GERO_Ivo':''}
 
-best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_dev' for metric in metrics_names[project_name]] + [f'{metric}_holdout' for metric in metrics_names[project_name]])
+best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names[project_name]] 
+                           + [f'{metric}_mean_dev' for metric in metrics_names[project_name]] 
+                           + [f'{metric}_mean_holdout' for metric in metrics_names[project_name]]
+                           + [f'{metric}_ic_holdout' for metric in metrics_names[project_name]])
 
 pd.options.mode.copy_on_write = True 
 
@@ -129,27 +132,37 @@ for feature_selection in feature_selection_list:
                     print(best['model_type'])
                     for metric in metrics_names[project_name]:
                         if f'inf_{metric}_dev' in best.index:
-                            best[f'{metric}_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],2)}, {np.round(best[f"mean_{metric}_dev"],2)}, {np.round(best[f"sup_{metric}_dev"],2)}]'
+                            best[f'{metric}_mean_dev'] = np.round(best[f"mean_{metric}_dev"],5)
+                            best[f'{metric}_ic_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],5)} - {np.round(best[f"sup_{metric}_dev"],5)}]'
                         elif f'inf_{metric}' in best.index:
-                            best[f'{metric}_dev'] = f'[{np.round(best[f"inf_{metric}"],2)}, {np.round(best[f"mean_{metric}"],2)}, {np.round(best[f"sup_{metric}"],2)}]'
+                            best[f'{metric}_mean_dev'] = np.round(best[f"mean_{metric}"],5)
+                            best[f'{metric}_ic_dev'] = f'[{np.round(best[f"inf_{metric}"],5)}, {np.round(best[f"sup_{metric}"],5)}]'
                         else:
-                            best[f'{metric}_dev'] = f'[{np.round(best[f"{metric}_inf"],2)}, {np.round(best[f"{metric}_mean"],2)}, {np.round(best[f"{metric}_sup"],2)}]'
+                            best[f'{metric}_mean_dev'] = np.round(best[f"{metric}_mean"],5)
+                            best[f'{metric}_ic_dev'] = f'[{np.round(best[f"{metric}_inf"],5)}, {np.round(best[f"{metric}_sup"],5)}]'
 
                         best[f'{metric}_holdout'] = np.nan
                         try:
-                            mean = np.round(best[f'mean_{metric}_test'],2)
-                            inf = np.round(best[f'inf_{metric}_test'],2)
-                            sup = np.round(best[f'sup_{metric}_test'],2)
-                            best[f'{metric}_holdout'] = f'[ {inf}, {mean}, {sup}]'
+                            mean = np.round(best[f'mean_{metric}_test'],5)
+                            inf = np.round(best[f'inf_{metric}_test'],5)
+                            sup = np.round(best[f'sup_{metric}_test'],5)
+                            best[f'{metric}_mean_holdout'] = mean
+                            best[f'{metric}_ic_holdout'] = f'[{inf}, {sup}]'
+                            
                         except:
                             continue
 
                     model_type = file
                     
                     dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':best['model_type'],'model_index':best['model_index'],'random_seed_test':random_seed_test}
-                    dict_append.update(dict((f'{metric}_dev',best[f'{metric}_dev']) for metric in metrics_names[project_name]))
-                    dict_append.update(dict((f'{metric}_holdout',best[f'{metric}_holdout']) for metric in metrics_names[project_name]))
-
+                    dict_append.update(dict((f'{metric}_mean_dev',best[f'{metric}_mean_dev']) for metric in metrics_names[project_name]))
+                    dict_append.update(dict((f'{metric}_ic_dev',best[f'{metric}_ic_dev']) for metric in metrics_names[project_name]))
+                    try:
+                        dict_append.update(dict((f'{metric}_mean_holdout',best[f'{metric}_mean_holdout']) for metric in metrics_names[project_name]))
+                        dict_append.updata(dict((f'{metric}_ic_hodldout',best[f'{metric}_ic_holdout']) for metric in metrics_names[project_name]))
+                    except:
+                        dict_append.update(dict((f'{metric}_mean_hodlout',np.nan) for metric in metrics_names[project_name]))
+                        dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names[project_name]))
                     best_models.loc[len(best_models),:] = pd.Series(dict_append)
 
             filename_to_save = f'best_models_{scoring[project_name]}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
