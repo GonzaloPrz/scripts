@@ -43,10 +43,10 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 l2ocv = False
 
-n_boot = 2000
+n_boot = 200
 n_folds = 5
 n_models = 100
 
@@ -62,13 +62,13 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
           'Proyecto_Ivo':['lr','svc','knn','xgb'],
           'GeroApathy':['lasso','ridge','knnr','svr','elastic'],
-          'GERO_Ivo':['lasso','ridge','knnr','svr','elastic']
+          'GERO_Ivo':['lasso','ridge','elastic']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu'],
+         'GeroApathy':['DiaTipico'],
          'GERO_Ivo':['animales','fas','grandmean','fas__animales']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -92,8 +92,12 @@ metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expe
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD']}
+            'GeroApathy':[#'DASS_21_Depression','Depression_Total_Score','AES_Total_Score',
+                         'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
+                         ],
+            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+                        ]}
 
 scoring = {'MCI_classifier':'norm_cross_entropy',
            'tell_classifier':'norm_cross_entropy',
@@ -132,7 +136,10 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         
         for random_seed in random_seeds:
 
-            if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
+            #if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
+            #    continue
+            
+            if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))

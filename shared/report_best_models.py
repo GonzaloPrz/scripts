@@ -10,7 +10,7 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 
 l2ocv = False
 
@@ -28,14 +28,14 @@ n_folds = 5
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu'],
+         'GeroApathy':['DiaTipico'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
 
 metrics_names = {'tell_classifier':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
                     'MCI_classifier':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
                     'Proyecto_Ivo':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
-                    'GeroApathy':['r2_score','mean_absolute_error'],
-                    'GERO_Ivo':['r2_score','mean_absolute_error']}
+                    'GeroApathy':['r2_score','mean_absolute_error','mean_squared_error'],
+                    'GERO_Ivo':['r2_score','mean_absolute_error','mean_squared_error']}
 
 scoring = {'tell_classifier':'accuracy',
             'MCI_classifier':'norm_cross_entropy',

@@ -3,6 +3,8 @@ import pandas as pd
 from pathlib import Path
 import math 
 
+import torch
+
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
@@ -94,7 +96,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['formants','mfcc','pitch','talking-intervals'],
+                        'GeroApathy':['ratio','formants','mfcc','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
@@ -129,13 +131,13 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'elastic':ElasticNet,
                                 #'knnr':KNNR,
                                 #'svr':SVR,
-                                #'xgb':xgboostr
+                                'xgb':xgboostr
                                 },
                 'GERO_Ivo':{'lasso':Lasso,
                                 'ridge':Ridge,
                                 'elastic':ElasticNet,
-                                #'knnr':KNNR,
-                                #'svr':SVR,
+                                'knnr':KNNR,
+                                'svr':SVR,
                                 #'xgb':xgboostr
                                 }
                 }
@@ -143,12 +145,12 @@ models_dict = {'tell_classifier':{'lr':LR,
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','Depression_Total_Score','AES_Total_Score',
-                          'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
-                        #'MMSE_Total_Score','ACEIII_Total_Score',
-                        #'IFS_Total_Score',
-                        'MoCA_Total_Boni_3'
+            'GeroApathy':[#'DASS_21_Depression','Depression_Total_Score','AES_Total_Score',
+                          'MiniSea_MiniSea_Total_EkmanFaces',
+                         'MiniSea_minisea_total'
+                          ],
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ]
 }
 
@@ -179,7 +181,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
             np.random.seed(42)
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
                 
-        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str)]
         
         data = data[all_features + [y_label,id_col]]
         
@@ -236,7 +238,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                     'probability':True},index=[0]),
                             'xgb': pd.DataFrame({'n_estimators':100,
                                     'max_depth':6,
-                                    'learning_rate':0.3
+                                    'learning_rate':0.3,
+                                    'device':'gpu'if torch.cuda.is_available() else 'cpu'
                                     },index=[0]),
                             'ridge': pd.DataFrame({'alpha': 1,
                                             'tol':.0001,
@@ -266,7 +269,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                     new_combination['knnc'] = {'n_neighbors': int(randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs())}
                     new_combination['xgb'] = {'n_estimators': int(randint(10,1000).rvs()),
                                             'max_depth': randint(1, 10).rvs(),
-                                            'learning_rate': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])
+                                            'learning_rate': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
+                                            'device':'cuda' if torch.cuda.is_available() else 'cpu'
                                             }
                     new_combination['ridge'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
                                             'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
@@ -384,7 +388,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,torch.tensor(X_train,device='cuda') if torch.cuda.is_available() else X_train,torch.tensor(y_train,device='cuda') if torch.cuda.is_available() else y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
                 all_models = pd.DataFrame()
                 
