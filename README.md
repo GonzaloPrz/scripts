@@ -1,4 +1,4 @@
-# Repositorio de Modelos y Evaluación
+# Repositorio de Modelos y Evaluación (subcarpeta /shared)
 
 Este repositorio contiene scripts relacionados con el entrenamiento, evaluación y análisis de modelos de aprendizaje automático. Además, utiliza funciones definidas en el script `utils.py` del repositorio [Scripts Generales](https://github.com/GonzaloPrz/scripts_generales).
 
