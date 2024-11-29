@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import math 
+import torch
 
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
@@ -127,9 +128,9 @@ models_dict = {'tell_classifier':{'lr':LR,
                 'GeroApathy':{'lasso':Lasso,
                                 'ridge':Ridge,
                                 'elastic':ElasticNet,
-                                'knnr':KNNR,
-                                'svr':SVR,
-                                #'xgb':xgboostr
+                                #'knnr':KNNR,
+                                #'svr':SVR,
+                                'xgb':xgboostr
                                 },
                 'GERO_Ivo':{'lasso':Lasso,
                                 'ridge':Ridge,
@@ -231,7 +232,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                     'probability':True},index=[0]),
                             'xgb': pd.DataFrame({'n_estimators':100,
                                     'max_depth':6,
-                                    'learning_rate':0.3
+                                    'learning_rate':0.3,
+                                    'device':'cuda' if torch.cuda.is_available() else 'cpu'
                                     },index=[0]),
                             'ridge': pd.DataFrame({'alpha': 1,
                                             'tol':.0001,
@@ -261,7 +263,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                     new_combination['knnc'] = {'n_neighbors': int(randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs())}
                     new_combination['xgb'] = {'n_estimators': int(randint(10,1000).rvs()),
                                             'max_depth': randint(1, 10).rvs(),
-                                            'learning_rate': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])
+                                            'learning_rate': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
+                                            'device': 'cuda' if torch.cuda.is_available() else 'cpu'
                                             }
                     new_combination['ridge'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
                                             'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
@@ -379,7 +382,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,torch.tensor(X_train,device='cuda') if torch.cuda.is_available() and 'device' in hyperp[model].keys() else X_train,torch.tensor(y_train,device='cuda') if torch.cuda.is_available() and 'device' in hyperp[model].keys() else y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
                 all_models = pd.DataFrame()
                 

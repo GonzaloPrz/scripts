@@ -43,7 +43,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'tell_classifier'
+project_name = 'GERO_Ivo'
 l2ocv = False
 
 n_boot = 200
