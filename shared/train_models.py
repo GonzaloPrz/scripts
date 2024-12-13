@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import math 
+
 import torch
 
 from sklearn.model_selection import StratifiedKFold, KFold
@@ -31,7 +32,7 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 
 parallel = True
 
@@ -75,13 +76,13 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
             'Proyecto_Ivo':'data_total.csv',
-            'GeroApathy':'all_data.csv',
+            'GeroApathy':'all_data_agradable.csv',
             'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu'],
+         'GeroApathy':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']
          }
 
@@ -95,7 +96,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['emotions-logit','sentiment-logit','pitch','talking-intervals'],
+                        'GeroApathy':['formants','mfcc','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
@@ -130,7 +131,7 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'elastic':ElasticNet,
                                 #'knnr':KNNR,
                                 #'svr':SVR,
-                                'xgb':xgboostr
+                                #'xgb':xgboostr
                                 },
                 'GERO_Ivo':{'lasso':Lasso,
                                 'ridge':Ridge,
@@ -144,8 +145,12 @@ models_dict = {'tell_classifier':{'lr':LR,
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD']
+            'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
+                          #'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
+                          ],
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+                        ]
 }
 
 problem_type = {'tell_classifier':'clf',
@@ -175,7 +180,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
             np.random.seed(42)
             data[y_label] = pd.Series(np.random.permutation(data[y_label]))
                 
-        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
         
         data = data[all_features + [y_label,id_col]]
         
@@ -233,7 +238,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                             'xgb': pd.DataFrame({'n_estimators':100,
                                     'max_depth':6,
                                     'learning_rate':0.3,
-                                    'device':'cuda' if torch.cuda.is_available() else 'cpu'
+                                    'device':'gpu'if torch.cuda.is_available() else 'cpu'
                                     },index=[0]),
                             'ridge': pd.DataFrame({'alpha': 1,
                                             'tol':.0001,
@@ -264,7 +269,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                     new_combination['xgb'] = {'n_estimators': int(randint(10,1000).rvs()),
                                             'max_depth': randint(1, 10).rvs(),
                                             'learning_rate': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
-                                            'device': 'cuda' if torch.cuda.is_available() else 'cpu'
+                                           'device':'cuda' if torch.cuda.is_available() else 'cpu'
                                             }
                     new_combination['ridge'] = {'alpha': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-3, 2))]),
                                             'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
@@ -277,10 +282,11 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                                 'l1_ratio': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-4, -1))]),
                                                 'tol': np.random.choice([x*10**y for x,y in itertools.product(range(1, 10),range(-5, 0))]),
                                                 'random_state':42}
-                    new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs()}
-                    new_combination['svr'] = {'C': loguniform(1e-1, 1e3).rvs(),
-                                            'kernel': np.random.choice(['linear','poly','rbf','sigmoid']),
-                                            'gamma': 'scale'}
+                    new_combination['knnr'] = {'n_neighbors': randint(1, int((n_folds - 1) / n_folds * (data.shape[0] * (1-test_size[project_name])))).rvs()},
+                    new_combination['svr'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
+                                            'kernel': np.random.choice(['linear', 'rbf', 'sigmoid']),
+                                            'gamma': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])}
+                                            
                     
                     for key in models_dict[project_name].keys():
                         hyperp[key].loc[len(hyperp[key].index),:] = new_combination[key]
@@ -382,7 +388,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,torch.tensor(X_train,device='cuda') if torch.cuda.is_available() and 'device' in hyperp[model].keys() else X_train,torch.tensor(y_train,device='cuda') if torch.cuda.is_available() and 'device' in hyperp[model].keys() else y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,torch.tensor(X_train,device='cuda') if torch.cuda.is_available() else X_train, torch.tensor(y_train,device='cuda') if torch.cuda.is_available() else y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
                 all_models = pd.DataFrame()
                 

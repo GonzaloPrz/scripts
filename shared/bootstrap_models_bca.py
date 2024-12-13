@@ -43,12 +43,12 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 l2ocv = False
 
 n_boot = 200
 n_folds = 5
-n_models = 100
+n_models = np.inf
 
 cmatrix = None
 shuffle_labels = False
@@ -61,14 +61,14 @@ scaler_name = 'StandardScaler'
 models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
           'Proyecto_Ivo':['lr','svc','knn','xgb'],
-          'GeroApathy':['lasso','ridge','knnr','svr','xgb','elastic'],
-          'GERO_Ivo':['lasso','ridge','knnr','svr','xgb','elastic']
+          'GeroApathy':['lasso','ridge','elastic'],
+          'GERO_Ivo':['lasso','ridge','elastic']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu'],
+         'GeroApathy':['agradable'],
          'GERO_Ivo':['animales','fas','grandmean','fas__animales']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -92,8 +92,12 @@ metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expe
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD']}
+            'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
+                         'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
+                         ],
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+                        ]}
 
 scoring = {'MCI_classifier':'norm_cross_entropy',
            'tell_classifier':'norm_cross_entropy',
@@ -132,32 +136,39 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
         
         for random_seed in random_seeds:
 
-            #if Path(path,random_seed,f'all_models_{model}_dev.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
+            #if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
             #    continue
+            
+            if not Path(path,random_seed,f'all_models_{model}.csv').exists():
+                continue
             
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
             
             scorings = np.empty(outputs.shape[0])
-
-            for i in range(outputs.shape[0]):
-                scorings_i = np.empty(outputs.shape[1])
-                for r in range(outputs.shape[1]):
-                    if problem_type[project_name] == 'clf':
-                        metrics, y_pred = get_metrics_clf(outputs[i,r], y_dev[r], [scoring[project_name]], cmatrix)
-                        scorings_i[r] = metrics[scoring[project_name]]
-                    else:
-                        metrics = get_metrics_reg(outputs[i,r], y_dev[r],[scoring[project_name]])
-                        scorings_i[r] = metrics[scoring[project_name]]
-                scorings[i] = np.nanmean(scorings_i)
             
-            scorings = scorings if any(x in scoring[project_name] for x in ['norm','error']) else -scorings
+            if n_models == np.inf:
+                n_models = outputs.shape[0]
+            else:
+                for i in range(outputs.shape[0]):
+                    scorings_i = np.empty(outputs.shape[1])
+                    for r in range(outputs.shape[1]):
+                        if problem_type[project_name] == 'clf':
+                            metrics, y_pred = get_metrics_clf(outputs[i,r], y_dev[r], [scoring[project_name]], cmatrix)
+                            scorings_i[r] = metrics[scoring[project_name]]
+                        else:
+                            metrics = get_metrics_reg(outputs[i,r], y_dev[r],[scoring[project_name]])
+                            scorings_i[r] = metrics[scoring[project_name]]
+                    scorings[i] = np.nanmean(scorings_i)
+                
+                scorings = scorings if any(x in scoring[project_name] for x in ['norm','error']) else -scorings
 
-            best_models = np.argsort(scorings)[:n_models]
-            all_models = all_models.iloc[best_models].reset_index(drop=True)
-            all_models['idx'] = best_models
-            outputs = outputs[best_models]
+                best_models = np.argsort(scorings)[:n_models]
+            
+                all_models = all_models.iloc[best_models].reset_index(drop=True)
+                all_models['idx'] = best_models
+                outputs = outputs[best_models]
             
             outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
             y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
@@ -183,4 +194,4 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
             #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
             #pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
             #pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
-            pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
+            pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca.pkl'),'wb'))
