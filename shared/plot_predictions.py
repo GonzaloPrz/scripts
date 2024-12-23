@@ -6,6 +6,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.model_selection import KFold
+from scipy.stats import pearsonr
 
 random_seeds_train = [3**x for x in np.arange(1,11)]
 
@@ -81,7 +82,7 @@ best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring[project_name]}
 
 dimensions = list()
 
-pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','pearson','p_value'])
+pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
 
 if y_labels[project_name] == []:
     y_labels = {project_name:best_models['y_label'].unique()}
@@ -99,46 +100,58 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         dimensions = [best_models_y_label['dimension'].values[0]]
     for dim in dimensions:
         model_name = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_type'].values[0]
+        model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_index'].values[0]
         print(f'{y_label}_{task}___{dim}___{model_name}')
         
         #Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','plots').mkdir(exist_ok=True)
         IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','IDs_dev.pkl'),'rb'))
-        y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',f'y_pred_best_{model_name}.pkl'),'rb'))
-        y_true_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','y_true_dev.pkl'),'rb'))
+        y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',f'outputs_{model_name}.pkl'),'rb'))[model_index,]
+        y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','y_true_dev.pkl'),'rb'))
         
-        if ndim(IDs_) < 2 or ndim(y_true) < 2:
+        if IDs_.ndim == 1:
             
             IDs = np.empty((10,len(IDs_)),dtype=object)
-            y_true = np.empty((10,len(y_true_)),dtype=int)
 
             for i,seed in enumerate(random_seeds_train):
                 kf = KFold(n_splits=5,shuffle=True,random_state=seed)
                 for j,(train_index,test_index) in enumerate(kf.split(IDs_)):
                     IDs[i,test_index] = IDs_[test_index]
-                    y_true[i,test_index] = y_true_[test_index]
         
         else:
             IDs = IDs_
-            y_true = y_true_
 
         data = pd.DataFrame({'ID':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_true.flatten()})
         data = data.drop_duplicates('ID')
+
+        # Calculate Pearson's correlation
+        r, p = pearsonr(data['y_true'], data['y_pred'])
 
         plt.figure()
         sns.scatterplot(x='y_true',y='y_pred',data=data)
         plt.xlabel('True vaue')
         plt.ylabel('Predicted value')
         plt.title(f'{model_name} - {y_label}')
-        #Plot y=x line as reference
-        
-        #Plot regression line with parameters
-        res = sm.OLS(data['y_true'],data['y_pred'],hasconst=True).fit()
-        #Pearson 
-        pearsons_results.loc[len(pearsons_results)] = [task,dim,y_label,model_name,res.params[0],res.pvalues[0]]
-        a,b = np.polyfit(data['y_true'],data['y_pred'],1)
-        print(res)
-        plt.plot(data['y_true'],a*data['y_true']+b,color='red')
 
-        plt.text(data['y_true'].min(),data['y_pred'].min(),f'y_pred = {a:.2f}*y_true + {b:.2f}',fontsize=12)
+        # Fit linear regression model
+        #res = sm.OLS(data['y_true'],data['y_pred'],hasconst=True).fit()
+        #a, b = res.params
+        pearsons_results.loc[len(pearsons_results)] = [task, dim, y_label, model_name, r, p]
 
-        plt.savefig(Path(results_dir,'plots',f'{y_label}_{kfold_folder}_{model_name}.png'))
+        # Plot y=x line
+        #plt.plot([data['y_true'].min(), data['y_true'].max()],
+        #         [data['y_true'].min(), data['y_true'].max()], color='green', linestyle='--', label='y = x (Reference)')
+
+        # Plot regression line
+        #plt.plot(data['y_true'], a * data['y_true'] + b, color='red', label=f'Regression: y_pred = {a:.2f}*y_true + {b:.2f}')
+
+        # Add stats to plot
+        plt.text(data['y_true'].min(), data['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
+        plt.legend()
+
+        # Save the plot
+        plt.savefig(Path(results_dir, 'plots', f'{y_label}_{kfold_folder}_{model_name}.png'))
+        plt.close()
+
+        # Assess whether a ≈ 1 and b ≈ 0
+        #print(f"Linear model coefficients for {y_label}: a = {a:.2f}, b = {b:.2f}")
+        #print(f"p-values for coefficients: a={res.pvalues[1]:.2e}, b={res.pvalues[0]:.2e}")
