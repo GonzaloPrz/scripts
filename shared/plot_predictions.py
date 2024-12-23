@@ -134,8 +134,18 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
 
         pearsons_results.loc[len(pearsons_results)] = [task, dim, y_label, model_name, r, p]
 
-        # Add stats to plot
+        # Add the regression line
+        a, b = np.polyfit(data['y_true'], data['y_pred'], 1)
+        plt.plot(data['y_true'], a * data['y_true'] + b, color='red', label=f'Regression Line: y = {a:.2f}x + {b:.2f}')
+
+        # Add the y = x reference line
+        plt.plot(data['y_true'], data['y_true'], color='green', linestyle='--', label='Ideal Line: y = x')
+
+        pearsons_results.loc[len(pearsons_results)] = [task, dim, y_label, model_name, r, p]
+
+        # Add stats to the plot
         plt.text(data['y_true'].min(), data['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
+
         plt.legend()
 
         # Save the plot
