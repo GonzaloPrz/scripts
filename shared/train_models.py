@@ -186,6 +186,10 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
         
         data = data.dropna(subset=[y_label])
 
+        #Filter outliers for regression problems:
+        if problem_type[project_name] == 'reg':
+            data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
+
         features = all_features
         
         ID = data.pop(id_col)
@@ -295,11 +299,6 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                     hyperp[model] = hyperp[model].reset_index(drop=True)
 
                 path_to_save = Path(str(path_to_save).replace('no_hyp_opt','hyp_opt')) if n_iter > 0 else path_to_save
-                
-                if model == 'knnr' or model == 'knnc':
-                    hyperp[model] = hyperp[model].astype(int)
-                elif model == 'xgb':
-                    hyperp[model] = hyperp[model].astype({'n_estimators':int,'max_depth':int})
 
                 num_comb = 0
 
