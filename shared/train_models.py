@@ -42,8 +42,8 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-n_iter = 50
-n_iter_features = 50
+n_iter = 1
+n_iter_features = 1
 
 feature_sample_ratio = .5 
 
@@ -66,8 +66,8 @@ thresholds = {'tell_classifier':[0.5],
 test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
             'Proyecto_Ivo':0,
-            'GeroApathy':0,
-            'GERO_Ivo':0}
+            'GeroApathy':0.3,
+            'GERO_Ivo':0.3}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 

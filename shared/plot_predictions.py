@@ -132,17 +132,7 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         plt.ylabel('Predicted value')
         plt.title(f'{model_name} - {y_label}')
 
-        # Fit linear regression model
-        #res = sm.OLS(data['y_true'],data['y_pred'],hasconst=True).fit()
-        #a, b = res.params
         pearsons_results.loc[len(pearsons_results)] = [task, dim, y_label, model_name, r, p]
-
-        # Plot y=x line
-        #plt.plot([data['y_true'].min(), data['y_true'].max()],
-        #         [data['y_true'].min(), data['y_true'].max()], color='green', linestyle='--', label='y = x (Reference)')
-
-        # Plot regression line
-        #plt.plot(data['y_true'], a * data['y_true'] + b, color='red', label=f'Regression: y_pred = {a:.2f}*y_true + {b:.2f}')
 
         # Add stats to plot
         plt.text(data['y_true'].min(), data['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
@@ -151,7 +141,3 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         # Save the plot
         plt.savefig(Path(results_dir, 'plots', f'{y_label}_{kfold_folder}_{model_name}.png'))
         plt.close()
-
-        # Assess whether a ≈ 1 and b ≈ 0
-        #print(f"Linear model coefficients for {y_label}: a = {a:.2f}, b = {b:.2f}")
-        #print(f"p-values for coefficients: a={res.pvalues[1]:.2e}, b={res.pvalues[0]:.2e}")
