@@ -1,32 +1,26 @@
 import pandas as pd
 from pathlib import Path
 
-data_dir = Path(Path.home(),'data')
+data_dir = Path(Path.home(),'data','MPLS')
 
-Audios_T1 = pd.read_csv(data_dir / 'Audios_GERO_T1.csv')[['id','target','agradable','desagradable','sex','age','education','handedness']]
+#Audios_T1 = pd.read_csv(data_dir / 'Audios_GERO_T1.csv')[['id','target','agradable','desagradable','sex','age','education','handedness']]
 
-neuropsico_features = pd.read_csv(data_dir / 'nps_data_GERO.csv')
+features_data = pd.read_csv(Path(data_dir,'features_data.csv'))
+neuropsico_features = pd.read_csv(data_dir / 'nps_data.csv')
 
-relevant_features = ['id','target','agradable','desagradable','sex','age','education','handedness'] + [f for f in neuropsico_features.columns if any(x in f.lower() for x in ['moca','mmse','dass','aes_','tmt','depression'])]
-
-all_data = pd.merge(Audios_T1, neuropsico_features, on='id', how='inner')
-all_data = all_data.loc[all_data.target == 1,relevant_features]
-all_data = all_data[all_data.agradable == 1]
-all_data = all_data[all_data.desagradable == 1]
+all_data = pd.merge(features_data, neuropsico_features, on='participant_code', how='inner')
 
 all_data.reset_index(drop=True, inplace=True)
 
-all_data['sex'] = all_data['sex'].map({2:'F',1:'M'})
-all_data['handedness'] = all_data['handedness'].map({1:'R',2:'L'})
-all_data['target'] = all_data['target'].map({1:'MCI',0:'HC'})
+all_data.drop(columns=['protocol_item_trigger','raw_data.transcript.segments','raw_data.transcript.eliminated_segments',
+                       'raw_data.transcript.query_timestamp_end','raw_data.transcript.query_timestamp_start',
+                       'raw_data.talking-intervals.__speech_segments','raw_data.psycholinguistic_features.list_data','raw_data.freeling-features.pos_tag',
+                       'raw_data.sentiment-analysis-gonza.text','raw_data.granularity.dependency_args.transcript.data.text','raw_data.granularity.dependency_args.transcript.data.segments',
+                       'raw_data.osv-extraction-multilanguage.list_data','raw_data.words-count.words_count','raw_data.granularity','raw_data.pitch-analysis.msg','raw_data.freeling-features.message','raw_data.talking-intervals.msg','raw_data.osv-extraction-multilanguage.dependency_args.transcript.data.segments'], inplace=True)
 
-for column in all_data.columns:
-    if isinstance(all_data.loc[0,column],str):
-        continue
-    all_data[column] = all_data[column].astype(int)
-    #Convert negative values to NaN
-    all_data.loc[all_data[column] < 0,column] = None
+all_data = all_data[all_data['Minimental'] != 'sin puntuacion']
 
-all_data.to_csv(data_dir / 'Audios_GERO_T1_MCI_agradable_desagradable_with_nps.csv', index=False)
+all_data = all_data.sort_values(by=['participant_code','protocol_item_order'])
+all_data.to_csv(data_dir / 'nps_features_data_MPLS.csv', index=False)
 
 
