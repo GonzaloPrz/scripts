@@ -42,8 +42,8 @@ stratify = False
 
 shuffle_labels_list = [False]
 
-n_iter = 1
-n_iter_features = 1
+n_iter = 50
+n_iter_features = 50
 
 feature_sample_ratio = .5 
 
@@ -410,7 +410,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
                     pickle.dump(y_train,f) 
                 with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
-                    pickle.dump(ID_train,f)
+                    pickle.dump(IDs_dev,f)
                 with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
                     pickle.dump(X_test,f)
                 with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
