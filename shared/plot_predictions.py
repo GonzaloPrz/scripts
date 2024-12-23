@@ -5,6 +5,9 @@ import itertools,pickle
 import seaborn as sns
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+from sklearn.model_selection import KFold
+
+random_seeds_train = [3**x for x in np.arange(1,11)]
 
 project_name = 'GERO_Ivo'
 l2ocv = False
@@ -99,11 +102,25 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         print(f'{y_label}_{task}___{dim}___{model_name}')
         
         #Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','plots').mkdir(exist_ok=True)
-
-        IDs = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','IDs_dev.pkl'),'rb'))
+        IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','IDs_dev.pkl'),'rb'))
         y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',f'y_pred_best_{model_name}.pkl'),'rb'))
-        y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','y_true_dev.pkl'),'rb'))
+        y_true_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','y_true_dev.pkl'),'rb'))
         
+        if ndim(IDs_) < 2 or ndim(y_true) < 2:
+            
+            IDs = np.empty((10,len(IDs_)),dtype=object)
+            y_true = np.empty((10,len(y_true_)),dtype=int)
+
+            for i,seed in enumerate(random_seeds_train):
+                kf = KFold(n_splits=5,shuffle=True,random_state=seed)
+                for j,(train_index,test_index) in enumerate(kf.split(IDs_)):
+                    IDs[i,test_index] = IDs_[test_index]
+                    y_true[i,test_index] = y_true_[test_index]
+        
+        else:
+            IDs = IDs_
+            y_true = y_true_
+
         data = pd.DataFrame({'ID':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_true.flatten()})
         data = data.drop_duplicates('ID')
 
@@ -116,6 +133,7 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         
         #Plot regression line with parameters
         res = sm.OLS(data['y_true'],data['y_pred'],hasconst=True).fit()
+        #Pearson 
         pearsons_results.loc[len(pearsons_results)] = [task,dim,y_label,model_name,res.params[0],res.pvalues[0]]
         a,b = np.polyfit(data['y_true'],data['y_pred'],1)
         print(res)
