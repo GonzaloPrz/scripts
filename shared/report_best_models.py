@@ -40,8 +40,8 @@ metrics_names = {'tell_classifier':['roc_auc','accuracy','norm_expected_cost','n
 scoring = {'tell_classifier':'accuracy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc',
-            'GeroApathy':'r2_score',
-            'GERO_Ivo':'r2_score'}
+            'GeroApathy':'mean_absolute_error',
+            'GERO_Ivo':'mean_absolute_error'}
 
 stats = {'tell_classifier':'',
             'MCI_classifier':'',
@@ -61,8 +61,8 @@ if l2ocv:
 else:
     kfold_folder = f'{n_folds}_folds'
 
-extremo = 'sup' if 'norm' in scoring else 'inf'
-ascending = True if 'norm' in scoring else False
+extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
+ascending = True if extremo == 'sup' else False
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 for feature_selection in feature_selection_list:
@@ -118,7 +118,12 @@ for feature_selection in feature_selection_list:
                             model_type = file.stem.split('_')[-2] if 'bca' not in file.stem else file.stem.split('_')[-3]
                             best['y_label'] = y_label
                             best['model_type'] = model_type
-                            best['model_index'] = df['idx'][0]
+                            best['random_seed_test'] = random_seed_test
+                            try:
+                                best['model_index'] = df['idx'][0]
+                            except:
+                                best['model_index'] = np.nan
+                            
                             best_file = file
                         else:
                             if new_best(best[scoring_col],df.loc[0,scoring_col],ascending):
@@ -127,7 +132,12 @@ for feature_selection in feature_selection_list:
                                 model_type = file.stem.split('_')[-2] if 'bca' not in file.stem else file.stem.split('_')[-3]
                                 best['y_label'] = y_label
                                 best['model_type'] = model_type
-                                best['model_index'] = df['idx'][0]
+                                best['random_seed_test'] = random_seed_test
+                                try:
+                                    best['model_index'] = df['idx'][0]
+                                except:
+                                    best['model_index'] = np.nan
+
                                 best_file = file
                     if best is None:
                         continue
@@ -168,7 +178,7 @@ for feature_selection in feature_selection_list:
                         dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names[project_name]))
                     best_models.loc[len(best_models),:] = pd.Series(dict_append)
 
-            filename_to_save = f'best_models_{scoring[project_name]}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
+    filename_to_save = f'best_models_{scoring[project_name]}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
@@ -177,4 +187,5 @@ for feature_selection in feature_selection_list:
     if not shuffle_labels:
         filename_to_save = filename_to_save.replace('_shuffled','')
 
+    best_models.dropna(subset=['model_index'],inplace=True)
     best_models.to_csv(Path(results_dir,filename_to_save),index=False)

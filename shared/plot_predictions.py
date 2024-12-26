@@ -31,8 +31,8 @@ models = {'MCI_classifier':['lr','svc','knnc','xgb'],
 scoring = {'MCI_classifier':'roc_auc',
            'tell_classifier':'roc_auc',
            'Proyecto_Ivo':'roc_auc',
-           'GeroApathy':'r2_score',
-           'GERO_Ivo':'r2_score'
+           'GeroApathy':'mean_absolute_error',
+           'GERO_Ivo':'mean_absolute_error'
            }
 
 ascending = {'MCI_classifier':True,
@@ -99,55 +99,58 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         #dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         dimensions = [best_models_y_label['dimension'].values[0]]
     for dim in dimensions:
-        model_name = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_type'].values[0]
-        model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_index'].values[0]
-        print(f'{y_label}_{task}___{dim}___{model_name}')
-        
-        #Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','plots').mkdir(exist_ok=True)
-        IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','IDs_dev.pkl'),'rb'))
-        y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',f'outputs_{model_name}.pkl'),'rb'))[model_index,]
-        y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','y_true_dev.pkl'),'rb'))
-        
-        if IDs_.ndim == 1:
+        try:
+            model_name = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_type'].values[0]
+            model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_index'].values[0]
+            print(f'{y_label}_{task}___{dim}___{model_name}')
             
-            IDs = np.empty((10,len(IDs_)),dtype=object)
+            #Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','plots').mkdir(exist_ok=True)
+            IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','IDs_dev.pkl'),'rb'))
+            y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',f'outputs_{model_name}.pkl'),'rb'))[model_index,]
+            y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','y_true_dev.pkl'),'rb'))
+            
+            if IDs_.ndim == 1:
+                
+                IDs = np.empty((10,len(IDs_)),dtype=object)
 
-            for i,seed in enumerate(random_seeds_train):
-                kf = KFold(n_splits=5,shuffle=True,random_state=seed)
-                for j,(train_index,test_index) in enumerate(kf.split(IDs_)):
-                    IDs[i,test_index] = IDs_[test_index]
-        
-        else:
-            IDs = IDs_
+                for i,seed in enumerate(random_seeds_train):
+                    kf = KFold(n_splits=5,shuffle=True,random_state=seed)
+                    for j,(train_index,test_index) in enumerate(kf.split(IDs_)):
+                        IDs[i,test_index] = IDs_[test_index]
+            
+            else:
+                IDs = IDs_
 
-        data = pd.DataFrame({'ID':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_true.flatten()})
-        data = data.drop_duplicates('ID')
+            data = pd.DataFrame({'ID':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_true.flatten()})
+            data = data.drop_duplicates('ID')
 
-        # Calculate Pearson's correlation
-        r, p = pearsonr(data['y_true'], data['y_pred'])
+            # Calculate Pearson's correlation
+            r, p = pearsonr(data['y_true'], data['y_pred'])
 
-        plt.figure()
-        sns.scatterplot(x='y_true',y='y_pred',data=data)
-        plt.xlabel('True vaue')
-        plt.ylabel('Predicted value')
-        plt.title(f'{model_name} - {y_label}')
+            plt.figure()
+            sns.scatterplot(x='y_true',y='y_pred',data=data)
+            plt.xlabel('True vaue')
+            plt.ylabel('Predicted value')
+            plt.title(f'{model_name} - {y_label}')
 
-        pearsons_results.loc[len(pearsons_results)] = [task, dim, y_label, model_name, r, p]
+            pearsons_results.loc[len(pearsons_results)] = [task, dim, y_label, model_name, r, p]
 
-        # Add the regression line
-        a, b = np.polyfit(data['y_true'], data['y_pred'], 1)
-        plt.plot(data['y_true'], a * data['y_true'] + b, color='red', label=f'Regression Line: y = {a:.2f}x + {b:.2f}')
+            # Add the regression line
+            a, b = np.polyfit(data['y_true'], data['y_pred'], 1)
+            plt.plot(data['y_true'], a * data['y_true'] + b, color='red', label=f'Regression Line: y = {a:.2f}x + {b:.2f}')
 
-        # Add the y = x reference line
-        plt.plot(data['y_true'], data['y_true'], color='green', linestyle='--', label='Ideal Line: y = x')
+            # Add the y = x reference line
+            plt.plot(data['y_true'], data['y_true'], color='green', linestyle='--', label='Ideal Line: y = x')
 
-        pearsons_results.loc[len(pearsons_results)] = [task, dim, y_label, model_name, r, p]
+            pearsons_results.loc[len(pearsons_results)] = [task, dim, y_label, model_name, r, p]
 
-        # Add stats to the plot
-        plt.text(data['y_true'].min(), data['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
+            # Add stats to the plot
+            plt.text(data['y_true'].min(), data['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
 
-        plt.legend()
+            plt.legend()
 
-        # Save the plot
-        plt.savefig(Path(results_dir, 'plots', f'{y_label}_{kfold_folder}_{model_name}.png'))
-        plt.close()
+            # Save the plot
+            plt.savefig(Path(results_dir, 'plots', f'{y_label}_{kfold_folder}_{model_name}.png'))
+            plt.close()
+        except:
+            pass

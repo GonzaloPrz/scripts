@@ -24,8 +24,8 @@ models = {'MCI_classifier':['lr','svc','knnc','xgb'],
 scoring = {'MCI_classifier':'roc_auc',
            'tell_classifier':'roc_auc',
            'Proyecto_Ivo':'roc_auc',
-           'GeroApathy':'r2_score',
-           'GERO_Ivo':'r2_score'
+           'GeroApathy':'mean_absolute_error',
+           'GERO_Ivo':'mean_absolute_error'
            }
 
 ascending = {'MCI_classifier':True,
@@ -69,7 +69,7 @@ else:
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
-demographic_data = pd.read_csv(Path(Path.home(),'data','demographic_data_fondecyt_slachevsky_cetram_gero.csv')) 
+demographic_data = pd.read_csv(Path(Path.home(),'gonza','data','demographic_data_fondecyt_slachevsky_cetram_gero.csv')) 
 
 best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring[project_name]}_{n_folds}_folds_StandardScaler_hyp_opt_feature_selection.csv'))
 

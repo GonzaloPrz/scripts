@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 import itertools, sys, pickle, tqdm, warnings
 from joblib import Parallel, delayed
+import logging, sys
 
 warnings.filterwarnings('ignore')
 
@@ -10,12 +11,14 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.impute import KNNImputer
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC, SVR
+from sklearn.neighbors import KNeighborsClassifier as KNNC
 from xgboost import XGBClassifier 
 
-from sklearn.linear_model import Ridge as RR
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, Ridge, ElasticNet
+from sklearn.neighbors import KNeighborsRegressor as KNNR
+from xgboost import XGBRegressor as xgboostr
+
 from sklearn.neighbors import KNeighborsRegressor
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
@@ -44,13 +47,13 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     for metric in metrics_names:
         mean, inf, sup = conf_int_95(metrics_test_bootstrap[metric])
 
-        result_append[f'inf_{metric}_test'] = np.round(inf,2)
-        result_append[f'mean_{metric}_test'] = np.round(mean,2)
-        result_append[f'sup_{metric}_test'] = np.round(sup,2)
+        result_append[f'inf_{metric}_test'] = np.round(inf,5)
+        result_append[f'mean_{metric}_test'] = np.round(mean,5)
+        result_append[f'sup_{metric}_test'] = np.round(sup,5)
 
-        result_append[f'inf_{metric}_dev'] = np.round(results_r[f'inf_{metric}'],2)
-        result_append[f'mean_{metric}_dev'] = np.round(results_r[f'mean_{metric}'],2)
-        result_append[f'sup_{metric}_dev'] = np.round(results_r[f'sup_{metric}'],2)
+        result_append[f'inf_{metric}_dev'] = np.round(results_r[f'{metric}_inf'],5)
+        result_append[f'mean_{metric}_dev'] = np.round(results_r[f'{metric}_mean'],5)
+        result_append[f'sup_{metric}_dev'] = np.round(results_r[f'{metric}_sup'],5)
     
     return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
 
@@ -61,7 +64,7 @@ from psrcal import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'tell_classifier'
+project_name = 'GERO_Ivo'
 
 l2ocv = False
 
@@ -72,42 +75,76 @@ shuffle_labels = False
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy': ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total']}
+            'GeroApathy': ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'GERO_Ivo': [#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD', 'MMSE_Total_Score',
+                            'ACEIII_Total_Score',
+                        #'IFS_Total_Score','MoCA_Total_Boni_3'
+                        ]
+            }
 
 metrics_names = {'tell_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'MCI_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'Proyecto_Ivo': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'GeroApathy': ['r2_score','mean_absolute_error','mean_squared_error']}
+                    'GeroApathy': ['r2_score','mean_absolute_error','mean_squared_error'],
+                    'GERO_Ivo':['r2_score','mean_absolute_error','mean_squared_error']}
 
 thresholds = {'tell_classifier':[0.5],
                 'MCI_classifier':[0.5],
                 'Proyecto_Ivo':[0.5],
-                'GeroApathy':[None]}
+                'GeroApathy':[None],
+                'GERO_Ivo':[None]}
 
 scaler_name = 'StandardScaler'
 
-boot_test = 1000
+boot_test = 200
 boot_train = 0
 
 n_seeds_test = 1
 
 ##---------------------------------PARAMETERS---------------------------------##
 
+log_file = Path("test_models_output.log")  # Specify your desired log file path
+logging.basicConfig(
+    level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_file),  # Log to a file
+        logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
+    ]
+)
+
+# Redirect stdout and stderr to the logger
+class LoggerWriter:
+    def __init__(self, level):
+        self.level = level
+
+    def write(self, message):
+        if message.strip():  # Avoid logging blank lines
+            self.level(message)
+
+    def flush(self):  # Required for file-like behavior
+        pass
+
+sys.stdout = LoggerWriter(logging.info)
+sys.stderr = LoggerWriter(logging.error)
+
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu']}
+         'GeroApathy':['Fugu'],
+         'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg'}
+                'GeroApathy':'reg',
+                'GERO_Ivo':'reg'}
 
 scoring = {'tell_classifier':'norm_cross_entropy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc',
-            'GeroApathy':'r2_score',
-            'GERO_Ivo':'r2_score'}
+            'GeroApathy':'mean_absolute_error',
+            'GERO_Ivo':'mean_absolute_error'}
 
 if l2ocv:
     kfold_folder = 'l2ocv'
@@ -129,21 +166,33 @@ imputer = KNNImputer
 models_dict = {'tell_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knn': KNeighborsClassifier},
+                                    'knn': KNNC},
                 'MCI_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knn': KNeighborsClassifier},
+                                    'knn': KNNC},
                 'MCI_classifier':{'lr': LogisticRegression,
                                     'svc': SVC, 
                                     'xgb': XGBClassifier,
-                                    'knn': KNeighborsClassifier},
-                'GeroApathy':{'ridge':RR,
-                            'knnr':KNeighborsRegressor,
-                            'lasso':Lasso}}
+                                    'knn': KNNC},
+                'GeroApathy':{'lasso':Lasso,
+                                'ridge':Ridge,
+                                'elastic':ElasticNet,
+                                #'knn':KNNR,
+                                #'svr':SVR,
+                                #'xgb':xgboostr
+                                },
+                'GERO_Ivo':{'lasso':Lasso,
+                                'ridge':Ridge,
+                                'elastic':ElasticNet,
+                                #'knn':KNNR,
+                                'svr':SVR,
+                                #'xgb':xgboostr
+                                }
+                            }
 
-extremo = 'sup' if 'norm' in scoring[project_name] else 'inf'
-ascending = True if 'norm' in scoring[project_name] else False
+extremo = 'sup' if any(x in scoring[project_name] for x in ['norm','error']) else 'inf'
+ascending = True if extremo == 'sup' else False
 
 for task in tasks[project_name]:
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
@@ -184,7 +233,7 @@ for task in tasks[project_name]:
                 all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
                 
                 for file in files:
-                    model_name = file.stem.split('_')[-2]
+                    model_name = file.stem.split('_')[-3]
 
                     print(model_name)
                     
@@ -195,8 +244,10 @@ for task in tasks[project_name]:
                     
                     if f'{extremo}_{scoring[project_name]}' in results_dev.columns:
                         scoring_col = f'{extremo}_{scoring[project_name]}'
-                    else:
+                    elif f'{extremo}_{scoring[project_name]}_dev' in results_dev.columns:
                         scoring_col = f'{extremo}_{scoring[project_name]}_dev'
+                    else:
+                        scoring_col = f'{scoring[project_name]}_{extremo}'
 
                     results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
                     

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import math 
-
+import logging, sys
 import torch
 
 from sklearn.model_selection import StratifiedKFold, KFold
@@ -100,6 +100,31 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
+log_file = Path("train_models_output.log")  # Specify your desired log file path
+logging.basicConfig(
+    level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_file),  # Log to a file
+        logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
+    ]
+)
+
+# Redirect stdout and stderr to the logger
+class LoggerWriter:
+    def __init__(self, level):
+        self.level = level
+
+    def write(self, message):
+        if message.strip():  # Avoid logging blank lines
+            self.level(message)
+
+    def flush(self):  # Required for file-like behavior
+        pass
+
+sys.stdout = LoggerWriter(logging.info)
+sys.stderr = LoggerWriter(logging.error)
+
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
 elif scaler_name == 'MinMaxScaler':
@@ -136,7 +161,7 @@ models_dict = {'tell_classifier':{'lr':LR,
                 'GERO_Ivo':{'lasso':Lasso,
                                 'ridge':Ridge,
                                 'elastic':ElasticNet,
-                                'knnr':KNNR,
+                                #'knnr':KNNR,
                                 'svr':SVR,
                                 #'xgb':xgboostr
                                 }
@@ -148,9 +173,7 @@ y_labels = {'tell_classifier':['target'],
             'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
                           #'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                           ],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
-                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
-                        ]
+            'GERO_Ivo':['ACEIII_Total_Score']
 }
 
 problem_type = {'tell_classifier':'clf',
@@ -188,7 +211,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
         #Filter outliers for regression problems:
         if problem_type[project_name] == 'reg':
-            data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
+            data = data[np.abs(data[y_label]-data[y_label].mean()) <= (2*data[y_label].std())]
 
         features = all_features
         
@@ -381,8 +404,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    continue
+                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                #    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)

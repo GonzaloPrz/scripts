@@ -7,6 +7,7 @@ from joblib import Parallel, delayed
 import sys,tqdm
 from pingouin import compute_bootci
 from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, f1_score, r2_score, mean_squared_error, mean_absolute_error
+import logging, sys
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -43,7 +44,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'GeroApathy'
+project_name = 'GERO_Ivo'
 l2ocv = False
 
 n_boot = 200
@@ -62,7 +63,7 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
           'Proyecto_Ivo':['lr','svc','knn','xgb'],
           'GeroApathy':['lasso','ridge','elastic'],
-          'GERO_Ivo':['lasso','ridge','elastic']
+          'GERO_Ivo':['lasso','ridge','elastic','svr']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -95,16 +96,43 @@ y_labels = {'MCI_classifier':['target'],
             'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
                          'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                          ],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
-                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD','MMSE_Total_Score',
+                        'ACEIII_Total_Score',
+                        #'IFS_Total_Score','MoCA_Total_Boni_3'
                         ]}
 
 scoring = {'MCI_classifier':'norm_cross_entropy',
            'tell_classifier':'norm_cross_entropy',
            'Proyecto_Ivo':'roc_auc',
-           'GeroApathy':'r2_score',
-           'GERO_Ivo':'r2_score'}
+           'GeroApathy':'mean_absolute_error',
+           'GERO_Ivo':'mean_absolute_error'}
 ##---------------------------------PARAMETERS---------------------------------##
+log_file = Path("bootstrap_models_bca_output.log")  # Specify your desired log file path
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_file),  # Log to a file
+        logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
+    ]
+)
+
+# Redirect stdout and stderr to the logger
+class LoggerWriter:
+    def __init__(self, level):
+        self.level = level
+
+    def write(self, message):
+        if message.strip():  # Avoid logging blank lines
+            self.level(message)
+
+    def flush(self):  # Required for file-like behavior
+        pass
+
+sys.stdout = LoggerWriter(logging.info)
+sys.stderr = LoggerWriter(logging.error)
+
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
