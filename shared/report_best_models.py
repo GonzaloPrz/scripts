@@ -85,9 +85,9 @@ for scoring,feature_selection in itertools.product(metrics_names[project_name],f
 
                 for random_seed_test in random_seeds_test:
                     
-                    files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'test' in file.stem and any(x in file.stem for x in metrics_names[project_name])]
+                    files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'test' in file.stem and scoring in file.stem]
                     if len(files) == 0:
-                        files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem]
+                        files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem and scoring in file.stem]
 
                     if len(files) == 0:
                         continue
@@ -113,7 +113,7 @@ for scoring,feature_selection in itertools.product(metrics_names[project_name],f
                         if best is None:
                             best = df.loc[0,:]
                             
-                            model_type = file.stem.split('_')[-2] if 'bca' not in file.stem else file.stem.split('_')[-3]
+                            model_type = file.stem.split('_')[-3] if 'bca' not in file.stem else file.stem.split('_')[-4]
                             best['y_label'] = y_label
                             best['model_type'] = model_type
                             best['random_seed_test'] = random_seed_test
@@ -127,7 +127,7 @@ for scoring,feature_selection in itertools.product(metrics_names[project_name],f
                             if new_best(best[scoring_col],df.loc[0,scoring_col],ascending):
                                 best = df.loc[0,:]
 
-                                model_type = file.stem.split('_')[-2] if 'bca' not in file.stem else file.stem.split('_')[-3]
+                                model_type = file.stem.split('_')[-3] if 'bca' not in file.stem else file.stem.split('_')[-4]
                                 best['y_label'] = y_label
                                 best['model_type'] = model_type
                                 best['random_seed_test'] = random_seed_test

@@ -221,11 +221,11 @@ for task,model,y_label,hyp_opt,feature_selection,scoring in itertools.product(ta
                         all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(5)
                         all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(5)
                         all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(5)
-                all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_bca.csv'))
+                all_models.to_csv(Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv'))
 
                 #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
                 #pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
                 #pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
-                pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca.pkl'),'wb'))
+                #pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca_{scoring}.pkl'),'wb'))
             except Exception as e:
                 logging.exception(e)

@@ -210,7 +210,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                 random_seeds_test = ['']
                 
             for random_seed_test in random_seeds_test:
-                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev' in file.stem]
+                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'best_models_' in file.stem and 'dev' in file.stem and scoring in file.stem]
                 
                 if len(files) == 0:
                     continue
@@ -230,7 +230,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                     all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
                     
                     for file in files:
-                        model_name = file.stem.split('_')[-3]
+                        model_name = file.stem.split('_')[-4]
 
                         print(model_name)
                         
@@ -264,15 +264,16 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                         y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
                         IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
 
-                        results_test.to_csv(Path(file.parent,f'best_models_{scoring}_{model_name}_test.csv'))
+                        results_test.to_csv(Path(file.parent,f'best_models_{model_name}_test_{scoring}.csv'))
                         
-                        with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
-                            pickle.dump(y_true_bootstrap,f)
-                        with open(Path(file.parent,f'y_pred_bootstrap_{model_name}.pkl'),'wb') as f:
+                        if not Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                            with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
+                                pickle.dump(y_true_bootstrap,f)
+                            with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:   
+                                pickle.dump(IDs_test_bootstrap,f)
+                
+                        with open(Path(file.parent,f'y_pred_bootstrap_{model_name}_{scoring}.pkl'),'wb') as f:
                             pickle.dump(y_pred_bootstrap,f)
                         
-                        with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:
-                            pickle.dump(IDs_test_bootstrap,f)
-                
                 except Exception as e:
                     logging.exception(e)
