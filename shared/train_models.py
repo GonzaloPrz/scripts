@@ -92,7 +92,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'cog':['neuropsico_digits','neuropsico_tmt'],
+                                     'cog':['neuropsico_digits__neuropsico_tmt','neuropsico_tmt'],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
@@ -377,8 +377,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                #    continue
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
