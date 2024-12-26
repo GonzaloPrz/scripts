@@ -11,7 +11,7 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'GERO_Ivo'
+project_name = 'Proyecto_Ivo'
 
 l2ocv = False
 
@@ -28,7 +28,10 @@ n_folds = 5
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
+         'Proyecto_Ivo':['Animales','P','Animales__P',
+             'cog',
+             'brain','AAL','conn'
+             ],
          'GeroApathy':['DiaTipico'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
 
@@ -57,8 +60,8 @@ else:
     kfold_folder = f'{n_folds}_folds'
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
-for feature_selection in feature_selection_list:
-    for task,scoring in itertools.product(tasks[project_name],metrics_names[project_name]):
+for scoring,feature_selection in itertools.product(metrics_names[project_name],feature_selection_list):
+    for task in tasks[project_name]:
         extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
         ascending = True if extremo == 'sup' else False
 
@@ -115,7 +118,7 @@ for feature_selection in feature_selection_list:
                             best['model_type'] = model_type
                             best['random_seed_test'] = random_seed_test
                             try:
-                                best['model_index'] = df['index'][0]
+                                best['model_index'] = df['idx'][0]
                             except:
                                 best['model_index'] = np.nan
                             
@@ -129,7 +132,7 @@ for feature_selection in feature_selection_list:
                                 best['model_type'] = model_type
                                 best['random_seed_test'] = random_seed_test
                                 try:
-                                    best['model_index'] = df['index'][0]
+                                    best['model_index'] = df['idx'][0]
                                 except:
                                     best['model_index'] = np.nan
 

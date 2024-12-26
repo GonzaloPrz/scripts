@@ -67,7 +67,7 @@ from psrcal import *
 project_name = 'GERO_Ivo'
 
 l2ocv = False
-
+filter_outliers = True
 hyp_opt_list = [True]
 feature_selection_list = [True]
 shuffle_labels = False

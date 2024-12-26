@@ -44,12 +44,12 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
 
-project_name = 'GERO_Ivo'
+project_name = 'Proyecto_Ivo'
 l2ocv = False
 
 n_boot = 200
 n_folds = 5
-n_models = 0.3
+n_models = np.inf
  
 cmatrix = None
 shuffle_labels = False
@@ -68,7 +68,7 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
+         'Proyecto_Ivo':['cog'],
          'GeroApathy':['agradable'],
          'GERO_Ivo':['animales','fas','grandmean','fas__animales']}
 
