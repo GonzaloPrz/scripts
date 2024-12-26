@@ -49,8 +49,8 @@ l2ocv = False
 
 n_boot = 200
 n_folds = 5
-n_models = np.inf
-
+n_models = 0.3
+ 
 cmatrix = None
 shuffle_labels = False
 hyp_opt_list = [True]
@@ -96,9 +96,9 @@ y_labels = {'MCI_classifier':['target'],
             'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
                          'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                          ],
-            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD','MMSE_Total_Score',
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD','MMSE_Total_Score',
                         'ACEIII_Total_Score',
-                        #'IFS_Total_Score','MoCA_Total_Boni_3'
+                        'IFS_Total_Score','MoCA_Total_Boni_3'
                         ]}
 
 scoring = {'MCI_classifier':'norm_cross_entropy',
@@ -169,57 +169,62 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
-            
-            all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
-            outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
-            y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
-            
-            scorings = np.empty(outputs.shape[0])
-            
-            if n_models == np.inf:
-                n_models = outputs.shape[0]
-            else:
-                for i in range(outputs.shape[0]):
-                    scorings_i = np.empty(outputs.shape[1])
-                    for r in range(outputs.shape[1]):
-                        if problem_type[project_name] == 'clf':
-                            metrics, y_pred = get_metrics_clf(outputs[i,r], y_dev[r], [scoring[project_name]], cmatrix)
-                            scorings_i[r] = metrics[scoring[project_name]]
-                        else:
-                            metrics = get_metrics_reg(outputs[i,r], y_dev[r],[scoring[project_name]])
-                            scorings_i[r] = metrics[scoring[project_name]]
-                    scorings[i] = np.nanmean(scorings_i)
+            try:
+
+                all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
+                outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
+                y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
                 
-                scorings = scorings if any(x in scoring[project_name] for x in ['norm','error']) else -scorings
+                scorings = np.empty(outputs.shape[0])
+                
+                if n_models == np.inf:
+                    n_models = outputs.shape[0]
+                elif n_models < 1:
+                    n_models = int(outputs.shape[0]*n_models)
+                else:
+                    for i in range(outputs.shape[0]):
+                        scorings_i = np.empty(outputs.shape[1])
+                        for r in range(outputs.shape[1]):
+                            if problem_type[project_name] == 'clf':
+                                metrics, y_pred = get_metrics_clf(outputs[i,r], y_dev[r], [scoring[project_name]], cmatrix)
+                                scorings_i[r] = metrics[scoring[project_name]]
+                            else:
+                                metrics = get_metrics_reg(outputs[i,r], y_dev[r],[scoring[project_name]])
+                                scorings_i[r] = metrics[scoring[project_name]]
+                        scorings[i] = np.nanmean(scorings_i)
+                    
+                    scorings = scorings if any(x in scoring[project_name] for x in ['norm','error']) else -scorings
 
-                best_models = np.argsort(scorings)[:n_models]
-            
-                all_models = all_models.iloc[best_models].reset_index(drop=True)
-                all_models['idx'] = best_models
-                outputs = outputs[best_models]
-            
-            outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
-            y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
-            y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
-            
-            metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],n_boot))) for metric in metrics_names[project_name])
-            
-            all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index in tqdm.tqdm(range(outputs.shape[0])) for r in range(outputs.shape[1]))
+                    best_models = np.argsort(scorings)[:n_models]
+                
+                    all_models = all_models.iloc[best_models].reset_index(drop=True)
+                    all_models['idx'] = best_models
+                    outputs = outputs[best_models]
+                
+                outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
+                y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
+                y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
+                
+                metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],n_boot))) for metric in metrics_names[project_name])
+                
+                all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index in tqdm.tqdm(range(outputs.shape[0])) for r in range(outputs.shape[1]))
 
-            # Update the metrics array with the computed results
-            for model_index, r, metrics_result in all_results:
-                for metric in metrics_names[project_name]:
-                    metrics[metric][model_index, r, :] = metrics_result[metric]
+                # Update the metrics array with the computed results
+                for model_index, r, metrics_result in all_results:
+                    for metric in metrics_names[project_name]:
+                        metrics[metric][model_index, r, :] = metrics_result[metric]
 
-            # Update the summary statistics in all_models
-            for model_index in tqdm.tqdm(range(outputs.shape[0])):
-                for metric in metrics_names[project_name]:
-                    all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(5)
-                    all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(5)
-                    all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(5)
-            all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_bca.csv'))
+                # Update the summary statistics in all_models
+                for model_index in tqdm.tqdm(range(outputs.shape[0])):
+                    for metric in metrics_names[project_name]:
+                        all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(5)
+                        all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(5)
+                        all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(5)
+                all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_bca.csv'))
 
-            #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
-            #pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
-            #pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
-            pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca.pkl'),'wb'))
+                #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
+                #pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
+                #pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
+                pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca.pkl'),'wb'))
+            except Exception as e:
+                logging.exception(e)

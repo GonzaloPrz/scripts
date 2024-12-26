@@ -76,9 +76,9 @@ y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
             'GeroApathy': ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo': [#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD', 'MMSE_Total_Score',
+            'GERO_Ivo': ['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD', 'MMSE_Total_Score',
                             'ACEIII_Total_Score',
-                        #'IFS_Total_Score','MoCA_Total_Boni_3'
+                        'IFS_Total_Score','MoCA_Total_Boni_3'
                         ]
             }
 
@@ -217,62 +217,65 @@ for task in tasks[project_name]:
                 
                 if len(files) == 0:
                     continue
+                try:
+                    X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
 
-                X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
+                    y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb'))
+                    
+                    IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb'))
 
-                y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb'))
+                    X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
+                    
+                    y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
                 
-                IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb'))
+                    IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
 
-                X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
+                    all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+                    
+                    for file in files:
+                        model_name = file.stem.split('_')[-3]
+
+                        print(model_name)
+                        
+                        #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                        #    continue
+                        
+                        results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
+                        
+                        if f'{extremo}_{scoring[project_name]}' in results_dev.columns:
+                            scoring_col = f'{extremo}_{scoring[project_name]}'
+                        elif f'{extremo}_{scoring[project_name]}_dev' in results_dev.columns:
+                            scoring_col = f'{extremo}_{scoring[project_name]}_dev'
+                        else:
+                            scoring_col = f'{scoring[project_name]}_{extremo}'
+
+                        results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
+                        
+                        if 'threshold' not in results_dev.columns:
+                            results_dev['threshold'] = thresholds[project_name][0]
+
+                        results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[project_name][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
+                                                                                    X_test,y_test,all_features,y_labels[project_name],metrics_names[project_name],IDs_test,boot_train,
+                                                                                    boot_test,problem_type[project_name],threshold=results_dev.loc[r,'threshold']) 
+                                                                                    for r in results_dev.index)
+                        
+                        results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
+                        results_test['index'] = results_dev['Unnamed: 0'].values
+
+                        outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
+                        y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
+                        y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
+                        IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
+
+                        results_test.to_csv(Path(file.parent,f'best_models_{scoring[project_name]}_{model_name}_test.csv'))
+                        
+                        with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
+                            pickle.dump(y_true_bootstrap,f)
+                        with open(Path(file.parent,f'y_pred_bootstrap_{model_name}.pkl'),'wb') as f:
+                            pickle.dump(y_pred_bootstrap,f)
+                        
+                        with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:
+                            pickle.dump(IDs_test_bootstrap,f)
                 
-                y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
-            
-                IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
-
-                all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
-                
-                for file in files:
-                    model_name = file.stem.split('_')[-3]
-
-                    print(model_name)
-                    
-                    #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                    #    continue
-                    
-                    results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
-                    
-                    if f'{extremo}_{scoring[project_name]}' in results_dev.columns:
-                        scoring_col = f'{extremo}_{scoring[project_name]}'
-                    elif f'{extremo}_{scoring[project_name]}_dev' in results_dev.columns:
-                        scoring_col = f'{extremo}_{scoring[project_name]}_dev'
-                    else:
-                        scoring_col = f'{scoring[project_name]}_{extremo}'
-
-                    results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
-                    
-                    if 'threshold' not in results_dev.columns:
-                        results_dev['threshold'] = thresholds[project_name][0]
-
-                    results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[project_name][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
-                                                                                 X_test,y_test,all_features,y_labels[project_name],metrics_names[project_name],IDs_test,boot_train,
-                                                                                 boot_test,problem_type[project_name],threshold=results_dev.loc[r,'threshold']) 
-                                                                                 for r in results_dev.index)
-                    
-                    results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
-                    results_test['index'] = results_dev['Unnamed: 0'].values
-
-                    outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
-                    y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
-                    y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
-                    IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
-
-                    results_test.to_csv(Path(file.parent,f'best_models_{scoring[project_name]}_{model_name}_test.csv'))
-                    
-                    with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
-                        pickle.dump(y_true_bootstrap,f)
-                    with open(Path(file.parent,f'y_pred_bootstrap_{model_name}.pkl'),'wb') as f:
-                        pickle.dump(y_pred_bootstrap,f)
-                    
-                    with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:
-                        pickle.dump(IDs_test_bootstrap,f)
+                except Exception as e:
+                    logging.exception(e)

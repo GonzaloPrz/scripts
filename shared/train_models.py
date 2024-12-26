@@ -163,7 +163,7 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'elastic':ElasticNet,
                                 #'knnr':KNNR,
                                 'svr':SVR,
-                                #'xgb':xgboostr
+                                'xgb':xgboostr
                                 }
                 }
 
@@ -173,7 +173,10 @@ y_labels = {'tell_classifier':['target'],
             'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
                           #'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                           ],
-            'GERO_Ivo':['ACEIII_Total_Score']
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD','MMSE_Total_Score',
+                        'ACEIII_Total_Score',
+                        'IFS_Total_Score','MoCA_Total_Boni_3'
+                        ]
 }
 
 problem_type = {'tell_classifier':'clf',
@@ -410,35 +413,38 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,torch.tensor(X_train,device='cuda') if torch.cuda.is_available() else X_train, torch.tensor(y_train,device='cuda') if torch.cuda.is_available() else y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                try:
+                    models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,torch.tensor(X_train,device='cuda') if torch.cuda.is_available() else X_train, torch.tensor(y_train,device='cuda') if torch.cuda.is_available() else y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
-                all_models = pd.DataFrame()
-                
-                for model_index in range(models.shape[0]):
-                    model_ = {}
-                    for param in models.keys():
-                        if param in [y_label,id_col]:
-                            continue
-                        model_[param] = models.iloc[model_index][param]
+                    all_models = pd.DataFrame()
+                    
+                    for model_index in range(models.shape[0]):
+                        model_ = {}
+                        for param in models.keys():
+                            if param in [y_label,id_col]:
+                                continue
+                            model_[param] = models.iloc[model_index][param]
 
-                    all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
-                
-                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
+                        all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
+                    
+                    all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
-                with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
-                    pickle.dump(X_train,f)
-                with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
-                    pickle.dump(y_dev,f)
-                with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                    pickle.dump(y_train,f) 
-                with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
-                    pickle.dump(IDs_dev,f)
-                with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
-                    pickle.dump(X_test,f)
-                with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                    pickle.dump(y_test,f)
-                with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                    pickle.dump(ID_test,f)
-                
-                with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
-                    pickle.dump(outputs,f)
+                    with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
+                        pickle.dump(X_train,f)
+                    with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
+                        pickle.dump(y_dev,f)
+                    with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
+                        pickle.dump(y_train,f) 
+                    with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
+                        pickle.dump(IDs_dev,f)
+                    with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                        pickle.dump(X_test,f)
+                    with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                        pickle.dump(y_test,f)
+                    with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                        pickle.dump(ID_test,f)
+                    
+                    with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
+                        pickle.dump(outputs,f)
+                except Exception as e:
+                    logging.exception(e)

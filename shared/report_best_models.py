@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import itertools
 
 def new_best(current_best,value,ascending):
     if ascending:
@@ -37,12 +38,6 @@ metrics_names = {'tell_classifier':['roc_auc','accuracy','norm_expected_cost','n
                     'GeroApathy':['r2_score','mean_absolute_error','mean_squared_error'],
                     'GERO_Ivo':['r2_score','mean_absolute_error','mean_squared_error']}
 
-scoring = {'tell_classifier':'accuracy',
-            'MCI_classifier':'norm_cross_entropy',
-            'Proyecto_Ivo':'roc_auc',
-            'GeroApathy':'mean_absolute_error',
-            'GERO_Ivo':'mean_absolute_error'}
-
 stats = {'tell_classifier':'',
             'MCI_classifier':'',
             'Proyecto_Ivo':'',
@@ -61,12 +56,12 @@ if l2ocv:
 else:
     kfold_folder = f'{n_folds}_folds'
 
-extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
-ascending = True if extremo == 'sup' else False
-
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 for feature_selection in feature_selection_list:
-    for task in tasks[project_name]:
+    for task,scoring in itertools.product(tasks[project_name],metrics_names[project_name]):
+        extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
+        ascending = True if extremo == 'sup' else False
+
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
             print(task,dimension)
@@ -99,12 +94,12 @@ for feature_selection in feature_selection_list:
                         
                         df = pd.read_csv(file)
                         
-                        if f'{extremo}_{scoring[project_name]}' in df.columns:
-                            scoring_col = f'{extremo}_{scoring[project_name]}'
-                        elif f'{extremo}_{scoring[project_name]}_dev' in df.columns:
-                            scoring_col = f'{extremo}_{scoring[project_name]}_dev'
+                        if f'{extremo}_{scoring}' in df.columns:
+                            scoring_col = f'{extremo}_{scoring}'
+                        elif f'{extremo}_{scoring}_dev' in df.columns:
+                            scoring_col = f'{extremo}_{scoring}_dev'
                         else:
-                            scoring_col = f'{scoring[project_name]}_{extremo}'
+                            scoring_col = f'{scoring}_{extremo}'
 
                         try:
                             df = df.sort_values(by=scoring_col,ascending=ascending)
@@ -120,7 +115,7 @@ for feature_selection in feature_selection_list:
                             best['model_type'] = model_type
                             best['random_seed_test'] = random_seed_test
                             try:
-                                best['model_index'] = df['idx'][0]
+                                best['model_index'] = df['index'][0]
                             except:
                                 best['model_index'] = np.nan
                             
@@ -134,7 +129,7 @@ for feature_selection in feature_selection_list:
                                 best['model_type'] = model_type
                                 best['random_seed_test'] = random_seed_test
                                 try:
-                                    best['model_index'] = df['idx'][0]
+                                    best['model_index'] = df['index'][0]
                                 except:
                                     best['model_index'] = np.nan
 
@@ -178,7 +173,7 @@ for feature_selection in feature_selection_list:
                         dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names[project_name]))
                     best_models.loc[len(best_models),:] = pd.Series(dict_append)
 
-    filename_to_save = f'best_models_{scoring[project_name]}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
