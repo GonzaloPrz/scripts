@@ -199,7 +199,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
     for dimension in dimensions:
         print(task,dimension)
         for y_label,hyp_opt,feature_selection in itertools.product(y_labels[project_name],hyp_opt_list,feature_selection_list):
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','shuffle' if shuffle_labels else '')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] else '','shuffle' if shuffle_labels else '')
 
             if not path_to_results.exists():
                 continue
