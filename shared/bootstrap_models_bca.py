@@ -97,9 +97,8 @@ y_labels = {'MCI_classifier':['target'],
             'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
                          'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                          ],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD','MMSE_Total_Score',
-                        'ACEIII_Total_Score',
-                        'IFS_Total_Score','MoCA_Total_Boni_3'
+            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ]}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],

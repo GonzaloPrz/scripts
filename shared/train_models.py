@@ -101,31 +101,6 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
-log_file = Path("train_models_output.log")  # Specify your desired log file path
-logging.basicConfig(
-    level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(log_file),  # Log to a file
-        logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
-    ]
-)
-
-# Redirect stdout and stderr to the logger
-class LoggerWriter:
-    def __init__(self, level):
-        self.level = level
-
-    def write(self, message):
-        if message.strip():  # Avoid logging blank lines
-            self.level(message)
-
-    def flush(self):  # Required for file-like behavior
-        pass
-
-sys.stdout = LoggerWriter(logging.info)
-sys.stderr = LoggerWriter(logging.error)
-
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
 elif scaler_name == 'MinMaxScaler':
@@ -408,7 +383,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
 
-                log_file = Path(path_to_save_final,Path(__file__).stem + '.log')
+                log_file = Path(results_dir,Path(__file__).stem + '.log')
 
                 logging.basicConfig(
                     level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
