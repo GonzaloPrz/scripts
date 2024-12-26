@@ -26,7 +26,7 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold):
     results_r = row.dropna().to_dict()
                                         
-    params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold','index']))
+    params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold','idx']))
 
     features = [col for col in all_features if col in results_r.keys() and results_r[col] == 1]
     features_dict = {col:results_r[col] for col in all_features if col in results_r.keys()}
@@ -103,7 +103,35 @@ n_seeds_test = 1
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-log_file = Path("test_models_output.log")  # Specify your desired log file path
+tasks = {'tell_classifier':['MOTOR-LIBRE'],
+         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
+         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
+         'GeroApathy':['Fugu'],
+         'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
+
+problem_type = {'tell_classifier':'clf',
+                'MCI_classifier':'clf',
+                'Proyecto_Ivo':'clf',
+                'GeroApathy':'reg',
+                'GERO_Ivo':'reg'}
+
+scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
+           'tell_classifier':['norm_cross_entropy'],
+           'Proyecto_Ivo':['roc_auc'],
+           'GeroApathy':['mean_absolute_error'],
+           'GERO_Ivo':['r2_score','mean_absolute_error']}
+
+if l2ocv:
+    kfold_folder = 'l2ocv'
+else:
+    n_folds = 5
+    kfold_folder = f'{n_folds}_folds'
+
+data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
+save_dir = Path(str(data_dir).replace('data','results'))    
+
+log_file = Path(save_dir,Path(__file__).stem + '.log')
+
 logging.basicConfig(
     level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -127,33 +155,6 @@ class LoggerWriter:
 
 sys.stdout = LoggerWriter(logging.info)
 sys.stderr = LoggerWriter(logging.error)
-
-tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu'],
-         'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
-
-problem_type = {'tell_classifier':'clf',
-                'MCI_classifier':'clf',
-                'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg',
-                'GERO_Ivo':'reg'}
-
-scoring = {'tell_classifier':'norm_cross_entropy',
-            'MCI_classifier':'norm_cross_entropy',
-            'Proyecto_Ivo':'roc_auc',
-            'GeroApathy':'mean_absolute_error',
-            'GERO_Ivo':'mean_absolute_error'}
-
-if l2ocv:
-    kfold_folder = 'l2ocv'
-else:
-    n_folds = 5
-    kfold_folder = f'{n_folds}_folds'
-
-data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
-save_dir = Path(str(data_dir).replace('data','results'))    
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -187,22 +188,19 @@ models_dict = {'tell_classifier':{'lr': LogisticRegression,
                                 'elastic':ElasticNet,
                                 #'knn':KNNR,
                                 'svr':SVR,
-                                #'xgb':xgboostr
+                                'xgb':xgboostr
                                 }
                             }
 
-extremo = 'sup' if any(x in scoring[project_name] for x in ['norm','error']) else 'inf'
-ascending = True if extremo == 'sup' else False
+for task,scoring in itertools.product(tasks[project_name],scoring_metrics[project_name]):
+    extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
+    ascending = True if extremo == 'sup' else False
 
-for task in tasks[project_name]:
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
         for y_label,hyp_opt,feature_selection in itertools.product(y_labels[project_name],hyp_opt_list,feature_selection_list):
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label, 'no_hyp_opt', 'feature_selection')
-            
-            path_to_results = Path(str(path_to_results).replace('no_hyp_opt', 'hyp_opt')) if hyp_opt else path_to_results
-            path_to_results = Path(str(path_to_results).replace('feature_selection', '')) if not feature_selection else path_to_results
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','shuffle' if shuffle_labels else '')
 
             if not path_to_results.exists():
                 continue
@@ -242,7 +240,7 @@ for task in tasks[project_name]:
                         
                         results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                         
-                        if f'{extremo}_{scoring[project_name]}' in results_dev.columns:
+                        if f'{extremo}_{scoring}' in results_dev.columns:
                             scoring_col = f'{extremo}_{scoring[project_name]}'
                         elif f'{extremo}_{scoring[project_name]}_dev' in results_dev.columns:
                             scoring_col = f'{extremo}_{scoring[project_name]}_dev'
@@ -260,7 +258,7 @@ for task in tasks[project_name]:
                                                                                     for r in results_dev.index)
                         
                         results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
-                        results_test['index'] = results_dev['Unnamed: 0'].values
+                        results_test['idx'] = results_dev['Unnamed: 0'].values
 
                         outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
                         y_true_bootstrap = np.stack([result[2] for result in results],axis=0)

@@ -43,13 +43,14 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
 parallel = True
+filter_outliers = True
 
-project_name = 'Proyecto_Ivo'
+project_name = 'GERO_Ivo'
 l2ocv = False
 
 n_boot = 200
 n_folds = 5
-n_models = np.inf
+n_models = 0.3
  
 cmatrix = None
 shuffle_labels = False
@@ -63,7 +64,7 @@ models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
           'Proyecto_Ivo':['lr','svc','knn','xgb'],
           'GeroApathy':['lasso','ridge','elastic'],
-          'GERO_Ivo':['lasso','ridge','elastic','svr']
+          'GERO_Ivo':['lasso','ridge','elastic','svr','xgb']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -101,13 +102,21 @@ y_labels = {'MCI_classifier':['target'],
                         'IFS_Total_Score','MoCA_Total_Boni_3'
                         ]}
 
-scoring = {'MCI_classifier':'norm_cross_entropy',
-           'tell_classifier':'norm_cross_entropy',
-           'Proyecto_Ivo':'roc_auc',
-           'GeroApathy':'mean_absolute_error',
-           'GERO_Ivo':'mean_absolute_error'}
+scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
+           'tell_classifier':['norm_cross_entropy'],
+           'Proyecto_Ivo':['roc_auc'],
+           'GeroApathy':['mean_absolute_error'],
+           'GERO_Ivo':['r2_score','mean_absolute_error']}
 ##---------------------------------PARAMETERS---------------------------------##
-log_file = Path("bootstrap_models_bca_output.log")  # Specify your desired log file path
+
+if l2ocv:
+    kfold_folder = 'l2ocv'
+else:
+    kfold_folder = f'{n_folds}_folds'
+
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+
+log_file = Path(results_dir,Path(__file__).stem + '.log')
 
 logging.basicConfig(
     level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -133,14 +142,7 @@ class LoggerWriter:
 sys.stdout = LoggerWriter(logging.info)
 sys.stderr = LoggerWriter(logging.error)
 
-if l2ocv:
-    kfold_folder = 'l2ocv'
-else:
-    kfold_folder = f'{n_folds}_folds'
-
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
-
-for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[project_name],models[project_name],y_labels[project_name],hyp_opt_list,feature_selection_list):    
+for task,model,y_label,hyp_opt,feature_selection,scoring in itertools.product(tasks[project_name],models[project_name],y_labels[project_name],hyp_opt_list,feature_selection_list,scoring_metrics[project_name]):    
     
     dimensions = list()
 
@@ -186,14 +188,14 @@ for task,model,y_label,hyp_opt,feature_selection in itertools.product(tasks[proj
                         scorings_i = np.empty(outputs.shape[1])
                         for r in range(outputs.shape[1]):
                             if problem_type[project_name] == 'clf':
-                                metrics, y_pred = get_metrics_clf(outputs[i,r], y_dev[r], [scoring[project_name]], cmatrix)
-                                scorings_i[r] = metrics[scoring[project_name]]
+                                metrics, y_pred = get_metrics_clf(outputs[i,r], y_dev[r], [scoring], cmatrix)
+                                scorings_i[r] = metrics[scoring]
                             else:
-                                metrics = get_metrics_reg(outputs[i,r], y_dev[r],[scoring[project_name]])
-                                scorings_i[r] = metrics[scoring[project_name]]
+                                metrics = get_metrics_reg(outputs[i,r], y_dev[r],[scoring])
+                                scorings_i[r] = metrics[scoring]
                         scorings[i] = np.nanmean(scorings_i)
                     
-                    scorings = scorings if any(x in scoring[project_name] for x in ['norm','error']) else -scorings
+                    scorings = scorings if any(x in scoring for x in ['norm','error']) else -scorings
 
                     best_models = np.argsort(scorings)[:n_models]
                 

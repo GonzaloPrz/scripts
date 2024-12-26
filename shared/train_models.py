@@ -32,9 +32,10 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'Proyecto_Ivo'
+project_name = 'GERO_Ivo'
 
 parallel = True
+filter_outliers = True
 
 l2ocv = False
 
@@ -163,7 +164,7 @@ models_dict = {'tell_classifier':{'lr':LR,
                                 'elastic':ElasticNet,
                                 #'knnr':KNNR,
                                 'svr':SVR,
-                                #'xgb':xgboostr
+                                'xgb':xgboostr
                                 }
                 }
 
@@ -173,8 +174,10 @@ y_labels = {'tell_classifier':['target'],
             'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
                           #'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                           ],
-            'GERO_Ivo':['ACEIII_Total_Score']
-}
+            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+                        ]
+            }
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
@@ -210,8 +213,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
         data = data.dropna(subset=[y_label])
 
         #Filter outliers for regression problems:
-        if problem_type[project_name] == 'reg':
-            data = data[np.abs(data[y_label]-data[y_label].mean()) <= (2*data[y_label].std())]
+        if problem_type[project_name] == 'reg' and filter_outliers:
+            data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
 
         features = all_features
         
@@ -236,11 +239,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
             CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify else KFold(n_splits=n_folds,shuffle=True)
 
-            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'no_hyp_opt','feature_selection','shuffle')
+            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if n_iter > 0 else 'no_hyp_opt','feature_selection' if n_iter_features >0 else '','filter_outliers' if filter_outliers else '','shuffle' if shuffle_labels else '')
 
-            path_to_save = Path(str(path_to_save).replace('feature_selection','')) if n_iter_features == 0 else path_to_save
-            path_to_save = Path(str(path_to_save).replace('shuffle','')) if not shuffle_labels else path_to_save
-            
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
@@ -320,8 +320,6 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 
                     hyperp[model].drop_duplicates(inplace=True)
                     hyperp[model] = hyperp[model].reset_index(drop=True)
-
-                path_to_save = Path(str(path_to_save).replace('no_hyp_opt','hyp_opt')) if n_iter > 0 else path_to_save
 
                 num_comb = 0
 
@@ -409,6 +407,32 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
+
+                log_file = Path(path_to_save_final,Path(__file__).stem + '.log')
+
+                logging.basicConfig(
+                    level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+                    format="%(asctime)s - %(levelname)s - %(message)s",
+                    handlers=[
+                        logging.FileHandler(log_file),  # Log to a file
+                        logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
+                    ]
+                )
+
+                # Redirect stdout and stderr to the logger
+                class LoggerWriter:
+                    def __init__(self, level):
+                        self.level = level
+
+                    def write(self, message):
+                        if message.strip():  # Avoid logging blank lines
+                            self.level(message)
+
+                    def flush(self):  # Required for file-like behavior
+                        pass
+
+                sys.stdout = LoggerWriter(logging.info)
+                sys.stderr = LoggerWriter(logging.error)
 
                 models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,torch.tensor(X_train,device='cuda') if torch.cuda.is_available() else X_train, torch.tensor(y_train,device='cuda') if torch.cuda.is_available() else y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
