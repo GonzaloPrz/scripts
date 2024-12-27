@@ -28,9 +28,14 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 from utils import *
 ##---------------------------------PARAMETERS---------------------------------##
 
+scaler_name = 'StandardScaler'
+n_seeds_train = 10
+id_col = 'id'
+stratify = True
+
 # Check if required arguments are provided
 if len(sys.argv) < 2:
-    print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [stratify] [k] [n_iter_features] [feature_sample_ratio] [scaler_name] [id_col] [n_seeds_train]")
+    print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [k] [n_iter] [n_iter_features] [feature_sample_ratio]")
     sys.exit(1)
 
 # Parse arguments
@@ -38,14 +43,10 @@ project_name = sys.argv[1]
 hyp_opt = bool(int(sys.argv[2]))
 filter_outliers = bool(int(sys.argv[3]))
 shuffle_labels = bool(int(sys.argv[4]))
-stratify = bool(int(sys.argv[5]))
-n_folds = int(sys.argv[6])
-n_iter = int(sys.argv[7])
-n_iter_features = int(sys.argv[8])
-feature_sample_ratio = float(sys.argv[9])
-scaler_name = sys.argv[10]
-id_col = sys.argv[11]
-n_seeds_train = int(sys.argv[12])
+n_folds = int(sys.argv[5])
+n_iter = int(sys.argv[6])
+n_iter_features = int(sys.argv[7])
+feature_sample_ratio = float(sys.argv[8])
 
 parallel = True
 
@@ -206,11 +207,9 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             
             random_seeds_test = np.arange(n_seeds_test) if test_size[project_name] > 0 else ['']
 
-            CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify else KFold(n_splits=n_folds,shuffle=True)
+            CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
 
             path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if n_iter > 0 else 'no_hyp_opt','feature_selection' if n_iter_features >0 else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
-
-            print(path_to_save)
 
             path_to_save.mkdir(parents=True,exist_ok=True)
 
@@ -329,7 +328,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                 if test_size[project_name] > 0:
                     path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
 
-                    X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify else None)
+                    X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify and problem_type[project_name] == 'clf' else None)
                     X_train.reset_index(drop=True,inplace=True)
                     X_test.reset_index(drop=True,inplace=True)
                     y_train.reset_index(drop=True,inplace=True)
