@@ -63,14 +63,23 @@ from expected_cost.ec import *
 from psrcal import *
 
 ##---------------------------------PARAMETERS---------------------------------##
+# Check if required arguments are provided
+if len(sys.argv) < 2:
+    print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k] [boot_test] [scaler_name]")
+    sys.exit(1)
 
-project_name = 'GERO_Ivo'
+# Parse arguments
+project_name = sys.argv[1]
+hyp_opt = bool(int(sys.argv[2]))
+filter_outliers = bool(int(sys.argv[3]))
+shuffle_labels = bool(int(sys.argv[4]))
+stratify = bool(int(sys.argv[5]))
+feature_selection = bool(int(sys.argv[6]))
+n_folds = int(sys.argv[7])
+boot_test = int(sys.argv[8])
+scaler_name = sys.argv[9]
 
 l2ocv = False
-filter_outliers = True
-hyp_opt_list = [True]
-feature_selection_list = [True]
-shuffle_labels = False
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
@@ -90,9 +99,6 @@ thresholds = {'tell_classifier':[0.5],
                 'GeroApathy':[0.5],
                 'GERO_Ivo':[None]}
 
-scaler_name = 'StandardScaler'
-
-boot_test = 200
 boot_train = 0
 
 n_seeds_test = 1
@@ -181,7 +187,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
-        for y_label,hyp_opt,feature_selection in itertools.product(y_labels[project_name],hyp_opt_list,feature_selection_list):
+        for y_label in y_labels[project_name]:
             path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] else '','shuffle' if shuffle_labels else '')
 
             if not path_to_results.exists():
@@ -217,8 +223,8 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
 
                         print(model_name)
                         
-                        #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                        #    continue
+                        if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                            continue
                         
                         results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                         

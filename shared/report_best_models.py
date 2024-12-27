@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import itertools
+import itertools,sys
 
 def new_best(current_best,value,ascending):
     if ascending:
@@ -11,11 +11,11 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'GeroApthy'
+project_name = 'Proyecto_Ivo'
 
 l2ocv = False
 
-shuffle_labels = False
+shuffle_labels = True
 
 hyp_opt = True
 
@@ -37,7 +37,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
-                'Proyect_Ivo':'clf',
+                'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
                 'GERO_Ivo':'reg'}
 
@@ -90,7 +90,7 @@ for scoring,feature_selection in itertools.product(metrics_names[problem_type[pr
                     
                     files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'test' in file.stem and scoring in file.stem]
                     if len(files) == 0:
-                        files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem and scoring in file.stem]
+                        files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem and scoring in file.stem]
 
                     if len(files) == 0:
                         continue
@@ -112,11 +112,11 @@ for scoring,feature_selection in itertools.product(metrics_names[problem_type[pr
                         except:
                             continue
                         
-                        print(f'{file.stem.split("_")[-3]}:{df.loc[0,scoring_col]}')
+                        print(f'{file.stem.split("_")[2]}:{df.loc[0,scoring_col]}')
                         if best is None:
                             best = df.loc[0,:]
                             
-                            model_type = file.stem.split('_')[-3] if 'bca' not in file.stem else file.stem.split('_')[-4]
+                            model_type = file.stem.split('_')[2]
                             best['y_label'] = y_label
                             best['model_type'] = model_type
                             best['random_seed_test'] = random_seed_test
@@ -130,7 +130,7 @@ for scoring,feature_selection in itertools.product(metrics_names[problem_type[pr
                             if new_best(best[scoring_col],df.loc[0,scoring_col],ascending):
                                 best = df.loc[0,:]
 
-                                model_type = file.stem.split('_')[-3] if 'bca' not in file.stem else file.stem.split('_')[-4]
+                                model_type = file.stem.split('_')[2]
                                 best['y_label'] = y_label
                                 best['model_type'] = model_type
                                 best['random_seed_test'] = random_seed_test
@@ -179,7 +179,7 @@ for scoring,feature_selection in itertools.product(metrics_names[problem_type[pr
                         dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names[problem_type[project_name]]))
                     best_models.loc[len(best_models),:] = pd.Series(dict_append)
 
-    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_cog_no_hyp_opt_feature_selection_shuffled.csv'
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')

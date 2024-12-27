@@ -26,34 +26,33 @@ from random import randint as randint_random
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 from utils import *
-
-#from expected_cost.ec import *
-#from expected_cost.utils import *
-
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'Proyecto_Ivo'
+
+# Check if required arguments are provided
+if len(sys.argv) < 2:
+    print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [stratify] [k] [n_iter_features] [feature_sample_ratio] [scaler_name] [id_col] [n_seeds_train]")
+    sys.exit(1)
+
+# Parse arguments
+project_name = sys.argv[1]
+hyp_opt = bool(int(sys.argv[2]))
+filter_outliers = bool(int(sys.argv[3]))
+shuffle_labels = bool(int(sys.argv[4]))
+stratify = bool(int(sys.argv[5]))
+n_folds = int(sys.argv[6])
+n_iter = int(sys.argv[7])
+n_iter_features = int(sys.argv[8])
+feature_sample_ratio = float(sys.argv[9])
+n_bootstrap = int(sys.argv[10])
+scaler_name = sys.argv[10]
+id_col = sys.argv[11]
+n_seeds_train = int(sys.argv[12])
 
 parallel = True
-filter_outliers = True
 
 l2ocv = False
 
-stratify = True
-
-shuffle_labels_list = [True]
-
-n_iter = 50
-n_iter_features = 50
-
-feature_sample_ratio = .5 
-
-scaler_name = 'StandardScaler'
-
-id_col = 'id'
-
 cmatrix = None 
-
-n_seeds_train = 10
 
 random_seeds_train = [3**x for x in np.arange(1,n_seeds_train+1)] if n_seeds_train > 0 else ['']
 
@@ -91,7 +90,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'cog':['neuropsico_digits__neuropsico_tmt','neuropsico_tmt'],
+                                     'cog':['neuropsico_digits__neuropsico_tmt','neuropsico_tmt','neuropsico_digits'],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
@@ -147,7 +146,7 @@ problem_type = {'tell_classifier':'clf',
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
 
-for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],tasks[project_name],shuffle_labels_list):
+for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]):
     dimensions = list()
     if isinstance(single_dimensions[project_name],list):
         for ndim in range(1,len(single_dimensions[project_name])+1):
@@ -207,7 +206,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
             path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if n_iter > 0 else 'no_hyp_opt','feature_selection' if n_iter_features >0 else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
 
             print(path_to_save)
-            
+
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
@@ -367,8 +366,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                #    continue
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)

@@ -42,28 +42,35 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-parallel = True
-filter_outliers = True
 
-project_name = 'GERO_Ivo'
+# Check if required arguments are provided
+if len(sys.argv) < 2:
+    print("Usage: python bootstrap_models_bca.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k] [n_boot] [scaler_name] [id_col]")
+    sys.exit(1)
+
+# Parse arguments
+project_name = sys.argv[1]
+hyp_opt = bool(int(sys.argv[2]))
+filter_outliers = bool(int(sys.argv[3]))
+shuffle_labels = bool(int(sys.argv[4]))
+feature_selection = bool(int(sys.argv[5]))
+n_folds = int(sys.argv[6])
+n_boot = int(sys.argv[7])
+scaler_name = sys.argv[8]
+id_col = sys.argv[9]
+
+parallel = True
+
 l2ocv = False
 
-n_boot = 200
-n_folds = 5
-n_models = 0.3
+n_models = np.inf
  
 cmatrix = None
-shuffle_labels = False
-hyp_opt_list = [True]
-feature_selection_list = [True]
 
-id_col = 'id'
-scaler_name = 'StandardScaler'
-
-models = {'MCI_classifier':['lr','svc','knn','xgb'],
-          'tell_classifier':['lr','svc','knn','xgb'],
-          'Proyecto_Ivo':['lr','svc','knn','xgb'],
-          'GeroApathy':['lr','svc','knn','xgb'],
+models = {'MCI_classifier':['lr','svc','knnc','xgb'],
+          'tell_classifier':['lr','svc','knnc','xgb'],
+          'Proyecto_Ivo':['lr','svc','knnc','xgb'],
+          'GeroApathy':['lr','svc','knnc','xgb'],
           'GERO_Ivo':['lasso','ridge','elastic','svr','xgb']
             }
 
@@ -138,7 +145,7 @@ class LoggerWriter:
 sys.stdout = LoggerWriter(logging.info)
 sys.stderr = LoggerWriter(logging.error)
 
-for task,model,y_label,hyp_opt,feature_selection,scoring in itertools.product(tasks[project_name],models[project_name],y_labels[project_name],hyp_opt_list,feature_selection_list,scoring_metrics[project_name]):    
+for task,model,y_label,scoring in itertools.product(tasks[project_name],models[project_name],y_labels[project_name],scoring_metrics[project_name]):    
     
     dimensions = list()
 
@@ -162,8 +169,8 @@ for task,model,y_label,hyp_opt,feature_selection,scoring in itertools.product(ta
         
         for random_seed in random_seeds:
 
-            #if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
-            #    continue
+            if Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
+                continue
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
