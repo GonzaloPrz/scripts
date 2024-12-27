@@ -43,9 +43,13 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
 
+n_boot = 200
+scaler_name = 'StandardScaler'
+id_col = 'id'
+
 # Check if required arguments are provided
 if len(sys.argv) < 2:
-    print("Usage: python bootstrap_models_bca.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k] [n_boot] [scaler_name] [id_col]")
+    print("Usage: python bootstrap_models_bca.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k]")
     sys.exit(1)
 
 # Parse arguments
@@ -55,9 +59,6 @@ filter_outliers = bool(int(sys.argv[3]))
 shuffle_labels = bool(int(sys.argv[4]))
 feature_selection = bool(int(sys.argv[5]))
 n_folds = int(sys.argv[6])
-n_boot = int(sys.argv[7])
-scaler_name = sys.argv[8]
-id_col = sys.argv[9]
 
 parallel = True
 
@@ -67,11 +68,11 @@ n_models = np.inf
  
 cmatrix = None
 
-models = {'MCI_classifier':['lr','svc','knnc','xgb'],
-          'tell_classifier':['lr','svc','knnc','xgb'],
-          'Proyecto_Ivo':['lr','svc','knnc','xgb'],
-          'GeroApathy':['lr','svc','knnc','xgb'],
-          'GERO_Ivo':['lasso','ridge','elastic','svr','xgb']
+models = {'MCI_classifier':['lr','svc','knnc'],
+          'tell_classifier':['lr','svc','knnc'],
+          'Proyecto_Ivo':['lr','svc','knnc'],
+          'GeroApathy':['lr','svc','knnc',],
+          'GERO_Ivo':['lasso','ridge','elastic','svr']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],

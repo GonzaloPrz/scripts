@@ -63,9 +63,12 @@ from expected_cost.ec import *
 from psrcal import *
 
 ##---------------------------------PARAMETERS---------------------------------##
+scaler_name = 'StandardScaler'
+boot_test = 200
+
 # Check if required arguments are provided
 if len(sys.argv) < 2:
-    print("Usage: python test_models.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k] [boot_test] [scaler_name]")
+    print("Usage: python test_models.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k]")
     sys.exit(1)
 
 # Parse arguments
@@ -76,8 +79,6 @@ shuffle_labels = bool(int(sys.argv[4]))
 stratify = bool(int(sys.argv[5]))
 feature_selection = bool(int(sys.argv[6]))
 n_folds = int(sys.argv[7])
-boot_test = int(sys.argv[8])
-scaler_name = sys.argv[9]
 
 l2ocv = False
 

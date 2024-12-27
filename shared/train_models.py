@@ -28,49 +28,28 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 from utils import *
 ##---------------------------------PARAMETERS---------------------------------##
 
+scaler_name = 'StandardScaler'
+id_col = 'id'
+n_seeds_train = 10
+stratify = True
+
 # Check if required arguments are provided
 if len(sys.argv) < 2:
-    print("Usage: python train_models.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [stratify] [k] [n_iter_features] [feature_sample_ratio] [scaler_name] [id_col] [n_seeds_train]")
+    print("Usage: python train_models.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [k] [n_iter] [n_iter_features] [feature_sample_ratio]")
     sys.exit(1)
+
+print(sys.argv)
 
 # Parse arguments
 project_name = sys.argv[1]
 # Default values
-hyp_opt = True
-filter_outliers = True
-shuffle_labels = False
-stratify = True
-n_folds = 5
-n_iter = 50
-n_iter_features = 50
-feature_sample_ratio = 0.5
-scaler_name = 'StandardScaler'
-id_col = 'id'
-n_seeds_train = 10
-
-# Check and assign arguments if provided
-if len(sys.argv) > 2:
-    hyp_opt = bool(int(sys.argv[2]))
-if len(sys.argv) > 3:
-    filter_outliers = bool(int(sys.argv[3]))
-if len(sys.argv) > 4:
-    shuffle_labels = bool(int(sys.argv[4]))
-if len(sys.argv) > 5:
-    stratify = bool(int(sys.argv[5]))
-if len(sys.argv) > 6:
-    n_folds = int(sys.argv[6])
-if len(sys.argv) > 7:
-    n_iter = int(sys.argv[7])
-if len(sys.argv) > 8:
-    n_iter_features = int(sys.argv[8])
-if len(sys.argv) > 9:
-    feature_sample_ratio = float(sys.argv[9])
-if len(sys.argv) > 10:
-    scaler_name = sys.argv[10]
-if len(sys.argv) > 11:
-    id_col = sys.argv[11]
-if len(sys.argv) > 12:
-    n_seeds_train = int(sys.argv[12])
+hyp_opt = bool(int(sys.argv[2]))
+filter_outliers = bool(int(sys.argv[3]))
+shuffle_labels = bool(int(sys.argv[4]))
+n_folds = int(sys.argv[5])
+n_iter = int(sys.argv[6])
+n_iter_features = int(sys.argv[7])
+feature_sample_ratio = float(sys.argv[8])
 
 parallel = True
 
@@ -104,20 +83,20 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['cog'],
+         'Proyecto_Ivo':['Animales__P','brain','cog'],
          'GeroApathy':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'cog':['neuropsico_digits__neuropsico_tmt','neuropsico_tmt','neuropsico_digits'],
+                     'Proyecto_Ivo':{#'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     #'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     'Animales__P': ['properties'],
+                                     'cog':['neuropsico_digits__neuropsico_tmt'],
                                      'brain':['norm_brain_lit'],
-                                     'AAL':['norm_AAL'],
-                                     'conn':['connectivity']
+                                     #'AAL':['norm_AAL'],
+                                     #'conn':['connectivity']
                                      },
                         'GeroApathy':['formants','mfcc','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
@@ -140,13 +119,14 @@ else:
 models_dict = {'clf': {'lr':LR,
                     'svc':SVC,
                     'knnc':KNNC,
-                    'xgb':xgboost},
+                    #'xgb':xgboost
+                    },
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
                     #'knnr':KNNR,
                     'svr':SVR,
-                    'xgb':xgboostr
+                    #'xgb':xgboostr
                     }
                 }
 
@@ -225,15 +205,14 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             
             random_seeds_test = np.arange(n_seeds_test) if test_size[project_name] > 0 else ['']
 
-            CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify else KFold(n_splits=n_folds,shuffle=True)
+            CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
 
             path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if n_iter > 0 else 'no_hyp_opt','feature_selection' if n_iter_features >0 else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
-
-            print(path_to_save)
 
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
+                print(model)
                 predefined_models = True if Path(path_to_save,random_seeds_test[0],f'all_models_{model}').exists() else False
             else:
                 predefined_models = False
@@ -348,7 +327,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                 if test_size[project_name] > 0:
                     path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
 
-                    X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify else None)
+                    X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify and problem_type[project_name] == 'clf' else None)
                     X_train.reset_index(drop=True,inplace=True)
                     X_test.reset_index(drop=True,inplace=True)
                     y_train.reset_index(drop=True,inplace=True)
@@ -390,8 +369,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    continue
+                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                #    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
