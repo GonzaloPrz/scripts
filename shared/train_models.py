@@ -80,7 +80,7 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['cog'],
+         'Proyecto_Ivo':['cog','Animales__P','brain'],
          'GeroApathy':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']
          }
@@ -116,13 +116,14 @@ else:
 models_dict = {'clf': {'lr':LR,
                     'svc':SVC,
                     'knnc':KNNC,
-                    'xgb':xgboost},
+                    #'xgb':xgboost
+                    },
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
                     #'knnr':KNNR,
                     'svr':SVR,
-                    'xgb':xgboostr
+                    #'xgb':xgboostr
                     }
                 }
 

@@ -77,7 +77,7 @@ models = {'MCI_classifier':['lr','svc','knnc'],
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':['cog'],
+         'Proyecto_Ivo':['cog','Animales__P','brain'],
          'GeroApathy':['agradable'],
          'GERO_Ivo':['animales','fas','grandmean','fas__animales']}
 
