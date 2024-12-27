@@ -65,7 +65,7 @@ from psrcal import *
 ##---------------------------------PARAMETERS---------------------------------##
 # Check if required arguments are provided
 if len(sys.argv) < 2:
-    print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k] [boot_test] [scaler_name]")
+    print("Usage: python test_models.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k] [boot_test] [scaler_name]")
     sys.exit(1)
 
 # Parse arguments

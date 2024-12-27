@@ -61,9 +61,9 @@ python "C:\Users\CNC Audio\gonza\scripts\train_models.py" %project_name% %hyp_op
 python "C:\Users\CNC Audio\gonza\scripts\bootstrap_models_bca.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %feature_selection% %k% %n_boot% %scaler_name% %id_col% 
 python "C:\Users\CNC Audio\gonza\scripts\test_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k% %n_boot_test% %scaler_name% %id_col%
 
-echo Pipeline executed with:
+echo   Pipeline executed with:
 echo   project_name=%project_name%
-echo  hyp_opt=%hyp_opt%
+echo   hyp_opt=%hyp_opt%
 echo   filter_outliers=%filter_outliers%
 echo   shuffle_labels=%shuffle_labels%
 echo   stratify=%stratify%
@@ -75,6 +75,6 @@ echo   n_boot=%n_boot%
 echo   boot_test=%boot_test%
 echo   scaler_name=%scaler_name%
 echo   id_col=%id_col%
-echo  n_seeds_train=%n_seeds_train%
+echo   n_seeds_train=%n_seeds_train%
 
 pause

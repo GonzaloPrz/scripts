@@ -30,23 +30,47 @@ from utils import *
 
 # Check if required arguments are provided
 if len(sys.argv) < 2:
-    print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [stratify] [k] [n_iter_features] [feature_sample_ratio] [scaler_name] [id_col] [n_seeds_train]")
+    print("Usage: python train_models.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [stratify] [k] [n_iter_features] [feature_sample_ratio] [scaler_name] [id_col] [n_seeds_train]")
     sys.exit(1)
 
 # Parse arguments
 project_name = sys.argv[1]
-hyp_opt = bool(int(sys.argv[2]))
-filter_outliers = bool(int(sys.argv[3]))
-shuffle_labels = bool(int(sys.argv[4]))
-stratify = bool(int(sys.argv[5]))
-n_folds = int(sys.argv[6])
-n_iter = int(sys.argv[7])
-n_iter_features = int(sys.argv[8])
-feature_sample_ratio = float(sys.argv[9])
-n_bootstrap = int(sys.argv[10])
-scaler_name = sys.argv[10]
-id_col = sys.argv[11]
-n_seeds_train = int(sys.argv[12])
+# Default values
+hyp_opt = True
+filter_outliers = True
+shuffle_labels = False
+stratify = True
+n_folds = 5
+n_iter = 50
+n_iter_features = 50
+feature_sample_ratio = 0.5
+scaler_name = 'StandardScaler'
+id_col = 'id'
+n_seeds_train = 10
+
+# Check and assign arguments if provided
+if len(sys.argv) > 2:
+    hyp_opt = bool(int(sys.argv[2]))
+if len(sys.argv) > 3:
+    filter_outliers = bool(int(sys.argv[3]))
+if len(sys.argv) > 4:
+    shuffle_labels = bool(int(sys.argv[4]))
+if len(sys.argv) > 5:
+    stratify = bool(int(sys.argv[5]))
+if len(sys.argv) > 6:
+    n_folds = int(sys.argv[6])
+if len(sys.argv) > 7:
+    n_iter = int(sys.argv[7])
+if len(sys.argv) > 8:
+    n_iter_features = int(sys.argv[8])
+if len(sys.argv) > 9:
+    feature_sample_ratio = float(sys.argv[9])
+if len(sys.argv) > 10:
+    scaler_name = sys.argv[10]
+if len(sys.argv) > 11:
+    id_col = sys.argv[11]
+if len(sys.argv) > 12:
+    n_seeds_train = int(sys.argv[12])
 
 parallel = True
 
