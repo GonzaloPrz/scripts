@@ -31,7 +31,7 @@ from utils import *
 #from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy'
+project_name = 'Proyecto_Ivo'
 
 parallel = True
 filter_outliers = True
@@ -40,7 +40,7 @@ l2ocv = False
 
 stratify = True
 
-shuffle_labels_list = [False]
+shuffle_labels_list = [True]
 
 n_iter = 50
 n_iter_features = 50
@@ -162,9 +162,15 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
         data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
         if shuffle_labels:
-            np.random.seed(42)
-            data[y_label] = pd.Series(np.random.permutation(data[y_label]))
-                
+            np.random.seed(15)
+            if problem_type[project_name] == 'clf':
+                #Randomly change some 1s to 0s and viceversa
+
+                data[y_label] = np.where(np.random.rand(data.shape[0]) > 0.5,data[y_label],np.where(data[y_label] == 1,0,1))    
+            else:
+                #Randomly shuffle the values of the target variable
+                data[y_label] = np.random.permutation(data[y_label].values)
+
         all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
         
         data = data[all_features + [y_label,id_col]]
@@ -201,7 +207,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
             path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if n_iter > 0 else 'no_hyp_opt','feature_selection' if n_iter_features >0 else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
 
             print(path_to_save)
-
+            
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
@@ -361,8 +367,8 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    continue
+                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                #    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
