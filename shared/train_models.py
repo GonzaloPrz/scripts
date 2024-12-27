@@ -20,7 +20,6 @@ from tqdm import tqdm
 import itertools,pickle,sys, json
 from scipy.stats import loguniform, uniform, randint
 from random import randint as randint_random 
-from joblib import Parallel, delayed
 
 from random import randint as randint_random 
 
@@ -28,18 +27,18 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
-from expected_cost.ec import *
-from expected_cost.utils import *
+#from expected_cost.ec import *
+#from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'GeroApathy'
 
 parallel = True
 filter_outliers = True
 
 l2ocv = False
 
-stratify = False
+stratify = True
 
 shuffle_labels_list = [False]
 
@@ -61,7 +60,7 @@ random_seeds_train = [3**x for x in np.arange(1,n_seeds_train+1)] if n_seeds_tra
 thresholds = {'tell_classifier':[0.5],
               'MCI_classifier':[0.5],
                 'Proyecto_Ivo':[0.5],
-                'GeroApathy':[None],
+                'GeroApathy':[0.5],
                 'GERO_Ivo':[None]}
 
 test_size = {'tell_classifier':0.3,
@@ -115,39 +114,24 @@ else:
     n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
-models_dict = {'tell_classifier':{'lr':LR,
-                                'svc':SVC,
-                                'knnc':KNNC,
-                                'xgb':xgboost},
-                'MCI_classifier':{'lr':LR,
-                                'svc':SVC,
-                                'knnc':KNNC,
-                                'xgb':xgboost},
-                'Proyecto_Ivo':{'lr':LR,
-                                'svc':SVC,
-                                'knnc':KNNC,
-                                'xgb':xgboost},
-                'GeroApathy':{'lasso':Lasso,
-                                'ridge':Ridge,
-                                'elastic':ElasticNet,
-                                #'knnr':KNNR,
-                                #'svr':SVR,
-                                #'xgb':xgboostr
-                                },
-                'GERO_Ivo':{'lasso':Lasso,
-                                'ridge':Ridge,
-                                'elastic':ElasticNet,
-                                #'knnr':KNNR,
-                                'svr':SVR,
-                                'xgb':xgboostr
-                                }
+models_dict = {'clf': {'lr':LR,
+                    'svc':SVC,
+                    'knnc':KNNC,
+                    'xgb':xgboost},
+                'reg':{'lasso':Lasso,
+                    'ridge':Ridge,
+                    'elastic':ElasticNet,
+                    #'knnr':KNNR,
+                    'svr':SVR,
+                    'xgb':xgboostr
+                    }
                 }
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
-                          #'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
+            'GeroApathy':['DASS_21_Depression_V_label','Depression_Total_Score_label','AES_Total_Score_label',
+                          'MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
                           ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
@@ -157,7 +141,7 @@ y_labels = {'tell_classifier':['target'],
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg',
+                'GeroApathy':'clf',
                 'GERO_Ivo':'reg'}
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -197,7 +181,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
 
         y = data.pop(y_label)
 
-        for model in models_dict[project_name].keys():        
+        for model in models_dict[problem_type[project_name]].keys():        
             print(model)
             held_out = True if n_iter > 0 or n_iter_features > 0 else False
 
@@ -262,7 +246,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                         }
                 
                 for n in range(n_iter):
-                    new_combination = dict((key,{}) for key in models_dict[project_name].keys())
+                    new_combination = dict((key,{}) for key in models_dict[problem_type[project_name]].keys())
                     new_combination['lr'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])}
                     new_combination['svc'] = {'C': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))]),
                                             'kernel': np.random.choice(['linear', 'rbf', 'sigmoid']),
@@ -290,7 +274,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                                             'gamma': np.random.choice([x*10**y for x,y in itertools.product(range(1,10),range(-3, 2))])}
                                             
                     
-                    for key in models_dict[project_name].keys():
+                    for key in models_dict[problem_type[project_name]].keys():
                         hyperp[key].loc[len(hyperp[key].index),:] = new_combination[key]
                 
                     hyperp[model].drop_duplicates(inplace=True)
@@ -409,7 +393,7 @@ for y_label,task,shuffle_labels in itertools.product(y_labels[project_name],task
                 sys.stdout = LoggerWriter(logging.info)
                 sys.stderr = LoggerWriter(logging.error)
 
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[project_name][model],scaler,imputer,X_train, y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train, y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
                 all_models = pd.DataFrame()
                 

@@ -15,10 +15,10 @@ from utils import *
 
 def compute_metrics(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name):
     # Calculate the metrics using the bootstrap method
-    results = get_metrics_bootstrap(outputs[model_index, r], y_dev[r], metrics_names[project_name], n_boot=n_boot, problem_type=problem_type[project_name])
+    results = get_metrics_bootstrap(outputs[model_index, r], y_dev[r], metrics_names[problem_type[project_name]], n_boot=n_boot, problem_type=problem_type[project_name])
     
     metrics_result = {}
-    for metric in metrics_names[project_name]:
+    for metric in metrics_names[problem_type[project_name]]:
         metrics_result[metric] = results[1][metric]
     return model_index, r, metrics_result
 
@@ -63,7 +63,7 @@ scaler_name = 'StandardScaler'
 models = {'MCI_classifier':['lr','svc','knn','xgb'],
           'tell_classifier':['lr','svc','knn','xgb'],
           'Proyecto_Ivo':['lr','svc','knn','xgb'],
-          'GeroApathy':['lasso','ridge','elastic'],
+          'GeroApathy':['lr','svc','knn','xgb'],
           'GERO_Ivo':['lasso','ridge','elastic','svr','xgb']
             }
 
@@ -82,20 +82,17 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg',
+                'GeroApathy':'clf',
                 'GERO_Ivo':'reg'}	
 
-metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                 'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error']}
+metrics_names = {'clf':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'reg':['r2_score','mean_squared_error','mean_absolute_error']}
 
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
-                         'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
+            'GeroApathy':['DASS_21_Depression_V_label','Depression_Total_Score_label','AES_Total_Score_label',
+                         'MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
                          ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
@@ -104,7 +101,7 @@ y_labels = {'MCI_classifier':['target'],
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
            'Proyecto_Ivo':['roc_auc'],
-           'GeroApathy':['mean_absolute_error'],
+           'GeroApathy':['norm_cross_entropy','roc_auc'],
            'GERO_Ivo':['r2_score','mean_absolute_error']}
 ##---------------------------------PARAMETERS---------------------------------##
 
@@ -206,18 +203,18 @@ for task,model,y_label,hyp_opt,feature_selection,scoring in itertools.product(ta
                 y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
                 y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
                 
-                metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],n_boot))) for metric in metrics_names[project_name])
+                metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],n_boot))) for metric in metrics_names[problem_type[project_name]])
                 
                 all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index in tqdm.tqdm(range(outputs.shape[0])) for r in range(outputs.shape[1]))
 
                 # Update the metrics array with the computed results
                 for model_index, r, metrics_result in all_results:
-                    for metric in metrics_names[project_name]:
+                    for metric in metrics_names[problem_type[project_name]]:
                         metrics[metric][model_index, r, :] = metrics_result[metric]
 
                 # Update the summary statistics in all_models
                 for model_index in tqdm.tqdm(range(outputs.shape[0])):
-                    for metric in metrics_names[project_name]:
+                    for metric in metrics_names[problem_type[project_name]]:
                         all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(5)
                         all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(5)
                         all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(5)

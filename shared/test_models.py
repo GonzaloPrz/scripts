@@ -81,16 +81,13 @@ y_labels = {'tell_classifier':['target'],
                         ]
             }
 
-metrics_names = {'tell_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'MCI_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'Proyecto_Ivo': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'GeroApathy': ['r2_score','mean_absolute_error','mean_squared_error'],
-                    'GERO_Ivo':['r2_score','mean_absolute_error','mean_squared_error']}
+metrics_names = {'clf': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                'reg':['r2_score','mean_absolute_error','mean_squared_error']}
 
 thresholds = {'tell_classifier':[0.5],
                 'MCI_classifier':[0.5],
                 'Proyecto_Ivo':[0.5],
-                'GeroApathy':[None],
+                'GeroApathy':[0.5],
                 'GERO_Ivo':[None]}
 
 scaler_name = 'StandardScaler'
@@ -105,19 +102,19 @@ n_seeds_test = 1
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['Fugu'],
+         'GeroApathy':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg',
+                'GeroApathy':'clf',
                 'GERO_Ivo':'reg'}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
            'Proyecto_Ivo':['roc_auc'],
-           'GeroApathy':['mean_absolute_error'],
+           'GeroApathy':['norm_cross_entropy','roc_auc'],
            'GERO_Ivo':['r2_score','mean_absolute_error']}
 
 if l2ocv:
@@ -163,33 +160,19 @@ else:
     scaler = None
 imputer = KNNImputer
 
-models_dict = {'tell_classifier':{'lr': LogisticRegression,
-                                    'svc': SVC, 
-                                    'xgb': XGBClassifier,
-                                    'knn': KNNC},
-                'MCI_classifier':{'lr': LogisticRegression,
-                                    'svc': SVC, 
-                                    'xgb': XGBClassifier,
-                                    'knn': KNNC},
-                'MCI_classifier':{'lr': LogisticRegression,
-                                    'svc': SVC, 
-                                    'xgb': XGBClassifier,
-                                    'knn': KNNC},
-                'GeroApathy':{'lasso':Lasso,
-                                'ridge':Ridge,
-                                'elastic':ElasticNet,
-                                #'knn':KNNR,
-                                #'svr':SVR,
-                                #'xgb':xgboostr
-                                },
-                'GERO_Ivo':{'lasso':Lasso,
+models_dict = {'clf':{'lr': LogisticRegression,
+                    'svc': SVC, 
+                    'xgb': XGBClassifier,
+                    'knn': KNNC},
+                
+                'reg':{'lasso':Lasso,
                                 'ridge':Ridge,
                                 'elastic':ElasticNet,
                                 #'knn':KNNR,
                                 'svr':SVR,
                                 'xgb':xgboostr
-                                }
-                            }
+                    }
+}
 
 for task,scoring in itertools.product(tasks[project_name],scoring_metrics[project_name]):
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
@@ -251,8 +234,8 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                         if 'threshold' not in results_dev.columns:
                             results_dev['threshold'] = thresholds[project_name][0]
 
-                        results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[project_name][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
-                                                                                    X_test,y_test,all_features,y_labels[project_name],metrics_names[project_name],IDs_test,boot_train,
+                        results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
+                                                                                    X_test,y_test,all_features,y_labels[project_name],metrics_names[problem_type[project_name]],IDs_test,boot_train,
                                                                                     boot_test,problem_type[project_name],threshold=results_dev.loc[r,'threshold']) 
                                                                                     for r in results_dev.index)
                         
