@@ -28,10 +28,7 @@ n_folds = 5
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P',
-             'cog',
-             'brain','AAL','conn'
-             ],
+         'Proyecto_Ivo':['cog','brain','Animales__P'],
          'GeroApathy':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
 
@@ -179,7 +176,7 @@ for scoring,feature_selection in itertools.product(metrics_names[problem_type[pr
                         dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names[problem_type[project_name]]))
                     best_models.loc[len(best_models),:] = pd.Series(dict_append)
 
-    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_cog_no_hyp_opt_feature_selection_shuffled.csv'
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')

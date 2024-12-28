@@ -13,6 +13,7 @@ set k=5
 set n_iter=50
 set n_iter_features=50
 set feature_sample_ratio=0.5
+set feature_selection=1
 
 if NOT "%2"=="" set hyp_opt=%2
 if NOT "%3"=="" set filter_outliers=%3
@@ -25,9 +26,9 @@ if NOT "%8"=="" set feature_sample_ratio=%8
 if %n_iter_features% == 0 set feature_selection = 0
 
 :: Call your Python scripts and pass all parameters
-python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k% %n_iter% %n_iter_features% %feature_sample_ratio%
+::python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k% %n_iter% %n_iter_features% %feature_sample_ratio%
 python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %feature_selection% %k% 
-python "C:\Users\CNC Audio\gonza\scripts\test_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k%
+::python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k%
 
 echo   Pipeline executed with:
 echo   project_name=%project_name%
