@@ -1,11 +1,7 @@
 @echo off
 
-:: Check if the user provided the required project_name argument
-
-:: Required parameter
-set project_name=%1
-
-:: Optional parameters with default values
+:: Inicializar variables con valores por defecto
+set project_name=
 set hyp_opt=1
 set filter_outliers=1
 set shuffle_labels=0
@@ -15,21 +11,35 @@ set n_iter_features=50
 set feature_sample_ratio=0.5
 set feature_selection=1
 
-if NOT "%2"=="" set hyp_opt=%2
-if NOT "%3"=="" set filter_outliers=%3
-if NOT "%4"=="" set shuffle_labels=%4
-if NOT "%5"=="" set k=%5
-if NOT "%6"=="" set n_iter=%6
-if NOT "%7"=="" set n_iter_features=%7
-if NOT "%8"=="" set feature_sample_ratio=%8
+:: Procesar argumentos
+:parse_args
+if "%~1"=="" goto end_args
+if "%~1"=="-project_name" set project_name=%~2 & shift & shift & goto parse_args
+if "%~1"=="-hyp_opt" set hyp_opt=%~2 & shift & shift & goto parse_args
+if "%~1"=="-filter_outliers" set filter_outliers=%~2 & shift & shift & goto parse_args
+if "%~1"=="-shuffle_labels" set shuffle_labels=%~2 & shift & shift & goto parse_args
+if "%~1"=="-k" set k=%~2 & shift & shift & goto parse_args
+if "%~1"=="-n_iter" set n_iter=%~2 & shift & shift & goto parse_args
+if "%~1"=="-n_iter_features" set n_iter_features=%~2 & shift & shift & goto parse_args
+if "%~1"=="-feature_sample_ratio" set feature_sample_ratio=%~2 & shift & shift & goto parse_args
+goto parse_args
 
-if %n_iter_features% == 0 set feature_selection = 0
+:end_args
+:: Verificar parámetros obligatorios
+if "%project_name%"=="" (
+    echo Error: el parámetro -project_name es obligatorio.
+    goto :eof
+)
 
-:: Call your Python scripts and pass all parameters
-::python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k% %n_iter% %n_iter_features% %feature_sample_ratio%
+:: Configurar selección de características
+if %n_iter_features% == 0 set feature_selection=0
+
+:: Llamar a los scripts de Python
+python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k% %n_iter% %n_iter_features% %feature_sample_ratio%
 python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %feature_selection% %k% 
-::python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k%
+python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k%
 
+:: Mostrar los parámetros usados
 echo   Pipeline executed with:
 echo   project_name=%project_name%
 echo   hyp_opt=%hyp_opt%

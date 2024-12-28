@@ -66,7 +66,7 @@ parallel = True
 
 l2ocv = False
 
-n_models = np.inf
+n_models = 0.4
  
 cmatrix = None
 

@@ -26,6 +26,7 @@ from random import randint as randint_random
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 from utils import *
+
 ##---------------------------------PARAMETERS---------------------------------##
 
 scaler_name = 'StandardScaler'
@@ -38,6 +39,7 @@ if len(sys.argv) < 2:
     print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [k] [n_iter] [n_iter_features] [feature_sample_ratio]")
     sys.exit(1)
 
+print(sys.argv)
 # Parse arguments
 project_name = sys.argv[1]
 hyp_opt = bool(int(sys.argv[2]))
@@ -89,8 +91,12 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'cog':['neuropsico_digits__neuropsico_tmt','neuropsico_tmt','neuropsico_digits'],
+                                     'Animales__P': ['properties',
+                                                     #'timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'
+                                                     ],
+                                     'cog':['neuropsico_digits__neuropsico_tmt',
+                                            #'neuropsico_tmt','neuropsico_digits'
+                                            ],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
@@ -188,6 +194,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             # Flip the values at the selected indices
             y[zero_to_flip] = 1
             y[one_to_flip] = 0
+
         elif shuffle_labels:
             np.random.seed(42)
             #Perform random permutations of the labels
