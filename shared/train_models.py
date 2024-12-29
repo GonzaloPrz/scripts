@@ -28,6 +28,14 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
+project_name = 'GERO_Ivo'
+hyp_opt = True
+filter_outliers = True
+shuffle_labels = False
+n_folds = 5
+n_iter = 50
+n_iter_features = 50
+feature_sample_ratio = 0.5
 
 scaler_name = 'StandardScaler'
 n_seeds_train = 10
@@ -35,20 +43,24 @@ id_col = 'id'
 stratify = True
 
 # Check if required arguments are provided
-if len(sys.argv) < 2:
-    print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [k] [n_iter] [n_iter_features] [feature_sample_ratio]")
-    sys.exit(1)
-
-print(sys.argv)
-# Parse arguments
-project_name = sys.argv[1]
-hyp_opt = bool(int(sys.argv[2]))
-filter_outliers = bool(int(sys.argv[3]))
-shuffle_labels = bool(int(sys.argv[4]))
-n_folds = int(sys.argv[5])
-n_iter = int(sys.argv[6])
-n_iter_features = int(sys.argv[7])
-feature_sample_ratio = float(sys.argv[8])
+if len(sys.argv) > 1:
+    #print("Usage: python script1.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [k] [n_iter] [n_iter_features] [feature_sample_ratio]")
+    #sys.exit(1)
+    project_name = sys.argv[1]
+if len(sys.argv) > 2:
+    hyp_opt = bool(int(sys.argv[2]))
+if len(sys.argv) > 3:
+    filter_outliers = bool(int(sys.argv[3]))
+if len(sys.argv) > 4:
+    shuffle_labels = bool(int(sys.argv[4]))
+if len(sys.argv) > 5:
+    n_folds = int(sys.argv[5])
+if len(sys.argv) > 6:
+    n_iter = int(sys.argv[6])
+if len(sys.argv) > 7:
+    n_iter_features = int(sys.argv[7])
+if len(sys.argv) > 8:
+    feature_sample_ratio = float(sys.argv[8])
 
 parallel = True
 

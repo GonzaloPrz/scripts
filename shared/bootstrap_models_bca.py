@@ -42,25 +42,31 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
+project_name = 'GERO_Ivo'
+hyp_opt = True
+filter_outliers = True
+shuffle_labels = False
+feature_selection = True
+n_folds = 5
 
 n_boot = 200
 scaler_name = 'StandardScaler'
 id_col = 'id'
 
 # Check if required arguments are provided
-if len(sys.argv) < 2:
-    print("Usage: python bootstrap_models_bca.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k]")
-    sys.exit(1)
-
-print(sys.argv)
-
-# Parse arguments
-project_name = sys.argv[1]
-hyp_opt = bool(int(sys.argv[2]))
-filter_outliers = bool(int(sys.argv[3]))
-shuffle_labels = bool(int(sys.argv[4]))
-feature_selection = bool(int(sys.argv[5]))
-n_folds = int(sys.argv[6]) if len(sys.argv) >=6 else 5
+if len(sys.argv) > 1:
+    #print("Usage: python bootstrap_models_bca.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k]")
+    project_name = sys.argv[1]
+if len(sys.argv) > 2:
+    hyp_opt = bool(int(sys.argv[2]))
+if len(sys.argv) > 3:
+    filter_outliers = bool(int(sys.argv[3]))
+if len(sys.argv) > 4:
+    shuffle_labels = bool(int(sys.argv[4]))
+if len(sys.argv) > 5:
+    feature_selection = bool(int(sys.argv[5]))
+if len(sys.argv) > 6:
+    n_folds = int(sys.argv[6])
 
 parallel = True
 
