@@ -76,9 +76,8 @@ project_name = sys.argv[1]
 hyp_opt = bool(int(sys.argv[2]))
 filter_outliers = bool(int(sys.argv[3]))
 shuffle_labels = bool(int(sys.argv[4]))
-stratify = bool(int(sys.argv[5]))
-feature_selection = bool(int(sys.argv[6]))
-n_folds = int(sys.argv[7])
+feature_selection = bool(int(sys.argv[5]))
+n_folds = int(sys.argv[6])
 
 l2ocv = False
 
