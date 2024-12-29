@@ -222,7 +222,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
-                predefined_models = True if Path(path_to_save,random_seeds_test[0],f'all_models_{model}').exists() else False
+                predefined_models = True if Path(path_to_save,f'random_seed_{random_seeds_test[0]}',f'all_models_{model}').exists() else False
             else:
                 predefined_models = False
 
