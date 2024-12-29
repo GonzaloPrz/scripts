@@ -13,7 +13,7 @@ from sklearn.impute import KNNImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
-from xgboost import XGBClassifier 
+from xgboost import XGBClassifier
 
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
@@ -198,7 +198,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
     for dimension in dimensions:
         print(task,dimension)
         for y_label in y_labels[project_name]:
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] else '','shuffle' if shuffle_labels else '')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
 
             if not path_to_results.exists():
                 continue
