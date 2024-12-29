@@ -219,7 +219,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                     all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
                     
                     for file in files:
-                        model_name = file.stem.split('_')[-4]
+                        model_name = file.stem.split('_')[2]
 
                         print(model_name)
                         
