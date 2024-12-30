@@ -15,6 +15,7 @@ from utils import *
 
 def compute_metrics(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name):
     # Calculate the metrics using the bootstrap method
+    print(r,model_index)
     results = get_metrics_bootstrap(outputs[model_index, r], y_dev[r], metrics_names[problem_type[project_name]], n_boot=n_boot, problem_type=problem_type[project_name])
     
     metrics_result = {}
@@ -222,10 +223,10 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 
                 metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],n_boot))) for metric in metrics_names[problem_type[project_name]])
                 
-                all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index in tqdm.tqdm(range(outputs.shape[0])) for r in range(outputs.shape[1]))
+                all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1])))
 
                 # Update the metrics array with the computed results
-                for model_index, r, metrics_result in all_results:
+                for model_index, r, metrics_result in tqdm.tqdm(all_results):
                     for metric in metrics_names[problem_type[project_name]]:
                         metrics[metric][model_index, r, :] = metrics_result[metric]
 

@@ -28,10 +28,10 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'Proyecto_Ivo'
+project_name = 'GeroApathy'
 hyp_opt = True
 filter_outliers = True
-shuffle_labels = True
+shuffle_labels = False
 n_folds = 5
 n_iter = 50
 n_iter_features = 50
@@ -88,8 +88,8 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
-            'Proyecto_Ivo':'data_total.csv',
-            'GeroApathy':'all_data_agradable.csv',
+            'Proyecto_Ivo':'data_matched',
+            'GeroApathy':'data_matched_agradable',
             'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -113,7 +113,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['formants','mfcc','pitch','talking-intervals'],
+                        'GeroApathy':['pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
@@ -134,7 +134,7 @@ else:
 models_dict = {'clf': {'lr':LR,
                     'svc':SVC,
                     'knnc':KNNC,
-                    'xgb':xgboost
+                    #'xgb':xgboost
                     },
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
@@ -148,8 +148,8 @@ models_dict = {'clf': {'lr':LR,
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression_V_label','Depression_Total_Score_label','AES_Total_Score_label',
-                          'MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
+            'GeroApathy':['DASS_21_Depression_V_label','AES_Total_Score_label',
+                          #'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
                           ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
@@ -166,6 +166,7 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 results_dir = Path(str(data_dir).replace('data','results'))
 
 for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]):
+
     dimensions = list()
     if isinstance(single_dimensions[project_name],list):
         for ndim in range(1,len(single_dimensions[project_name])+1):
@@ -177,7 +178,10 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
     
     for dimension in dimensions:
         print(y_label,task,dimension)
-        data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
+        if problem_type[project_name] == 'clf':
+            data = pd.read_csv(Path(data_dir,f'{data_file[project_name]}_{y_label}.csv'))
+        else:
+            data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
         all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
         
@@ -225,7 +229,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     n_folds = int(data.shape[0]/2)
                 n_seeds_test = 1
             
-            random_seeds_test = [f'random_seed_{seed}' for seed in np.arange(n_seeds_test)] if test_size[project_name] > 0 else ['']
+            random_seeds_test = np.arange(n_seeds_test) if test_size[project_name] > 0 else []
 
             CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
 
@@ -234,7 +238,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
-                predefined_models = True if Path(path_to_save,random_seeds_test[0],f'all_models_{model}.csv').exists() else False
+                predefined_models = True if Path(path_to_save,f'random_seed_{random_seeds_test[0]}',f'all_models_{model}.csv').exists() else False
             else:
                 predefined_models = False
 
