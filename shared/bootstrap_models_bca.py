@@ -42,10 +42,10 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = True
-shuffle_labels = False
+shuffle_labels = True
 feature_selection = True
 n_folds = 5
 
@@ -72,7 +72,7 @@ parallel = True
 
 l2ocv = False
 
-n_models = 0.4
+n_models = 0.2
  
 cmatrix = None
 
@@ -178,8 +178,8 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
         
         for random_seed in random_seeds:
 
-            if Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
-                continue
+            #if Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
+            #     continue
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
@@ -193,9 +193,10 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 
                 if n_models == np.inf:
                     n_models = outputs.shape[0]
-                elif n_models < 1:
-                    n_models = int(outputs.shape[0]*n_models)
                 else:
+                    if n_models < 1:
+                        n_models = int(outputs.shape[0]*n_models)
+
                     for i in range(outputs.shape[0]):
                         scorings_i = np.empty(outputs.shape[1])
                         for r in range(outputs.shape[1]):

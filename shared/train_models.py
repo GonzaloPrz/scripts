@@ -28,10 +28,10 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = True
-shuffle_labels = False
+shuffle_labels = True
 n_folds = 5
 n_iter = 50
 n_iter_features = 50
@@ -195,7 +195,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
         y = data.pop(y_label)
         if shuffle_labels and problem_type[project_name] == 'clf':
-            np.random.seed(42)
+            np.random.seed(0)
             zero_indices = np.where(y == 0)[0]
             one_indices = np.where(y == 1)[0]
 
@@ -225,7 +225,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     n_folds = int(data.shape[0]/2)
                 n_seeds_test = 1
             
-            random_seeds_test = np.arange(n_seeds_test) if test_size[project_name] > 0 else ['']
+            random_seeds_test = [f'random_seed_{seed}' for seed in np.arange(n_seeds_test)] if test_size[project_name] > 0 else ['']
 
             CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
 
@@ -234,7 +234,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
-                predefined_models = True if Path(path_to_save,f'random_seed_{random_seeds_test[0]}',f'all_models_{model}').exists() else False
+                predefined_models = True if Path(path_to_save,random_seeds_test[0],f'all_models_{model}.csv').exists() else False
             else:
                 predefined_models = False
 
@@ -243,7 +243,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             'n_feature_sets': n_iter_features,
             'feature_sample_ratio':feature_sample_ratio,
             'cmatrix':str(cmatrix)}
-            
+            hyperp = {}
+
             if predefined_models == False:
                 hyperp = {'lr': pd.DataFrame({'C': 1},index=[0]),
                             'lda':pd.DataFrame({'solver':'lsqr'},index=[0]),
@@ -330,7 +331,13 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                 # Add the full set of features
                 feature_sets.append(features)
-
+            else:
+                all_models = pd.read_csv(Path(path_to_save,random_seeds_test[0],f'all_models_{model}.csv'))
+                hyperp[model] = all_models[[col for col in all_models.columns if task not in col]]
+                feature_sets = []
+                for r, row in all_models.iterrows():
+                    feature_sets.append([feature for feature in all_models.columns if task in feature and row[feature] == 1])
+                  
             features_df = pd.DataFrame(index=np.arange(len(feature_sets)),columns=features)
             for f, feature_set in enumerate(feature_sets):
                 features_df.loc[f,features] = [1 if feature in feature_set else 0 for feature in features]
@@ -390,8 +397,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    continue
+                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                #    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
