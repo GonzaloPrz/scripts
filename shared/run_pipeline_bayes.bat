@@ -44,5 +44,3 @@ echo   shuffle_labels=%shuffle_labels%
 echo   k=%k%
 echo   n_iter=%n_iter%
 echo   init_points=%n_iter_features%
-
-pause
