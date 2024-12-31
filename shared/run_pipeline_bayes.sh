@@ -7,7 +7,7 @@
 #############################################################################
 
 # -- 1. Inicializar variables con valores por defecto
-project_name=""
+project_name=
 feature_selection=1
 filter_outliers=1
 shuffle_labels=0
@@ -66,11 +66,6 @@ done
 if [ -z "$project_name" ]; then
     echo "Error: el parámetro -project_name es obligatorio."
     exit 1
-fi
-
-# -- 4. (Opcional) Ajustar feature_selection si init_points es 0
-if [ "$init_points" -eq 0 ]; then
-    feature_selection=0
 fi
 
 # -- 5. Llamar a los scripts de Python

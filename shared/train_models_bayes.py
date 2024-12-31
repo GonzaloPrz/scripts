@@ -216,8 +216,6 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
         
         data = data[all_features + [y_label,id_col]]
         
-        data = data.dropna()
-
         features = all_features
         
         ID = data.pop(id_col)
