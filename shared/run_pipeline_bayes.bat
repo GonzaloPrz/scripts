@@ -31,6 +31,8 @@ if "%project_name%"=="" (
 :: Configurar selección de características
 if %n_iter_features% == 0 set feature_selection=0
 
+call "C:\Users\CNC Audop\gonza\gonza-env\Scripts\activate"
+
 :: Llamar a los scripts de Python
 python "C:\Users\CNC Audio\gonza\scripts\shared\train_models_bayes.py" %project_name% %feature_selection% %filter_outliers% %shuffle_labels% %k% %n_iter% %init_points%
 python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bayes.py" %project_name% %feature_selection% %filter_outliers% %shuffle_labels% %k% 
