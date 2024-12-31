@@ -31,34 +31,44 @@ from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 project_name = 'GeroApathy'
-
-n_folds = 10
-
-l2ocv = False
-
-stratify = False
-
-shuffle_labels_list = [False]
-
-feature_selection_list = [True]
-
+n_folds = 5
+filter_outliers = True
+feature_selection = True
+shuffle_labels = False
 n_iter = 15
 init_points = 20
-
 scaler_name = 'StandardScaler'
-
 id_col = 'id'
+stratify = True
+
+# Check if required arguments are provided
+if len(sys.argv) > 1:
+    project_name = sys.argv[1]
+if len(sys.argv) > 2:
+    feature_selection = bool(int(sys.argv[2]))
+if len(sys.argv) > 3:
+    filter_outliers = bool(int(sys.argv[3]))
+if len(sys.argv) > 4:
+    shuffle_labels = bool(int(sys.argv[4]))
+if len(sys.argv) > 5:
+    n_folds = int(sys.argv[5])
+if len(sys.argv) > 6:
+    n_iter = int(sys.argv[6])
+if len(sys.argv) > 7:
+    init_points = int(sys.argv[7])
+
+l2ocv = False
 
 cmatrix = None 
 
 n_seeds_train = 10
 
-random_seeds_train = [5**x for x in range(n_seeds_train)] if n_seeds_train > 0 else ['']
+random_seeds_train = [3**x for x in range(n_seeds_train)] if n_seeds_train > 0 else ['']
 
 thresholds = {'tell_classifier':[0.5],
               'MCI_classifier':[0.5],
                 'Proyecto_Ivo':[0.5],
-                'GeroApathy':[None],
+                'GeroApathy':[0.5],
                 'GERO_Ivo':[None]}
 
 test_size = {'tell_classifier':0,
@@ -73,13 +83,13 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
             'Proyecto_Ivo':'data_total.csv',
-            'GeroApathy':'all_data_DiaTipico.csv',
+            'GeroApathy':'data_matched_agradable',
             'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['DiaTipico'],
+         'GeroApathy':['agradable'],
          'GERO_Ivo':['animales','grandmean','fas__animales','fas']
          }
 
@@ -93,15 +103,14 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['formants','mfcc','pitch','talking-intervals'],
+                        'GeroApathy':['pitch','ratios','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
-
 
 scoring = {'tell_classifier':'norm_cross_entropy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc_score',
-            'GeroApathy':'r2_score',
+            'GeroApathy':'roc_auc_score',
             'GERO_Ivo':'r2_score'}
 
 if scaler_name == 'StandardScaler':
@@ -116,50 +125,38 @@ if l2ocv:
     kfold_folder = 'l2ocv'
 else:
     kfold_folder = f'{n_folds}_folds'
-models_dict = {'tell_classifier':{'lr':LR,
-                                'svc':SVC,
-                                'knnc':KNNC,
-                                'xgb':xgboost},
-                'MCI_classifier':{'lr':LR,
-                                'svc':SVC,
-                                'knnc':KNNC,
-                                'xgb':xgboost},
-                'Proyecto_Ivo':{'lr':LR,
-                                'svc':SVC,
-                                'knnc':KNNC,
-                                'xgb':xgboost},
-                'GeroApathy':{  'lasso':Lasso,
-                                'ridge':Ridge,
-                                'elastic':ElasticNet,
-                                'knnr':KNNR,
-                                'svr':SVR,
-                                'xgb':xgboostr
-                                },
-                'GERO_Ivo':{'lasso':Lasso,
-                            'ridge':Ridge,
-                            'elastic':ElasticNet,
-                            'knnr':KNNR,
-                            'svr':SVR,
-                            #'xgb':xgboostr
-                                }
+models_dict = {'clf':{'lr':LR,
+                    #'svc':SVC,
+                    'knnc':KNNC,
+                    'xgb':xgboost},
+                
+                'reg':{'lasso':Lasso,
+                    'ridge':Ridge,
+                    'elastic':ElasticNet,
+                    'knnr':KNNR,
+                    'svr':SVR,
+                    #'xgb':xgboostr
+                    }
 }
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression','Depression_Total_Score','MiniSea_MiniSea_Total_FauxPas','MiniSea_minisea_total','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces'],
+            'GeroApathy':['DASS_21_Depression_V_label','Depression_Total_Score_label',
+                          'AES_Total_Score_label','MiniSea_minisea_total_labels','MiniSea_MiniSea_Total_EkmanFaces'],
             'GERO_Ivo':['MMSE_Total_Score','IFS_Total_Score','ACEIII_Total_Score']
 }
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
-                'GeroApathy':'reg',
+                'GeroApathy':'clf',
                 'GERO_Ivo':'reg'}
 
 hyperp = {'lr':{'C':(1e-4,100)},
           'svc':{'C':(1e-4,100),
-                 'gamma':(1e-4,1e4)},
+                 'gamma':(1e-4,1e4),
+                 'probability':[True]},
             'knnc':{'n_neighbors':(1,40)},
             'xgb':{'max_depth':(1,10),
                    'n_estimators':(1,1000),
@@ -176,7 +173,7 @@ hyperp = {'lr':{'C':(1e-4,100)},
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
 
-for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[project_name],tasks[project_name],feature_selection_list,shuffle_labels_list):
+for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]):
     dimensions = list()
     if isinstance(single_dimensions[project_name],list):
         for ndim in range(1,len(single_dimensions[project_name])+1):
@@ -188,11 +185,33 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
     
     for dimension in dimensions:
         print(task,dimension)
-        data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
+        
+        if problem_type[project_name] == 'clf':
+            data = pd.read_csv(Path(data_dir,f'{data_file[project_name]}_{y_label}.csv'))
+        else:
+            data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
+        
+        if problem_type[project_name] == 'reg' and filter_outliers:
+            data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
 
-        if shuffle_labels:
-            data[y_label] = pd.Series(np.random.permutation(data[y_label]))
-                
+        if shuffle_labels and problem_type[project_name] == 'clf':
+            np.random.seed(0)
+            zero_indices = np.where(y == 0)[0]
+            one_indices = np.where(y == 1)[0]
+
+            # Shuffle and select half of the indices for flipping
+            zero_to_flip = np.random.choice(zero_indices, size=len(zero_indices) // 2, replace=False)
+            one_to_flip = np.random.choice(one_indices, size=len(one_indices) // 2, replace=False)
+
+            # Flip the values at the selected indices
+            y[zero_to_flip] = 1
+            y[one_to_flip] = 0
+
+        elif shuffle_labels:
+            np.random.seed(42)
+            #Perform random permutations of the labels
+            y = np.random.permutation(y)
+    
         all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and isinstance(data.loc[0,col],(int,float))]
         
         data = data[all_features + [y_label,id_col]]
@@ -205,14 +224,14 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
 
         y = data.pop(y_label)
 
-        for model in models_dict[project_name].keys():        
+        for model in models_dict[problem_type[project_name]].keys():        
             print(model)
             
             random_seeds_test = np.arange(n_seeds_test_) if test_size[project_name] > 0 else ['']
 
-            CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify else KFold(n_splits=n_folds,shuffle=True)
+            CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
 
-            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','bayes','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','bayes','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
             
             path_to_save.mkdir(parents=True,exist_ok=True)
 
@@ -228,7 +247,7 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
                 if test_size[project_name] > 0:
                     path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
 
-                    X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify else None)
+                    X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify and problem_type[project_name] == 'clf' else None)
                     X_train.reset_index(drop=True,inplace=True)
                     X_test.reset_index(drop=True,inplace=True)
                     y_train.reset_index(drop=True,inplace=True)
@@ -258,7 +277,7 @@ for y_label,task,feature_selection,shuffle_labels in itertools.product(y_labels[
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
                 
-                all_models,outputs_best,y_true,y_pred_best,IDs_val = nestedCVT(models_dict[project_name][model],scaler,imputer,X_train,y_train,n_iter,CV_type,CV_type,random_seeds_train,hyperp[model],ID_train,
+                all_models,outputs_best,y_true,y_pred_best,IDs_val = nestedCVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train,y_train,n_iter,CV_type,CV_type,random_seeds_train,hyperp[model],ID_train,
                                                                                init_points=init_points,scoring=scoring[project_name],problem_type=problem_type[project_name],cmatrix=cmatrix,priors=None,
                                                                                threshold=thresholds[project_name],feature_selection=feature_selection)
 
