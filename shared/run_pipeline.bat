@@ -34,6 +34,8 @@ if "%project_name%"=="" (
 :: Configurar selección de características
 if %n_iter_features% == 0 set feature_selection=0
 
+call "C:\Users\CNC Audio\gonza\gonza-env\Scripts\activate"
+
 :: Llamar a los scripts de Python
 python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %k% %n_iter% %n_iter_features% %feature_sample_ratio%
 python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" %project_name% %hyp_opt% %filter_outliers% %shuffle_labels% %feature_selection% %k% 
