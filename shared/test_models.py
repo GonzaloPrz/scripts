@@ -94,7 +94,8 @@ l2ocv = False
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy': ['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'GeroApathy': ['DASS_21_Depression_label','AES_Total_Score_label','Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'],
+            'GeroApathy_reg': ['DASS_21_Depression','AES_Total_Score','Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
             'GERO_Ivo': [#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD', 
                          'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ]
@@ -107,6 +108,7 @@ thresholds = {'tell_classifier':[0.5],
                 'MCI_classifier':[0.5],
                 'Proyecto_Ivo':[0.5],
                 'GeroApathy':[0.5],
+                'GeroApathy_reg':[None],
                 'GERO_Ivo':[None]}
 
 boot_train = 0
@@ -119,18 +121,21 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['agradable'],
+         'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
+                'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg'}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
            'Proyecto_Ivo':['roc_auc'],
            'GeroApathy':['norm_cross_entropy','roc_auc'],
+           'GeroApathy_reg':['r2_score','mean_absolute_error'], 
            'GERO_Ivo':['r2_score','mean_absolute_error']}
 
 if l2ocv:

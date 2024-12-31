@@ -15,13 +15,14 @@ target_vars = ['Depression_Total_Score_label','DASS_21_Depression_V_label','AES_
                 'MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label']
 
 for target_var in target_vars:
+    print(target_var)
     # Define variables
-    vars = ['sex','age','education', target_var, 'id','target']
+    vars = ['sex','age','education', target_var, 'id']
     output_var = target_var
     
-    matching_vars = ['education','target']
+    matching_vars = ['sex','age','education']
 
-    fact_vars = ['target','sex']
+    fact_vars = ['sex']
     cont_vars = ['education','age']
 
     data = pd.read_csv(Path(Path.home(),'data',project_name,'all_data_agradable.csv'))
@@ -33,17 +34,24 @@ for target_var in target_vars:
     for fact_var in fact_vars:
         data[fact_var] = data[fact_var].astype('category').cat.codes
  
-    matched_data = perform_matching(data, output_var,matching_vars,fact_vars)
+    if 'Ekman' in target_var:
+        caliper = 0.09
+    elif 'Minisea' in target_var:
+        caliper = 2
+    else:
+        caliper =  0.05
+
+    matched_data = perform_matching(data, output_var,matching_vars,fact_vars,caliper=caliper)
 
     matched_data = matched_data.drop_duplicates(subset='id')
 
     # Save tables and matched data
     table_before = TableOne(data,list(set(vars) - set([output_var,'id'])),fact_vars,groupby=output_var, pval=True, nonnormal=[])
 
-    print(table_before)
+    #print(table_before)
 
     table = TableOne(matched_data,list(set(vars) - set([output_var,'id'])),fact_vars,groupby=output_var, pval=True, nonnormal=[])
-
+    print(table_before)
     print(table)
 
     matched_data.to_csv(Path(Path.home(),'data',project_name,f'data_matched_agradable_{target_var}.csv'), index=False)

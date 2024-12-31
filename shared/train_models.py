@@ -74,6 +74,7 @@ thresholds = {'tell_classifier':[0.5],
               'MCI_classifier':[0.5],
                 'Proyecto_Ivo':[0.5],
                 'GeroApathy':[0.5],
+                'GeroApathy_reg':[None],
                 'GERO_Ivo':[None]}
 
 test_size = {'tell_classifier':0.3,
@@ -90,12 +91,14 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
             'Proyecto_Ivo':'data_matched',
             'GeroApathy':'data_matched_agradable',
+            'GeroApathy_reg':'all_data_agradable.csv',
             'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['cog','Animales__P','brain'],
          'GeroApathy':['agradable'],
+         'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']
          }
 
@@ -113,7 +116,8 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['pitch','talking-intervals'],
+                        'GeroApathy':['pitch','ratios','talking-intervals'],
+                        'GeroApathy_reg':['pitch','ratios','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
@@ -148,8 +152,11 @@ models_dict = {'clf': {'lr':LR,
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression_V_label','AES_Total_Score_label',
-                          #'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
+            'GeroApathy':[#'DASS_21_Depression_V_label','AES_Total_Score_label',
+                          'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
+                          ],
+            'GeroApathy_reg':['DASS_21_Depression_V','AES_Total_Score',
+                          'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                           ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
@@ -160,6 +167,7 @@ problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
+                'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg'}
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)

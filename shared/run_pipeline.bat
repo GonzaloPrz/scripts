@@ -1,7 +1,7 @@
 @echo off
 
 :: Inicializar variables con valores por defecto
-set project_name=
+set project_name=""
 set hyp_opt=1
 set filter_outliers=1
 set shuffle_labels=0
