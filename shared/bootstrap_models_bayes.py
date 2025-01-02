@@ -6,6 +6,7 @@ import itertools
 from joblib import Parallel, delayed
 import sys,tqdm,json
 from pingouin import compute_bootci
+import numpy as np
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -60,6 +61,7 @@ models = {'MCI_classifier':['lr','svc','knnc','xgb'],
           'tell_classifier':['lr','svc','knnc','xgb'],
           'Proyecto_Ivo':['lr','svc','knnr','xgb'],
           'GeroApathy':['lr','svc','knnr','xgb'],
+          'GeroApathy_reg':['elastic','lasso','ridge','knnr','svr'],
             'GERO_Ivo':['elastic','lasso','ridge','knnr','svr']
             }
 
@@ -67,6 +69,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['agradable'],
+         'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['animales','grandmean','fas__animales','fas']
          }
 
@@ -74,13 +77,15 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':[],
                      'GERO_Ivo':[],
-                     'GeroApathy':[]}
+                     'GeroApathy':[],
+                     'GeroApathy_reg':[]}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GERO_Ivo':'reg',
-                'GeroApathy':'clf'}
+                'GeroApathy':'clf',
+                'GeroApathy_reg':'reg'}
 
 metrics_names = {'clf':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                 'reg':['r2_score','mean_squared_error','mean_absolute_error']}
@@ -92,6 +97,9 @@ y_labels = {'MCI_classifier':['target'],
             'GeroApathy':['DASS_21_Depression_V_label','AES_Total_Score_label'
                           ,'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label',
                           'MiniSea_minisea_total_label'],
+            'GeroApathy_reg':['DASS_21_Depression_V','AES_Total_Score'
+                          ,'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces',
+                          'MiniSea_minisea_total'],
             }
 
 if l2ocv:
@@ -99,7 +107,7 @@ if l2ocv:
 else:
     kfold_folder = f'{n_folds}_folds'
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path(r'D:\CNC_Audio','gonza','results',project_name)
 
 conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model_type','metric','mean','95_ci'])
 

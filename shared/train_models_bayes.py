@@ -148,11 +148,12 @@ models_dict = {'clf':{'lr':LR,
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':[#'DASS_21_Depression_V_label','Depression_Total_Score_label',
-                          'AES_Total_Score_label','MiniSea_minisea_total_labels','MiniSea_MiniSea_Total_EkmanFaces'
+            'GeroApathy':[#'DASS_21_Depression_V_label','Depression_Total_Score_label','AES_Total_Score_label',
+                            #'MiniSea_minisea_total_label',
+                            'MiniSea_MiniSea_Total_EkmanFaces_label'
                           ],
-            'GeroApathy_reg':[#'DASS_21_Depression_V_label','Depression_Total_Score_label',
-                          'AES_Total_Score_label','MiniSea_minisea_total_labels','MiniSea_MiniSea_Total_EkmanFaces'
+            'GeroApathy_reg':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
+                                #'MiniSea_minisea_total','MiniSea_MiniSea_Total_EkmanFaces'
                           ],
             'GERO_Ivo':['MMSE_Total_Score','IFS_Total_Score','ACEIII_Total_Score']
 }

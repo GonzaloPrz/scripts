@@ -28,10 +28,10 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = True
-shuffle_labels = False
+shuffle_labels = True
 n_folds = 5
 n_iter = 50
 n_iter_features = 50
