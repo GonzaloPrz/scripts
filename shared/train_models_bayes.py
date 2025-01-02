@@ -30,13 +30,13 @@ from expected_cost.ec import *
 from expected_cost.utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy'
+project_name = 'GeroApathy_reg'
 n_folds = 5
 filter_outliers = True
 feature_selection = True
 shuffle_labels = False
 n_iter = 15
-init_points = 20
+init_points = 10
 scaler_name = 'StandardScaler'
 id_col = 'id'
 stratify = True
@@ -65,16 +65,18 @@ n_seeds_train = 10
 
 random_seeds_train = [3**x for x in range(n_seeds_train)] if n_seeds_train > 0 else ['']
 
-thresholds = {'tell_classifier':[0.5],
-              'MCI_classifier':[0.5],
-                'Proyecto_Ivo':[0.5],
-                'GeroApathy':[0.5],
+thresholds = {'tell_classifier':[np.log(0.5)],
+              'MCI_classifier':[np.log(0.5)],
+                'Proyecto_Ivo':[np.log(0.5)],
+                'GeroApathy':[np.log(0.5)],
+                'GeroApathy_reg':[None],
                 'GERO_Ivo':[None]}
 
 test_size = {'tell_classifier':0,
              'MCI_classifier':0,
             'Proyecto_Ivo':0,
             'GeroApathy':0,
+            'GeroApathy_reg':0,
             'GERO_Ivo':0}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
@@ -84,12 +86,14 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
             'Proyecto_Ivo':'data_total.csv',
             'GeroApathy':'data_matched_agradable',
+            'GeroApathy_reg':'all_data_agradable.csv',
             'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['agradable'],
+         'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['animales','grandmean','fas__animales','fas']
          }
 
@@ -103,7 +107,8 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['pitch','ratios','talking-intervals'],
+                        'GeroApathy':['mfcc','pitch','ratio','talking-intervals'],
+                        'GeroApathy_reg':['mfcc','pitch','ratio','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
@@ -111,6 +116,7 @@ scoring = {'tell_classifier':'norm_cross_entropy',
             'MCI_classifier':'norm_cross_entropy',
             'Proyecto_Ivo':'roc_auc_score',
             'GeroApathy':'roc_auc_score',
+            'GeroApathy_reg':'mean_absolute_error',
             'GERO_Ivo':'r2_score'}
 
 if scaler_name == 'StandardScaler':
@@ -135,15 +141,19 @@ models_dict = {'clf':{'lr':LR,
                     'elastic':ElasticNet,
                     'knnr':KNNR,
                     'svr':SVR,
-                    #'xgb':xgboostr
+                    'xgb':xgboostr
                     }
 }
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression_V_label','Depression_Total_Score_label',
-                          'AES_Total_Score_label','MiniSea_minisea_total_labels','MiniSea_MiniSea_Total_EkmanFaces'],
+            'GeroApathy':[#'DASS_21_Depression_V_label','Depression_Total_Score_label',
+                          'AES_Total_Score_label','MiniSea_minisea_total_labels','MiniSea_MiniSea_Total_EkmanFaces'
+                          ],
+            'GeroApathy_reg':[#'DASS_21_Depression_V_label','Depression_Total_Score_label',
+                          'AES_Total_Score_label','MiniSea_minisea_total_labels','MiniSea_MiniSea_Total_EkmanFaces'
+                          ],
             'GERO_Ivo':['MMSE_Total_Score','IFS_Total_Score','ACEIII_Total_Score']
 }
 
@@ -151,6 +161,7 @@ problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
+                'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg'}
 
 hyperp = {'lr':{'C':(1e-4,100)},
@@ -212,7 +223,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             #Perform random permutations of the labels
             y = np.random.permutation(y)
     
-        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and isinstance(data.loc[0,col],(int,float))]
+        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and isinstance(data.loc[0,col],(int,float)) and 'timestamp' not in col]
         
         data = data[all_features + [y_label,id_col]]
         

@@ -70,10 +70,10 @@ cmatrix = None
 
 random_seeds_train = [3**x for x in np.arange(1,n_seeds_train+1)] if n_seeds_train > 0 else ['']
 
-thresholds = {'tell_classifier':[0.5],
-              'MCI_classifier':[0.5],
-                'Proyecto_Ivo':[0.5],
-                'GeroApathy':[0.5],
+thresholds = {'tell_classifier':[np.log(0.5)],
+              'MCI_classifier':[np.log(0.5)],
+                'Proyecto_Ivo':[np.log(0.5)],
+                'GeroApathy':[np.log(0.5)],
                 'GeroApathy_reg':[None],
                 'GERO_Ivo':[None]}
 
@@ -116,8 +116,8 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      'AAL':['norm_AAL'],
                                      'conn':['connectivity']
                                      },
-                        'GeroApathy':['pitch','ratios','talking-intervals'],
-                        'GeroApathy_reg':['pitch','ratios','talking-intervals'],
+                        'GeroApathy':['mfcc','pitch','talking-intervals'],
+                        'GeroApathy_reg':['mfcc','ratio','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing']
 }
 
@@ -138,7 +138,7 @@ else:
 models_dict = {'clf': {'lr':LR,
                     'svc':SVC,
                     'knnc':KNNC,
-                    #'xgb':xgboost
+                    'xgb':xgboost
                     },
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
@@ -156,7 +156,7 @@ y_labels = {'tell_classifier':['target'],
                           'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
                           ],
             'GeroApathy_reg':['DASS_21_Depression_V','AES_Total_Score',
-                          'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
+                          #'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                           ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
@@ -409,8 +409,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                #    continue
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)
