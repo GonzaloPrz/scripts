@@ -31,8 +31,8 @@ from utils import *
 project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = True
-shuffle_labels = True
-n_folds = 5
+shuffle_labels = False
+n_folds = 3
 n_iter = 50
 n_iter_features = 50
 feature_sample_ratio = 0.5
@@ -89,14 +89,17 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
-            'Proyecto_Ivo':'data_matched',
+            'Proyecto_Ivo':'data_total.csv',
             'GeroApathy':'data_matched_agradable',
             'GeroApathy_reg':'all_data_agradable.csv',
             'GERO_Ivo':'all_data.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['cog','Animales__P','brain'],
+         'Proyecto_Ivo':['cog',
+                         #'Animales__P',
+                          #'brain'
+                         ],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean']
@@ -107,10 +110,11 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'Animales__P': ['properties',
-                                                     #'timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'
+                                                     'timing','properties__timing',
+                                                     #'properties__vr','timing__vr','properties__timing__vr'
                                                      ],
                                      'cog':['neuropsico_digits__neuropsico_tmt',
-                                            #'neuropsico_tmt','neuropsico_digits'
+                                            'neuropsico_tmt','neuropsico_digits'
                                             ],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
@@ -132,7 +136,6 @@ imputer = KNNImputer
 if l2ocv:
     kfold_folder = 'l2ocv'
 else:
-    n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
 models_dict = {'clf': {'lr':LR,
@@ -152,8 +155,8 @@ models_dict = {'clf': {'lr':LR,
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':[#'DASS_21_Depression_V_label','AES_Total_Score_label',
-                          'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
+            'GeroApathy':['DASS_21_Depression_V_label','AES_Total_Score_label',
+                          #'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
                           ],
             'GeroApathy_reg':['DASS_21_Depression_V','AES_Total_Score',
                           #'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
@@ -187,7 +190,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
     for dimension in dimensions:
         print(y_label,task,dimension)
         if problem_type[project_name] == 'clf':
-            data = pd.read_csv(Path(data_dir,f'{data_file[project_name]}_{y_label}.csv'))
+            data = pd.read_csv(Path(data_dir,f'{data_file[project_name]}_{y_label}.csv')) if '.csv' not in data_file[project_name] else pd.read_csv(Path(data_dir,data_file[project_name]))
         else:
             data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
@@ -237,7 +240,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     n_folds = int(data.shape[0]/2)
                 n_seeds_test = 1
             
-            random_seeds_test = np.arange(n_seeds_test) if test_size[project_name] > 0 else []
+            random_seeds_test = np.arange(n_seeds_test) if test_size[project_name] > 0 else ['']
 
             CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
 
