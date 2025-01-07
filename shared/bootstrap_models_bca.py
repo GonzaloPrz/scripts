@@ -48,7 +48,6 @@ filter_outliers = False
 shuffle_labels = False
 feature_selection = True
 n_folds = 5
-l2ocv = True
 
 n_boot = 500
 scaler_name = 'StandardScaler'
@@ -134,7 +133,7 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'MPLS':['r2_score']}
 ##---------------------------------PARAMETERS---------------------------------##
 
-if l2ocv:
+if n_folds == -1:
     kfold_folder = 'l2ocv'
 else:
     kfold_folder = f'{n_folds}_folds'

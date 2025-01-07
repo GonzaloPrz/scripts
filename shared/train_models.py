@@ -33,7 +33,6 @@ project_name = 'MPLS'
 hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
-l2ocv = False
 stratify = True
 
 n_folds = 5
@@ -57,13 +56,15 @@ if len(sys.argv) > 3:
 if len(sys.argv) > 4:
     shuffle_labels = bool(int(sys.argv[4]))
 if len(sys.argv) > 5:
-    n_folds = int(sys.argv[5])
+    stratify = bool(int(sys.argv[5]))
 if len(sys.argv) > 6:
-    n_iter = int(sys.argv[6])
+    n_folds = int(sys.argv[6])
 if len(sys.argv) > 7:
-    n_iter_features = int(sys.argv[7])
+    n_iter = int(sys.argv[7])
 if len(sys.argv) > 8:
-    feature_sample_ratio = float(sys.argv[8])
+    n_iter_features = int(sys.argv[8])
+if len(sys.argv) > 9:
+    feature_sample_ratio = float(sys.argv[9])
 
 parallel = True
 
@@ -86,7 +87,7 @@ test_size = {'tell_classifier':0.3,
             'GeroApathy':0.3,
             'GERO_Ivo':0.3,
             'MPLS':0,
-            'AKU':0.3}
+            'AKU':0}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -111,7 +112,11 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
          'MPLS':['Estado General','Estado General 2','Estado General 3','Recuerdo feliz'],
-         'AKU':['']
+         'AKU':['picture_description',
+                #'pleasant_memory','
+                # routine',
+                # 'video_retelling'
+                ]
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -144,7 +149,7 @@ else:
     scaler = None
 imputer = KNNImputer
 
-if l2ocv:
+if n_folds == -1:
     kfold_folder = 'l2ocv'
 else:
     kfold_folder = f'{n_folds}_folds'
@@ -245,11 +250,11 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             held_out = True if n_iter > 0 or n_iter_features > 0 else False
 
             if held_out:
-                if l2ocv:
+                if n_folds == -1:
                     n_folds = int((data.shape[0]*(1-test_size[project_name]))/2)
                 n_seeds_test = n_seeds_test_
             else:
-                if l2ocv:
+                if n_folds == -1:
                     n_folds = int(data.shape[0]/2)
                 n_seeds_test = 1
             

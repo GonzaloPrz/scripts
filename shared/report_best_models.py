@@ -13,8 +13,6 @@ def new_best(current_best,value,ascending):
     
 project_name = 'MPLS'
 
-l2ocv = True
-
 shuffle_labels = False
 
 hyp_opt = True
@@ -57,7 +55,7 @@ best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','m
 
 pd.options.mode.copy_on_write = True 
 
-if l2ocv:
+if n_folds == -1:
     kfold_folder = 'l2ocv'
 else:
     kfold_folder = f'{n_folds}_folds'
