@@ -45,6 +45,10 @@ while [[ $# -gt 0 ]]; do
             shuffle_labels="$2"
             shift 2
             ;;
+        -stratify)
+            stratify="$2"
+            shift 2
+            ;;
         -k)
             k="$2"
             shift 2
@@ -80,7 +84,7 @@ if [[ "$n_iter_features" -eq 0 ]]; then
 fi
 
 # Llamar a los scripts de Python
-python "/Users/gp/scripts/shared/train_models.py" "$project_name" "$hyp_opt" "$filter_outliers" "$shuffle_labels" "$k" "$n_iter" "$n_iter_features" "$feature_sample_ratio"
+python "/Users/gp/scripts/shared/train_models.py" "$project_name" "$hyp_opt" "$filter_outliers" "$shuffle_labels" "$stratify" "$k" "$n_iter" "$n_iter_features" "$feature_sample_ratio"
 python "/Users/gp/scripts/shared/bootstrap_models_bca.py" "$project_name" "$hyp_opt" "$filter_outliers" "$shuffle_labels" "$feature_selection" "$k"
 python "/Users/gp/scripts/shared/test_models.py" "$project_name" "$hyp_opt" "$filter_outliers" "$shuffle_labels" "$k"
 

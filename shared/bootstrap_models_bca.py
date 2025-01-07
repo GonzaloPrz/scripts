@@ -89,7 +89,12 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['animales','fas','grandmean','fas__animales'],
-         'MPLS':['Estado General','Estado General 2','Estado General 3']}
+         'MPLS':['Estado General','Estado General 2','Estado General 3'],
+         'AKU':['picture_description',
+                #'pleasant_memory','
+                # routine',
+                # 'video_retelling'
+                ]}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],

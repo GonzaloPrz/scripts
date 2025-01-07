@@ -71,7 +71,7 @@ hyp_opt = True
 filter_outliers = True
 shuffle_labels = False
 feature_selection = True
-n_folds = 5
+n_folds = -1
 
 # Check if required arguments are provided
 if len(sys.argv) > 1:
@@ -98,7 +98,12 @@ y_labels = {'tell_classifier':['target'],
             'GeroApathy_reg': ['DASS_21_Depression','AES_Total_Score','Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
             'GERO_Ivo': [#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD', 
                          'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
-                        ]
+                        ],
+            'AKU':['picture_description',
+                #'pleasant_memory','
+                # routine',
+                # 'video_retelling'
+                ]
             }
 
 metrics_names = {'clf': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
