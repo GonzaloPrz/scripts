@@ -2,8 +2,9 @@
 :: Default values
 set "project_name="
 set "hyp_opt=1"
-set "filter_outliers=1"
+set "filter_outliers=0"
 set "shuffle_labels=0"
+set "stratify=1"
 set "k=5"
 set "n_iter=50"
 set "n_iter_features=50"
@@ -16,8 +17,9 @@ echo Usage: run_pipeline.bat -project_name <project_name> [options]
 echo Options:
 echo   -project_name           Project name (required)
 echo   -hyp_opt                Enable hyperparameter optimization (default: 1)
-echo   -filter_outliers        Filter outliers (default: 1)
+echo   -filter_outliers        Filter outliers (default: 0)
 echo   -shuffle_labels         Shuffle labels (default: 0)
+echo   -stratify               Stratify (default: 1)
 echo   -k                      k value for cross-validation (default: 5)
 echo   -n_iter                 Number of iterations (default: 50)
 echo   -n_iter_features        Number of iterations for feature selection (default: 50)
