@@ -3,7 +3,7 @@ from pathlib import Path
 
 project_name = 'AKU'
 feature_filename = 'AKU_data_HC_all.csv'
-labels_filename = 'AKU_data.csv'
+labels_filename = 'AKU_data_complete.csv'
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 

@@ -6,7 +6,7 @@ from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
 
 # Cargar el dataset
-file_path = Path(Path.home(), 'data', 'AKU', 'AKU_data.csv')
+file_path = Path(Path.home(), 'data', 'AKU', 'AKU_data_complete.csv')
 data = pd.read_csv(file_path)
 
 data = data[data['group'] == 0]
@@ -16,6 +16,7 @@ print(f"Number of participants: {data['id'].nunique()}")
 # Normalizar participant_code
 languages = data['language'].unique()
 # Crear un DataFrame vacío para la transformación
+all_data = pd.DataFrame()
 
 # Iterar sobre columnas de features y valores únicos de protocol_item_title
 for language in languages:
@@ -68,3 +69,10 @@ for language in languages:
     transformed_data.to_csv(transformed_file_path, index=False)
 
     print(f"Dataset transformado guardado en: {transformed_file_path}")
+
+    if all_data.empty:
+        all_data = transformed_data
+    else:
+        all_data = pd.concat((all_data, transformed_data), axis=0)
+    
+all_data.to_csv(Path(Path.home(), 'data', 'AKU', 'AKU_data_HC_all.csv'), index=False)
