@@ -28,11 +28,15 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'Proyecto_Ivo'
+
+project_name = 'MPLS'
 hyp_opt = True
-filter_outliers = True
+filter_outliers = False
 shuffle_labels = False
-n_folds = 3
+l2ocv = False
+stratify = True
+
+n_folds = 5
 n_iter = 50
 n_iter_features = 50
 feature_sample_ratio = 0.5
@@ -40,7 +44,6 @@ feature_sample_ratio = 0.5
 scaler_name = 'StandardScaler'
 n_seeds_train = 10
 id_col = 'id'
-stratify = True
 
 # Check if required arguments are provided
 if len(sys.argv) > 1:
@@ -64,8 +67,6 @@ if len(sys.argv) > 8:
 
 parallel = True
 
-l2ocv = False
-
 cmatrix = None 
 
 random_seeds_train = [3**x for x in np.arange(1,n_seeds_train+1)] if n_seeds_train > 0 else ['']
@@ -75,13 +76,17 @@ thresholds = {'tell_classifier':[np.log(0.5)],
                 'Proyecto_Ivo':[np.log(0.5)],
                 'GeroApathy':[np.log(0.5)],
                 'GeroApathy_reg':[None],
-                'GERO_Ivo':[None]}
+                'GERO_Ivo':[None],
+                'MPLS':[None],
+                'AKU':[None]}
 
 test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
             'Proyecto_Ivo':0,
             'GeroApathy':0.3,
-            'GERO_Ivo':0.3}
+            'GERO_Ivo':0.3,
+            'MPLS':0,
+            'AKU':0.3}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -92,7 +97,9 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'Proyecto_Ivo':'data_total.csv',
             'GeroApathy':'data_matched_agradable',
             'GeroApathy_reg':'all_data_agradable.csv',
-            'GERO_Ivo':'all_data.csv'}
+            'GERO_Ivo':'all_data.csv',
+            'MPLS':'all_data.csv',
+            'AKU':'AKU_data_HC.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
@@ -102,7 +109,9 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                          ],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
-         'GERO_Ivo':['fas','animales','fas__animales','grandmean']
+         'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
+         'MPLS':['Estado General','Estado General 2','Estado General 3','Recuerdo feliz'],
+         'AKU':['']
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -122,7 +131,9 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                      },
                         'GeroApathy':['mfcc','pitch','talking-intervals'],
                         'GeroApathy_reg':['mfcc','ratio','pitch','talking-intervals'],
-                        'GERO_Ivo':['psycholinguistic','speech-timing']
+                        'GERO_Ivo':['psycholinguistic','speech-timing'],
+                        'MPLS':['pitch-analysis','talking-intervals','sentiment-analysis'],
+                        'AKU':['pitch','talking-intervals','voice-quality']
 }
 
 if scaler_name == 'StandardScaler':
@@ -163,7 +174,8 @@ y_labels = {'tell_classifier':['target'],
                           ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
-                        ]
+                        ],
+            'MPLS':['Minimental']
             }
 
 problem_type = {'tell_classifier':'clf',
@@ -171,7 +183,8 @@ problem_type = {'tell_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
                 'GeroApathy_reg':'reg',
-                'GERO_Ivo':'reg'}
+                'GERO_Ivo':'reg',
+                'MPLS':'reg'}
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
@@ -412,8 +425,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    continue
+                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                #    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)

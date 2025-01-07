@@ -10,8 +10,8 @@ from scipy.stats import pearsonr
 
 random_seeds_train = [3**x for x in np.arange(1,11)]
 
-project_name = 'GERO_Ivo'
-l2ocv = False
+project_name = 'MPLS'
+l2ocv = True
 
 cmatrix = None
 shuffle_labels = False
@@ -25,33 +25,39 @@ models = {'MCI_classifier':['lr','svc','knnc','xgb'],
           'tell_classifier':['lr','svc','knnc','xgb'],
           'Proyecto_Ivo':['lr','svc','knnr','xgb'],
           'GeroApathy':['elastic','lasso','ridge','knnr','svr','xgb'],
-            'GERO_Ivo':['elastic','lasso','ridge','knnr','svr']
+            'GERO_Ivo':['elastic','lasso','ridge','knnr','svr'],
+            'MPLS':['elastic','lasso','ridge','svr']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['DiaTipico'],
-         'GERO_Ivo':['animales','grandmean','fas__animales','fas']
+         'GERO_Ivo':['animales','grandmean','fas__animales','fas'],
+         'MPLS':['Estado General']
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':[],
                      'GERO_Ivo':[],
-                     'GeroApathy':[]}
+                     'GeroApathy':[],
+                     'MPLS':[]}
 
 metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error']}
+                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error'],
+                    'MPLS':['r2_score','mean_squared_error','mean_absolute_error']
+                    }
 
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
             'GERO_Ivo':[],
             'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'MPLS':['Minimental']
             }
 
 if l2ocv:
@@ -62,14 +68,13 @@ else:
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
-
 for scoring in metrics_names[project_name]:
     Path(results_dir,'plots',scoring).mkdir(exist_ok=True)
 
     extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
-    best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring}_{n_folds}_folds_StandardScaler_hyp_opt_feature_selection.csv'))
+    best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring}_{kfold_folder}_StandardScaler_hyp_opt_feature_selection.csv'))
 
     dimensions = list()
 

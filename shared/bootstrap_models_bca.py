@@ -42,14 +42,15 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'Proyecto_Ivo'
+project_name = 'MPLS'
 hyp_opt = True
-filter_outliers = True
-shuffle_labels = True
+filter_outliers = False
+shuffle_labels = False
 feature_selection = True
 n_folds = 5
+l2ocv = True
 
-n_boot = 200
+n_boot = 500
 scaler_name = 'StandardScaler'
 id_col = 'id'
 
@@ -70,9 +71,7 @@ if len(sys.argv) > 6:
 
 parallel = True
 
-l2ocv = False
-
-n_models = 0.2
+n_models = .3
  
 cmatrix = None
 
@@ -81,7 +80,8 @@ models = {'MCI_classifier':['lr','svc','knnc'],
           'Proyecto_Ivo':['lr','svc','knnc','xgb'],
           'GeroApathy':['lr','svc','knnc',],
           'GeroAopathy_reg':['lasso','ridge','elastic','svr'],
-          'GERO_Ivo':['lasso','ridge','elastic','svr']
+          'GERO_Ivo':['lasso','ridge','elastic','svr'],
+          'MPLS':['lasso','ridge','elastic','svr']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -89,21 +89,24 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'Proyecto_Ivo':['cog','Animales__P','brain'],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
-         'GERO_Ivo':['animales','fas','grandmean','fas__animales']}
+         'GERO_Ivo':['animales','fas','grandmean','fas__animales'],
+         'MPLS':['Estado General','Estado General 2','Estado General 3']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':[],
                      'GeroApathy':[],
                      'GeroApathy_reg':[],
-                     'GERO_Ivo':[]}
+                     'GERO_Ivo':[],
+                     'MPLS':[]}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
                 'GeroApathy_reg':'reg',
-                'GERO_Ivo':'reg'}	
+                'GERO_Ivo':'reg',
+                'MPLS':'reg'}	
 
 metrics_names = {'clf':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'reg':['r2_score','mean_squared_error','mean_absolute_error']}
@@ -119,14 +122,16 @@ y_labels = {'MCI_classifier':['target'],
                          ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
-                        ]}
+                        ],
+            'MPLS':['Minimental']}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
            'Proyecto_Ivo':['roc_auc'],
            'GeroApathy':['norm_cross_entropy','roc_auc'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'],
-           'GERO_Ivo':['r2_score','mean_absolute_error']}
+           'GERO_Ivo':['r2_score','mean_absolute_error'],
+           'MPLS':['r2_score']}
 ##---------------------------------PARAMETERS---------------------------------##
 
 if l2ocv:
@@ -186,8 +191,8 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
         
         for random_seed in random_seeds:
 
-            #if Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
-            #     continue
+            if Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
+                 continue
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue

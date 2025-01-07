@@ -11,11 +11,11 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'Proyecto_Ivo'
+project_name = 'MPLS'
 
-l2ocv = False
+l2ocv = True
 
-shuffle_labels = True
+shuffle_labels = False
 
 hyp_opt = True
 
@@ -30,13 +30,15 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['cog','brain','Animales__P'],
          'GeroApathy':['agradable'],
-         'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
+         'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
+         'MPLS':['Estado General']}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
-                'GERO_Ivo':'reg'}
+                'GERO_Ivo':'reg',
+                'MPLS':'reg'}
 
 metrics_names = {'clf':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
                 'reg':['r2_score','mean_absolute_error','mean_squared_error']}
@@ -45,7 +47,8 @@ stats = {'tell_classifier':'',
             'MCI_classifier':'',
             'Proyecto_Ivo':'',
             'GeroApathy':'',
-            'GERO_Ivo':''}
+            'GERO_Ivo':'',
+            'MPLS':''}
 
 best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names[problem_type[project_name]]] 
                            + [f'{metric}_ic_dev' for metric in metrics_names[problem_type[project_name]]] 

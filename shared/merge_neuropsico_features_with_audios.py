@@ -5,10 +5,11 @@ data_dir = Path(Path.home(),'data','MPLS')
 
 #Audios_T1 = pd.read_csv(data_dir / 'Audios_GERO_T1.csv')[['id','target','agradable','desagradable','sex','age','education','handedness']]
 
-features_data = pd.read_csv(Path(data_dir,'features_data.csv'))
+features_data = pd.read_csv(Path(data_dir,'data_MPLS_cat.csv'))
+features_data.rename(columns={'participant_code':'id'}, inplace=True)
 neuropsico_features = pd.read_csv(data_dir / 'nps_data.csv')
 
-all_data = pd.merge(features_data, neuropsico_features, on='participant_code', how='inner')
+all_data = pd.merge(features_data, neuropsico_features, on='id', how='inner')
 
 all_data.reset_index(drop=True, inplace=True)
 
@@ -20,7 +21,8 @@ all_data.drop(columns=['protocol_item_trigger','raw_data.transcript.segments','r
 
 all_data = all_data[all_data['Minimental'] != 'sin puntuacion']
 
-all_data = all_data.sort_values(by=['participant_code','protocol_item_order'])
-all_data.to_csv(data_dir / 'nps_features_data_MPLS.csv', index=False)
+all_data = all_data.sort_values(by=['id','protocol_item_order'])
+all_data.to_csv(data_dir / 'nps_features_data_MPLS_cat.csv', index=False)
+
 
 
