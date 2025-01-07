@@ -34,7 +34,6 @@ hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
 stratify = True
-
 n_folds = 0
 n_iter = 50
 n_iter_features = 50
@@ -100,7 +99,7 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'GeroApathy_reg':'all_data_agradable.csv',
             'GERO_Ivo':'all_data.csv',
             'MPLS':'all_data.csv',
-            'AKU':'AKU_data_HC_all.csv'}
+            'AKU':'all_data_HC.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
@@ -112,10 +111,8 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
          'MPLS':['Estado General','Estado General 2','Estado General 3','Recuerdo feliz'],
-         'AKU':['picture_description',
-                #'pleasant_memory','
-                # routine',
-                # 'video_retelling'
+         'AKU':[#'picture_description','pleasant_memory',
+                'routine','video_retelling'
                 ]
          }
 
@@ -138,7 +135,9 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                         'GeroApathy_reg':['mfcc','ratio','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing'],
                         'MPLS':['pitch-analysis','talking-intervals','sentiment-analysis'],
-                        'AKU':['pitch','talking-intervals','voice-quality']
+                        'AKU':['pitch','talking-intervals',
+                               #'voice-quality'
+                                ]
 }
 
 if scaler_name == 'StandardScaler':
@@ -181,7 +180,16 @@ y_labels = {'tell_classifier':['target'],
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
-            'AKU':[]
+            'AKU':['cerad_learn_total_corr',
+                    'cerad_dr_correct',
+                    'braveman_dr_total',
+                    'stick_dr_total',
+                    'bird_total',
+                    'fab_total',
+                    'setshift_total',
+                    'an_correct',
+                    'mint_total'
+                    ]
             }
 
 problem_type = {'tell_classifier':'clf',
@@ -190,7 +198,8 @@ problem_type = {'tell_classifier':'clf',
                 'GeroApathy':'clf',
                 'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg',
-                'MPLS':'reg'}
+                'MPLS':'reg',
+                'AKU':'reg'}
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
@@ -431,8 +440,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                 assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                #    continue
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                    continue
                 
                 with open(Path(path_to_save_final,'config.json'),'w') as f:
                     json.dump(config,f)

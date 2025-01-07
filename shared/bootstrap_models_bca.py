@@ -91,10 +91,8 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['animales','fas','grandmean','fas__animales'],
          'MPLS':['Estado General','Estado General 2','Estado General 3'],
-         'AKU':['picture_description',
-                #'pleasant_memory','
-                # routine',
-                # 'video_retelling'
+         'AKU':[#'picture_description','pleasant_memory',
+                'routine','video_retelling'
                 ]}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -148,7 +146,8 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'GeroApathy':['norm_cross_entropy','roc_auc'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'],
            'GERO_Ivo':['r2_score','mean_absolute_error'],
-           'MPLS':['r2_score']}
+           'MPLS':['r2_score'],
+           'AKU':['r2_score']}
 ##---------------------------------PARAMETERS---------------------------------##
 
 if n_folds == 0:

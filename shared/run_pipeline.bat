@@ -11,21 +11,6 @@ set "n_iter_features=50"
 set "feature_sample_ratio=0.5"
 set "feature_selection=1"
 
-:: Function to show help
-:show_help
-echo Usage: run_pipeline.bat -project_name <project_name> [options]
-echo Options:
-echo   -project_name           Project name (required)
-echo   -hyp_opt                Enable hyperparameter optimization (default: 1)
-echo   -filter_outliers        Filter outliers (default: 0)
-echo   -shuffle_labels         Shuffle labels (default: 0)
-echo   -stratify               Stratify (default: 1)
-echo   -k                      k value for cross-validation (default: 0, meaning leave-one-out cross-validation)
-echo   -n_iter                 Number of iterations (default: 50)
-echo   -n_iter_features        Number of iterations for feature selection (default: 50)
-echo   -feature_sample_ratio   Sample ratio for feature selection (default: 0.5)
-exit /b 1
-
 :: Process arguments
 :process_args
 :next_arg
@@ -103,7 +88,7 @@ call "C:\Users\CNC Audio\gonza\gonza-env\Scripts\activate"
 :: Call Python scripts
 python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%stratify%" "%k%" "%n_iter%" "%n_iter_features%" "%feature_sample_ratio%"
 python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%feature_selection%" "%k%"
-python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%k%"
+::python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%k%"
 
 :: Display used parameters
 echo Pipeline executed with:
