@@ -35,7 +35,7 @@ filter_outliers = False
 shuffle_labels = False
 stratify = True
 
-n_folds = 5
+n_folds = 0
 n_iter = 50
 n_iter_features = 50
 feature_sample_ratio = 0.5
@@ -100,7 +100,7 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'GeroApathy_reg':'all_data_agradable.csv',
             'GERO_Ivo':'all_data.csv',
             'MPLS':'all_data.csv',
-            'AKU':'AKU_data_HC.csv'}
+            'AKU':'AKU_data_HC_all.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
@@ -149,7 +149,7 @@ else:
     scaler = None
 imputer = KNNImputer
 
-if n_folds == -1:
+if n_folds == 0:
     kfold_folder = 'l2ocv'
 else:
     kfold_folder = f'{n_folds}_folds'
@@ -180,7 +180,8 @@ y_labels = {'tell_classifier':['target'],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
-            'MPLS':['Minimental']
+            'MPLS':['Minimental'],
+            'AKU':[]
             }
 
 problem_type = {'tell_classifier':'clf',
@@ -250,11 +251,11 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             held_out = True if n_iter > 0 or n_iter_features > 0 else False
 
             if held_out:
-                if n_folds == -1:
+                if n_folds == 0:
                     n_folds = int((data.shape[0]*(1-test_size[project_name]))/2)
                 n_seeds_test = n_seeds_test_
             else:
-                if n_folds == -1:
+                if n_folds == 0:
                     n_folds = int(data.shape[0]/2)
                 n_seeds_test = 1
             

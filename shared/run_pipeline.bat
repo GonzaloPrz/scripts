@@ -5,7 +5,7 @@ set "hyp_opt=1"
 set "filter_outliers=0"
 set "shuffle_labels=0"
 set "stratify=1"
-set "k=5"
+set "k=0"
 set "n_iter=50"
 set "n_iter_features=50"
 set "feature_sample_ratio=0.5"
@@ -20,7 +20,7 @@ echo   -hyp_opt                Enable hyperparameter optimization (default: 1)
 echo   -filter_outliers        Filter outliers (default: 0)
 echo   -shuffle_labels         Shuffle labels (default: 0)
 echo   -stratify               Stratify (default: 1)
-echo   -k                      k value for cross-validation (default: 5)
+echo   -k                      k value for cross-validation (default: 0, meaning leave-one-out cross-validation)
 echo   -n_iter                 Number of iterations (default: 50)
 echo   -n_iter_features        Number of iterations for feature selection (default: 50)
 echo   -feature_sample_ratio   Sample ratio for feature selection (default: 0.5)
@@ -98,10 +98,12 @@ if "%n_iter_features%"=="0" (
     set "feature_selection=0"
 )
 
+call "C:\Users\CNC Audio\gonza\gonza-env\Scripts\activate"
+
 :: Call Python scripts
-python "C:\Users\gp\scripts\shared\train_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%stratify%" "%k%" "%n_iter%" "%n_iter_features%" "%feature_sample_ratio%"
-python "C:\Users\gp\scripts\shared\bootstrap_models_bca.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%feature_selection%" "%k%"
-python "C:\Users\gp\scripts\shared\test_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%k%"
+python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%stratify%" "%k%" "%n_iter%" "%n_iter_features%" "%feature_sample_ratio%"
+python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%feature_selection%" "%k%"
+python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%k%"
 
 :: Display used parameters
 echo Pipeline executed with:

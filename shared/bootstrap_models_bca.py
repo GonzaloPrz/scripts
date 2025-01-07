@@ -47,7 +47,7 @@ hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
 feature_selection = True
-n_folds = 5
+n_folds = 0
 
 n_boot = 500
 scaler_name = 'StandardScaler'
@@ -80,8 +80,9 @@ models = {'MCI_classifier':['lr','svc','knnc'],
           'GeroApathy':['lr','svc','knnc',],
           'GeroAopathy_reg':['lasso','ridge','elastic','svr'],
           'GERO_Ivo':['lasso','ridge','elastic','svr'],
-          'MPLS':['lasso','ridge','elastic','svr']
-            }
+          'MPLS':['lasso','ridge','elastic','svr'],
+          'AKU':['lasso','ridge','elastic','svr']
+        }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
@@ -102,7 +103,8 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'GeroApathy':[],
                      'GeroApathy_reg':[],
                      'GERO_Ivo':[],
-                     'MPLS':[]}
+                     'MPLS':[],
+                     'AKU':[]}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
@@ -110,7 +112,8 @@ problem_type = {'tell_classifier':'clf',
                 'GeroApathy':'clf',
                 'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg',
-                'MPLS':'reg'}	
+                'MPLS':'reg',
+                'AKU':'reg'}	
 
 metrics_names = {'clf':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'reg':['r2_score','mean_squared_error','mean_absolute_error']}
@@ -127,7 +130,17 @@ y_labels = {'MCI_classifier':['target'],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
-            'MPLS':['Minimental']}
+            'MPLS':['Minimental'],
+            'AKU':  ['cerad_learn_total_corr',
+                    'cerad_dr_correct',
+                    'braveman_dr_total',
+                    'stick_dr_total',
+                    'bird_total',
+                    'fab_total',
+                    'setshift_total',
+                    'an_correct',
+                    'mint_total'
+                    ]}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
@@ -138,7 +151,7 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'MPLS':['r2_score']}
 ##---------------------------------PARAMETERS---------------------------------##
 
-if n_folds == -1:
+if n_folds == 0:
     kfold_folder = 'l2ocv'
 else:
     kfold_folder = f'{n_folds}_folds'
