@@ -90,7 +90,10 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['animales','fas','grandmean','fas__animales'],
-         'MPLS':['Estado General','Estado General 2','Estado General 3'],
+         'MPLS':['Estado General','Estado General 2',
+                 #'Consulta sobre soledad 1','Consulta sobre soledad 2',
+                #'Recuerdo feliz','Animales','Palabras con F'
+                ],
          'AKU':[#'picture_description','pleasant_memory',
                 'routine','video_retelling'
                 ]}
