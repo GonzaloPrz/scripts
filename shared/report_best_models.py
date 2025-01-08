@@ -11,9 +11,9 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'MPLS'
+project_name = 'Proyecto_Ivo'
 
-shuffle_labels = False
+shuffle_labels = True
 
 hyp_opt = True
 
@@ -21,7 +21,7 @@ feature_selection_list = [True]
 
 scaler_name = 'StandardScaler'
 
-n_folds = 5
+n_folds = 3
 ##---------------------------------PARAMETERS---------------------------------##
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -98,6 +98,8 @@ for scoring,feature_selection in itertools.product(metrics_names[problem_type[pr
 
                     best = None
                     for file in files:
+                        if 'svc' in file.stem:
+                            continue
                         
                         df = pd.read_csv(file)
                         

@@ -29,7 +29,7 @@ from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'MPLS'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
@@ -70,6 +70,8 @@ parallel = True
 cmatrix = None 
 
 random_seeds_train = [3**x for x in np.arange(1,n_seeds_train+1)] if n_seeds_train > 0 else ['']
+
+random_seeds_shuffle = random_seeds_train if shuffle_labels else ['']
 
 thresholds = {'tell_classifier':[np.log(0.5)],
               'MCI_classifier':[np.log(0.5)],
@@ -114,7 +116,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':[#'picture_description','pleasant_memory',
+         'AKU':['picture_description','pleasant_memory',
                 'routine','video_retelling'
                 ]
          }
@@ -240,24 +242,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
         ID = data.pop(id_col)
 
         y = data.pop(y_label)
-        if shuffle_labels and problem_type[project_name] == 'clf':
-            np.random.seed(0)
-            zero_indices = np.where(y == 0)[0]
-            one_indices = np.where(y == 1)[0]
-
-            # Shuffle and select half of the indices for flipping
-            zero_to_flip = np.random.choice(zero_indices, size=len(zero_indices) // 2, replace=False)
-            one_to_flip = np.random.choice(one_indices, size=len(one_indices) // 2, replace=False)
-
-            # Flip the values at the selected indices
-            y[zero_to_flip] = 1
-            y[one_to_flip] = 0
-
-        elif shuffle_labels:
-            np.random.seed(42)
-            #Perform random permutations of the labels
-            y = np.random.permutation(y)
-
+        
         for model in models_dict[problem_type[project_name]].keys():        
             print(model)
             held_out = True if n_iter > 0 or n_iter_features > 0 else False
@@ -383,7 +368,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                 feature_sets = []
                 for r, row in all_models.iterrows():
                     feature_sets.append([feature for feature in all_models.columns if task in feature and row[feature] == 1])
-                  
+                
             features_df = pd.DataFrame(index=np.arange(len(feature_sets)),columns=features)
             for f, feature_set in enumerate(feature_sets):
                 features_df.loc[f,features] = [1 if feature in feature_set else 0 for feature in features]
@@ -395,99 +380,139 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             
             for r in features_df.index:
                 feature_sets.append(list(features_df.columns[features_df.loc[r,:]==1]))
-
-            for random_seed_test in random_seeds_test:
-                                                                                                                                                                                                                                                                                                                                
-                if test_size[project_name] > 0:
-                    path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
-
-                    X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify and problem_type[project_name] == 'clf' else None)
-                    X_train.reset_index(drop=True,inplace=True)
-                    X_test.reset_index(drop=True,inplace=True)
-                    y_train.reset_index(drop=True,inplace=True)
-                    y_test.reset_index(drop=True,inplace=True)
-                    ID_train.reset_index(drop=True,inplace=True)
-                    ID_test.reset_index(drop=True,inplace=True)
-                else:
-                    X_train = data.reset_index(drop=True)
-                    y_train = y.reset_index(drop=True)
-                    ID_train = ID.reset_index(drop=True)
-
-                    X_test = pd.DataFrame()
-                    y_test = pd.Series()
-                    ID_test = pd.Series()
-                    path_to_save_final = path_to_save
-
-                path_to_save_final.mkdir(parents=True,exist_ok=True)
-
-                if predefined_models:
-                    random_seed_test_predefined = [folder for folder in path_to_save.iterdir()  if 'random_seed_' in folder.name]
-                    if len(random_seed_test_predefined) == 0:
-                        random_seed_test_predefined = ['']
-
-                    models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
-                    
-                    all_features = models[[col for col in models.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]].drop_duplicates()
-
-                    feature_sets = [list([col for col in all_features.columns if all_features.loc[r,col] == 1]) for r in all_features.index]
-                    # Remove duplicates by converting to set and back to list of lists
-                    feature_sets = [list(t) for t in set(tuple(sorted(fs)) for fs in feature_sets)]
-                    hyperp = {model:models[[col for col in models.columns if all(x not in col for x in ['Unnamed: 0','threshold'] + list(all_features.columns))]]}
-                    hyperp[model] = hyperp[model].drop_duplicates()
-                    if 'gamma' in hyperp[model].columns:
-                        for r in hyperp[model].index:
-                            try:
-                                hyperp[model].loc[r,'gamma'] = float(hyperp[model].loc[r,'gamma'])
-                            except:
-                                pass
-
-                assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
-
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    continue
-                
-                with open(Path(path_to_save_final,'config.json'),'w') as f:
-                    json.dump(config,f)
-
-                log_file = Path(results_dir,Path(__file__).stem + '.log')
-
-                logging.basicConfig(
-                    level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-                    format="%(asctime)s - %(levelname)s - %(message)s",
-                    handlers=[
-                        logging.FileHandler(log_file),  # Log to a file
-                        logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
-                    ]
-                )
-
-                # Redirect stdout and stderr to the logger
-                class LoggerWriter:
-                    def __init__(self, level):
-                        self.level = level
-
-                    def write(self, message):
-                        if message.strip():  # Avoid logging blank lines
-                            self.level(message)
-
-                    def flush(self):  # Required for file-like behavior
-                        pass
-
-                sys.stdout = LoggerWriter(logging.info)
-                sys.stderr = LoggerWriter(logging.error)
-
-                models,outputs,y_pred,y_dev,IDs_dev = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train, y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
             
-                all_models = pd.DataFrame()
+            for random_seed_test in random_seeds_test:
                 
-                for model_index in range(models.shape[0]):
-                    model_ = {}
-                    for param in models.keys():
-                        if param in [y_label,id_col]:
-                            continue
-                        model_[param] = models.iloc[model_index][param]
+                X_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name])),data.shape[1]))
+                X_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name])),data.shape[1]))
+                X_test = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(test_size[project_name])),data.shape[1]))
+                y_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))))
+                y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
+                y_test = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(test_size[project_name]))))
+                outputs = np.empty((all_models.shape[0],len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]),2))) if problem_type[project_name] == 'clf' else np.empty((all_models.shape[0],len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
+                IDs_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))))
+                IDs_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
+                IDs_test = np.empty((len(random_seeds_shuffle),int(data.shape[0]*test_size[project_name])))
 
-                    all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
-                
+                for r,random_seed_shuffle in enumerate(random_seeds_shuffle):
+                    if shuffle_labels and problem_type[project_name] == 'clf':
+                        np.random.seed(random_seed_shuffle)
+                        zero_indices = np.where(y == 0)[0]
+                        one_indices = np.where(y == 1)[0]
+
+                        # Shuffle and select half of the indices for flipping
+                        zero_to_flip = np.random.choice(zero_indices, size=len(zero_indices) // 2, replace=False)
+                        one_to_flip = np.random.choice(one_indices, size=len(one_indices) // 2, replace=False)
+
+                        # Flip the values at the selected indices
+                        y[zero_to_flip] = 1
+                        y[one_to_flip] = 0
+
+                    elif shuffle_labels:
+                        np.random.seed(random_seed_shuffle)
+                        #Perform random permutations of the labels
+                        y = np.random.permutation(y)
+                                                                                                                                                                                                                                                                                                                    
+                    if test_size[project_name] > 0:
+                        path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
+
+                        X_train_,X_test_,y_train_,y_test_,ID_train_,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify and problem_type[project_name] == 'clf' else None)
+                        X_train_.reset_index(drop=True,inplace=True)
+                        X_test.reset_index(drop=True,inplace=True)
+                        y_train.reset_index(drop=True,inplace=True)
+                        y_test.reset_index(drop=True,inplace=True)
+                        ID_train.reset_index(drop=True,inplace=True)
+                        ID_test.reset_index(drop=True,inplace=True)
+
+                    else:
+                        X_train_ = data.reset_index(drop=True)
+                        y_train = y.reset_index(drop=True)
+                        ID_train = ID.reset_index(drop=True)
+
+                        X_test = pd.DataFrame()
+                        y_test = pd.Series()
+                        ID_test = pd.Series()
+                        path_to_save_final = path_to_save
+
+                    X_train[r] = X_train_.copy()
+                    X_test[r] = X_test_.copy()
+                    IDs_train[r] = ID_train_.copy()
+                    IDs_test[r] = ID_test.copy()
+                        
+                    path_to_save_final.mkdir(parents=True,exist_ok=True)
+
+                    if predefined_models:
+                        random_seed_test_predefined = [folder for folder in path_to_save.iterdir()  if 'random_seed_' in folder.name]
+                        if len(random_seed_test_predefined) == 0:
+                            random_seed_test_predefined = ['']
+
+                        models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
+                        
+                        all_features = models[[col for col in models.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]].drop_duplicates()
+
+                        feature_sets = [list([col for col in all_features.columns if all_features.loc[r,col] == 1]) for r in all_features.index]
+                        # Remove duplicates by converting to set and back to list of lists
+                        feature_sets = [list(t) for t in set(tuple(sorted(fs)) for fs in feature_sets)]
+                        hyperp = {model:models[[col for col in models.columns if all(x not in col for x in ['Unnamed: 0','threshold'] + list(all_features.columns))]]}
+                        hyperp[model] = hyperp[model].drop_duplicates()
+                        if 'gamma' in hyperp[model].columns:
+                            for r in hyperp[model].index:
+                                try:
+                                    hyperp[model].loc[r,'gamma'] = float(hyperp[model].loc[r,'gamma'])
+                                except:
+                                    pass
+
+                    assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
+
+                    #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                    #    continue
+                    
+                    with open(Path(path_to_save_final,'config.json'),'w') as f:
+                        json.dump(config,f)
+
+                    log_file = Path(results_dir,Path(__file__).stem + '.log')
+
+                    logging.basicConfig(
+                        level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+                        format="%(asctime)s - %(levelname)s - %(message)s",
+                        handlers=[
+                            logging.FileHandler(log_file),  # Log to a file
+                            logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
+                        ]
+                    )
+
+                    # Redirect stdout and stderr to the logger
+                    class LoggerWriter:
+                        def __init__(self, level):
+                            self.level = level
+
+                        def write(self, message):
+                            if message.strip():  # Avoid logging blank lines
+                                self.level(message)
+
+                        def flush(self):  # Required for file-like behavior
+                            pass
+
+                    sys.stdout = LoggerWriter(logging.info)
+                    sys.stderr = LoggerWriter(logging.error)
+
+                    models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+
+                    outputs[r] = outputs_.copy()
+                    y_dev[r] = y_dev_.copy()
+                    IDs_dev[r] = IDs_dev_.copy()
+
+                    all_models = pd.DataFrame()
+                    
+                    for model_index in range(models.shape[0]):
+                        model_ = {}
+                        for param in models.keys():
+                            if param in [y_label,id_col]:
+                                continue
+                            model_[param] = models.iloc[model_index][param]
+
+                        all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
+                    
                 all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
                 with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
@@ -498,12 +523,14 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     pickle.dump(y_train,f) 
                 with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
                     pickle.dump(IDs_dev,f)
+                with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
+                    pickle.dump(IDs_train,f)
                 with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
                     pickle.dump(X_test,f)
                 with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
                     pickle.dump(y_test,f)
                 with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                    pickle.dump(ID_test,f)
+                    pickle.dump(IDs_test,f)
                 
                 with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
                     pickle.dump(outputs,f)

@@ -45,9 +45,9 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = False
+shuffle_labels = True
 feature_selection = True
-n_folds = 5
+n_folds = 3
 
 n_boot = 500
 scaler_name = 'StandardScaler'
@@ -94,8 +94,8 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  #'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':[#'picture_description','pleasant_memory',
-                'routine','video_retelling'
+         'AKU':['picture_description','pleasant_memory',
+                #'routine','video_retelling'
                 ]}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -209,10 +209,15 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-
-            #if (Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists()) and (np.n_models == np.inf) or Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists()) and (np.n_models != np.inf):
-            #     continue
             
+            if n_models == np.inf:
+
+                if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
+                    continue
+            elif Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists():
+                    continue
+                    
+                
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             try:
