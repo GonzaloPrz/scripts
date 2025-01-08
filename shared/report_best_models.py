@@ -86,12 +86,15 @@ for scoring,feature_selection in itertools.product(metrics_names[problem_type[pr
 
                 for random_seed_test in random_seeds_test:
                     
-                    files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'test' in file.stem and scoring in file.stem and 'svc' not in file.stem] 
+                    files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'test' in file.stem] 
                     if len(files) == 0:
-                        files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem and scoring in file.stem and 'svc' not in file.stem]
+                        files = [file for file in Path(path,random_seed_test).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem]
 
                     if len(files) == 0:
-                        continue
+                        files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'test' in file.stem and scoring in file.stem] 
+
+                    if len(files) == 0:
+                        files = [file for file in Path(path,random_seed_test).iterdir() if f'best_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem and scoring in file.stem] 
 
                     best = None
                     for file in files:

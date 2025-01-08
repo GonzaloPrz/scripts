@@ -42,12 +42,12 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'MPLS'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
 feature_selection = True
-n_folds = 0
+n_folds = 5
 
 n_boot = 500
 scaler_name = 'StandardScaler'
@@ -70,7 +70,7 @@ if len(sys.argv) > 6:
 
 parallel = True
 
-n_models = .3
+n_models = np.inf
  
 cmatrix = None
 
@@ -210,8 +210,8 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
         
         for random_seed in random_seeds:
 
-            if Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists() or Path(path,random_seed,f'all_models_{model}.csv').exists() == False:
-                 continue
+            #if (Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists()) and (np.n_models == np.inf) or Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists()) and (np.n_models != np.inf):
+            #     continue
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
@@ -225,7 +225,9 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 
                 if n_models == np.inf:
                     n_models = outputs.shape[0]
+                    all_models_bool = True
                 else:
+                    all_models_bool = False
                     if n_models < 1:
                         n_models = int(outputs.shape[0]*n_models)
 
@@ -267,7 +269,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                         all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(5)
                         all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(5)
                         all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(5)
-                all_models.to_csv(Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv'))
+                all_models.to_csv(Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv')) if all_models_bool == False else all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_bca.csv')) 
 
                 #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
                 #pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
