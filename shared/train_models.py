@@ -32,15 +32,15 @@ from utils import *
 project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = False
+shuffle_labels = True
 stratify = True
-n_folds = 0
-n_iter = 50
-n_iter_features = 50
+n_folds = 5
+n_iter = 5
+n_iter_features = 1
 feature_sample_ratio = 0.5
 
 scaler_name = 'StandardScaler'
-n_seeds_train = 10
+n_seeds_train = 2
 id_col = 'id'
 
 # Check if required arguments are provided
@@ -385,14 +385,16 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                 
                 X_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name])),data.shape[1]))
                 X_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name])),data.shape[1]))
-                X_test = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(test_size[project_name])),data.shape[1]))
                 y_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))))
                 y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
-                y_test = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(test_size[project_name]))))
-                outputs = np.empty((all_models.shape[0],len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]),2))) if problem_type[project_name] == 'clf' else np.empty((all_models.shape[0],len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
-                IDs_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))))
-                IDs_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
-                IDs_test = np.empty((len(random_seeds_shuffle),int(data.shape[0]*test_size[project_name])))
+                outputs = np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name])),2)) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
+                IDs_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))),dtype=object)
+                IDs_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))),dtype=object)
+
+                if test_size[project_name] > 0:
+                    X_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name])))),data.shape[1]))
+                    y_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name]))))))
+                    IDs_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name]))))),dtype=object)
 
                 for r,random_seed_shuffle in enumerate(random_seeds_shuffle):
                     if shuffle_labels and problem_type[project_name] == 'clf':
@@ -421,24 +423,26 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         X_test.reset_index(drop=True,inplace=True)
                         y_train.reset_index(drop=True,inplace=True)
                         y_test.reset_index(drop=True,inplace=True)
-                        ID_train.reset_index(drop=True,inplace=True)
+                        ID_train_.reset_index(drop=True,inplace=True)
                         ID_test.reset_index(drop=True,inplace=True)
 
                     else:
                         X_train_ = data.reset_index(drop=True)
-                        y_train = y.reset_index(drop=True)
-                        ID_train = ID.reset_index(drop=True)
+                        y_train_ = y.reset_index(drop=True)
+                        ID_train_ = ID.reset_index(drop=True)
 
-                        X_test = pd.DataFrame()
-                        y_test = pd.Series()
-                        ID_test = pd.Series()
+                        X_test_ = pd.DataFrame()
+                        y_test_ = pd.Series()
+                        ID_test_ = pd.Series()
                         path_to_save_final = path_to_save
 
                     X_train[r] = X_train_.copy()
-                    X_test[r] = X_test_.copy()
                     IDs_train[r] = ID_train_.copy()
-                    IDs_test[r] = ID_test.copy()
-                        
+
+                    if test_size[project_name] > 0:
+                        X_test[r] = X_test_.copy()
+                        IDs_test[r] = ID_test.copy()
+                                        
                     path_to_save_final.mkdir(parents=True,exist_ok=True)
 
                     if predefined_models:
@@ -462,7 +466,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                                 except:
                                     pass
 
-                    assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
+                    assert not set(ID_train_).intersection(set(ID_test_)), "Data leakeage detected between train and test sets!"
 
                     #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
                     #    continue
@@ -496,9 +500,9 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     sys.stdout = LoggerWriter(logging.info)
                     sys.stderr = LoggerWriter(logging.error)
 
-                    models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                    models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train_,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train_,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
 
-                    outputs[r] = outputs_.copy()
+                    outputs[:,r] = outputs_.copy()
                     y_dev[r] = y_dev_.copy()
                     IDs_dev[r] = IDs_dev_.copy()
 
@@ -525,12 +529,13 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     pickle.dump(IDs_dev,f)
                 with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
                     pickle.dump(IDs_train,f)
-                with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
-                    pickle.dump(X_test,f)
-                with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                    pickle.dump(y_test,f)
-                with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                    pickle.dump(IDs_test,f)
-                
                 with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
                     pickle.dump(outputs,f)
+
+                if test_size[project_name] > 0:
+                    with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                        pickle.dump(X_test,f)
+                    with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                        pickle.dump(y_test,f)
+                    with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                        pickle.dump(IDs_test,f)

@@ -13,14 +13,14 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
-def compute_metrics(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name):
+def compute_metrics(model_index, j, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name):
     # Calculate the metrics using the bootstrap method
-    results = get_metrics_bootstrap(outputs[model_index, r], y_dev[r], metrics_names[problem_type[project_name]], n_boot=n_boot, problem_type=problem_type[project_name])
+    results = get_metrics_bootstrap(outputs[model_index, j, r], y_dev[j, r], metrics_names[problem_type[project_name]], n_boot=n_boot, problem_type=problem_type[project_name])
     
     metrics_result = {}
     for metric in metrics_names[problem_type[project_name]]:
         metrics_result[metric] = results[1][metric]
-    return model_index, r, metrics_result
+    return model_index, j, r, metrics_result
 
 def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_boot=2000, decimals=5,cmatrix=None, priors=None, problem_type='clf'):
     assert samples.shape[0] == targets.shape[0]
@@ -47,7 +47,7 @@ hyp_opt = True
 filter_outliers = False
 shuffle_labels = True
 feature_selection = True
-n_folds = 3
+n_folds = 5
 
 n_boot = 500
 scaler_name = 'StandardScaler'
@@ -215,8 +215,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
                     continue
             elif Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists():
-                    continue
-                    
+                    continue 
                 
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
@@ -237,15 +236,15 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                         n_models = int(outputs.shape[0]*n_models)
 
                     for i in range(outputs.shape[0]):
-                        scorings_i = np.empty(outputs.shape[1])
-                        for r in range(outputs.shape[1]):
+                        scorings_i = np.empty((outputs.shape[1],outputs.shape[2]))
+                        for j,r in itertools.product(range(outputs.shape[1],range(outputs.shape[2]))):
                             if problem_type[project_name] == 'clf':
-                                metrics, y_pred = get_metrics_clf(outputs[i,r], y_dev[r], [scoring], cmatrix)
-                                scorings_i[r] = metrics[scoring]
+                                metrics, y_pred = get_metrics_clf(outputs[i,j,r], y_dev[j,r], [scoring], cmatrix)
+                                scorings_i[j,r] = metrics[scoring]
                             else:
-                                metrics = get_metrics_reg(outputs[i,r], y_dev[r],[scoring])
-                                scorings_i[r] = metrics[scoring]
-                        scorings[i] = np.nanmean(scorings_i)
+                                metrics = get_metrics_reg(outputs[i,j,r], y_dev[j,r],[scoring])
+                                scorings_i[j,r] = metrics[scoring]
+                        scorings[i] = np.nanmean(scorings_i.flatten())
                     
                     scorings = scorings if any(x in scoring for x in ['norm','error']) else -scorings
 
@@ -259,14 +258,14 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
                 y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
                 
-                metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],n_boot))) for metric in metrics_names[problem_type[project_name]])
+                metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],outputs.shape[2],n_boot))) for metric in metrics_names[problem_type[project_name]])
                 
-                all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1])))
+                all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, j, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index,j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
 
                 # Update the metrics array with the computed results
-                for model_index, r, metrics_result in tqdm.tqdm(all_results):
+                for model_index,j,r, metrics_result in tqdm.tqdm(all_results):
                     for metric in metrics_names[problem_type[project_name]]:
-                        metrics[metric][model_index, r, :] = metrics_result[metric]
+                        metrics[metric][model_index,j,r,:] = metrics_result[metric]
 
                 # Update the summary statistics in all_models
                 for model_index in tqdm.tqdm(range(outputs.shape[0])):
