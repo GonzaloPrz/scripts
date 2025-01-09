@@ -20,7 +20,7 @@ from tqdm import tqdm
 import itertools,pickle,sys, json
 from scipy.stats import loguniform, uniform, randint
 from random import randint as randint_random 
-import warnings 
+import warnings
 
 warnings.filterwarnings("ignore")
 
@@ -110,8 +110,8 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['cog',
-                         #'Animales__P',
-                          #'brain'
+                         'Animales__P',
+                         'brain'
                          ],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
@@ -130,11 +130,11 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
                                      'Animales__P': ['properties',
-                                                     'timing','properties__timing',
+                                                     #'timing','properties__timing',
                                                      #'properties__vr','timing__vr','properties__timing__vr'
                                                      ],
                                      'cog':['neuropsico_digits__neuropsico_tmt',
-                                            'neuropsico_tmt','neuropsico_digits'
+                                            #'neuropsico_tmt','neuropsico_digits'
                                             ],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],

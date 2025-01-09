@@ -29,14 +29,18 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'Proyecto_Ivo':['cog','brain','Animales__P'],
          'GeroApathy':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
-         'MPLS':['Estado General']}
+         'MPLS':['Estado General'],
+         'AKU':['picture_description','pleasant_memory',
+                'routine','video_retelling'
+                ]}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
                 'GERO_Ivo':'reg',
-                'MPLS':'reg'}
+                'MPLS':'reg',
+                'AKU':'reg'}
 
 metrics_names = {'clf':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
                 'reg':['r2_score','mean_absolute_error','mean_squared_error']}
@@ -46,7 +50,8 @@ stats = {'tell_classifier':'',
             'Proyecto_Ivo':'',
             'GeroApathy':'',
             'GERO_Ivo':'',
-            'MPLS':''}
+            'MPLS':'',
+            'AKU':''}
 
 best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names[problem_type[project_name]]] 
                            + [f'{metric}_ic_dev' for metric in metrics_names[problem_type[project_name]]] 
