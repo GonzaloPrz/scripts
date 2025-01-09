@@ -32,12 +32,12 @@ from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'AKU'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = False
+shuffle_labels = True
 stratify = True
-n_folds = 5
+n_folds = 3
 n_iter = 50
 n_iter_features = 50
 feature_sample_ratio = 0.5
@@ -120,7 +120,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':[#'picture_description','pleasant_memory',
+         'AKU':['picture_description','pleasant_memory',
                 'routine','video_retelling'
                 ]
          }
@@ -149,6 +149,15 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                 ]
 }
 
+scoring_metrics = {'MCI_classifier':'norm_cross_entropy',
+           'tell_classifier':'norm_cross_entropy',
+           'Proyecto_Ivo':'roc_auc',
+           'GeroApathy':'norm_cross_entropy',
+           'GeroApathy_reg':'mean_absolute_error',
+           'GERO_Ivo':'mean_absolute_error',
+           'MPLS':'r2_score',
+           'AKU':'r2_score'}
+
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
 elif scaler_name == 'MinMaxScaler':
@@ -172,7 +181,7 @@ models_dict = {'clf': {'lr':LR,
                     'elastic':ElasticNet,
                     #'knnr':KNNR,
                     'svr':SVR,
-                    'xgb':xgboostr
+                    #'xgb':xgboostr
                     }
                 }
 
@@ -189,8 +198,7 @@ y_labels = {'tell_classifier':['target'],
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
-            'AKU':[ 'sdi0001_age',
-                    'cerad_learn_total_corr',
+            'AKU':['cerad_learn_total_corr',
                     'cerad_dr_correct',
                     'braveman_dr_total',
                     'stick_dr_total',
@@ -270,7 +278,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             path_to_save.mkdir(parents=True,exist_ok=True)
 
             if shuffle_labels:
-                predefined_models = True if Path(path_to_save,f'random_seed_{random_seeds_test[0]}',f'all_models_{model}.csv').exists() else False
+                predefined_models = True if Path(str(path_to_save).replace('shuffle',''),f'random_seed_{random_seeds_test[0]}' if test_size[project_name] > 0 else '',f'all_models_{model}.csv').exists() else False
             else:
                 predefined_models = False
 
@@ -368,7 +376,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                 # Add the full set of features
                 feature_sets.append(features)
             else:
-                all_models = pd.read_csv(Path(path_to_save,random_seeds_test[0],f'all_models_{model}.csv'))
+                all_models = pd.read_csv(Path(str(path_to_save).replace('shuffle',''),f'random_seed_{random_seeds_test[0]}' if test_size[project_name]>0 else '',f'all_models_{model}.csv'))
                 hyperp[model] = all_models[[col for col in all_models.columns if task not in col]]
                 feature_sets = []
                 for r, row in all_models.iterrows():
@@ -392,7 +400,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                 X_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name])),data.shape[1]))
                 y_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))))
                 y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
-                outputs = np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name])),2)) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
+                outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False else 1,len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name])),2)) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
                 IDs_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))),dtype=object)
                 IDs_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))),dtype=object)
 
@@ -401,7 +409,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     y_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name]))))))
                     IDs_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name]))))),dtype=object)
 
-                for r,random_seed_shuffle in enumerate(random_seeds_shuffle):
+                for rss,random_seed_shuffle in enumerate(random_seeds_shuffle):
                     if shuffle_labels and problem_type[project_name] == 'clf':
                         np.random.seed(random_seed_shuffle)
                         zero_indices = np.where(y == 0)[0]
@@ -422,7 +430,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                                                                                                                                                                                                                                                                                                                     
                     if test_size[project_name] > 0:
                         path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
-
+                        
                         X_train_,X_test_,y_train_,y_test_,ID_train_,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify and problem_type[project_name] == 'clf' else None)
                         X_train_.reset_index(drop=True,inplace=True)
                         X_test.reset_index(drop=True,inplace=True)
@@ -441,22 +449,29 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         ID_test_ = pd.Series()
                         path_to_save_final = path_to_save
 
-                    X_train[r] = X_train_.copy()
-                    IDs_train[r] = ID_train_.copy()
+                    X_train[rss] = X_train_.copy()
+                    IDs_train[rss] = ID_train_.copy()
 
                     if test_size[project_name] > 0:
-                        X_test[r] = X_test_.copy()
-                        IDs_test[r] = ID_test.copy()
+                        X_test[rss] = X_test_.copy()
+                        IDs_test[rss] = ID_test.copy()
                                         
                     path_to_save_final.mkdir(parents=True,exist_ok=True)
 
                     if predefined_models:
                         random_seed_test_predefined = [folder for folder in path_to_save.iterdir()  if 'random_seed_' in folder.name]
+                        extremo = 'sup' if any(x in scoring_metrics[project_name] for x in ['norm','error']) else 'inf'
+                        ascending = True if extremo == 'sup' else False
                         if len(random_seed_test_predefined) == 0:
                             random_seed_test_predefined = ['']
 
                         models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
-                        
+                        if Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv').exists():
+                            model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
+                        elif Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv').exists():
+                            model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
+
+                        models = pd.DataFrame(models.loc[model_index,:]).T
                         all_features = models[[col for col in models.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]].drop_duplicates()
 
                         feature_sets = [list([col for col in all_features.columns if all_features.loc[r,col] == 1]) for r in all_features.index]
@@ -473,8 +488,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     assert not set(ID_train_).intersection(set(ID_test_)), "Data leakeage detected between train and test sets!"
 
-                    if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                        continue
+                    #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                    #    continue
                     
                     with open(Path(path_to_save_final,'config.json'),'w') as f:
                         json.dump(config,f)
@@ -507,9 +522,9 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train_,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train_,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
 
-                    outputs[:,r] = outputs_.copy()
-                    y_dev[r] = y_dev_.copy()
-                    IDs_dev[r] = IDs_dev_.copy()
+                    outputs[:,rss] = outputs_.copy()
+                    y_dev[rss] = y_dev_.copy()
+                    IDs_dev[rss] = IDs_dev_.copy()
 
                     all_models = pd.DataFrame()
                     
@@ -522,7 +537,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                         all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
                     
-                    all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
+                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
                 with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
                     pickle.dump(X_train,f)
