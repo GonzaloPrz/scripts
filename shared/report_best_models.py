@@ -206,5 +206,5 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
     if not shuffle_labels:
         filename_to_save = filename_to_save.replace('_shuffled','')
 
-    best_models.dropna(subset=['model_index'],inplace=True)
+    #best_models.dropna(subset=['model_index'],inplace=True)
     best_models.to_csv(Path(results_dir,filename_to_save),index=False)

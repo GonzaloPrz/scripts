@@ -45,7 +45,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = True
+shuffle_labels = False
 feature_selection = True
 n_folds = 3
 
@@ -70,7 +70,7 @@ if len(sys.argv) > 6:
 
 parallel = True
 
-n_models_ = np.inf
+n_models_ = .2
  
 cmatrix = None
 
@@ -238,7 +238,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             else:
                 all_models_bool = False
                 if n_models_ < 1:
-                    n_models = int(outputs.shape[0]*n_models)
+                    n_models = int(outputs.shape[0]*n_models_)
 
                 for i in range(outputs.shape[0]):
                     scorings_i = np.empty((outputs.shape[1],outputs.shape[2]))
