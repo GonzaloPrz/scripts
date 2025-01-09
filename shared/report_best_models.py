@@ -31,7 +31,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
          'MPLS':['Estado General'],
          'AKU':['picture_description','pleasant_memory',
-                'routine','video_retelling'
+                #'routine','video_retelling'
                 ]}
 
 problem_type = {'tell_classifier':'clf',
