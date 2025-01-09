@@ -70,7 +70,7 @@ if len(sys.argv) > 6:
 
 parallel = True
 
-n_models = np.inf
+n_models_ = np.inf
  
 cmatrix = None
 
@@ -211,7 +211,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
         
         for random_seed in random_seeds:
             
-            if n_models == np.inf:
+            if n_models_ == np.inf:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
                     continue
@@ -232,12 +232,12 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
 
             scorings = np.empty(outputs.shape[0])
             
-            if n_models == np.inf:
+            if n_models_ == np.inf:
                 n_models = outputs.shape[0]
                 all_models_bool = True
             else:
                 all_models_bool = False
-                if n_models < 1:
+                if n_models_ < 1:
                     n_models = int(outputs.shape[0]*n_models)
 
                 for i in range(outputs.shape[0]):
