@@ -32,12 +32,12 @@ from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'Proyecto_Ivo'
+project_name = 'AKU'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = True
+shuffle_labels = False
 stratify = True
-n_folds = 3
+n_folds = 5
 n_iter = 50
 n_iter_features = 50
 feature_sample_ratio = 0.5
@@ -120,7 +120,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':['picture_description','pleasant_memory',
+         'AKU':[#'picture_description','pleasant_memory',
                 'routine','video_retelling'
                 ]
          }
@@ -172,7 +172,7 @@ models_dict = {'clf': {'lr':LR,
                     'elastic':ElasticNet,
                     #'knnr':KNNR,
                     'svr':SVR,
-                    #'xgb':xgboostr
+                    'xgb':xgboostr
                     }
                 }
 
@@ -189,7 +189,8 @@ y_labels = {'tell_classifier':['target'],
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
-            'AKU':['cerad_learn_total_corr',
+            'AKU':[ 'sdi0001_age',
+                    'cerad_learn_total_corr',
                     'cerad_dr_correct',
                     'braveman_dr_total',
                     'stick_dr_total',
@@ -472,8 +473,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     assert not set(ID_train_).intersection(set(ID_test_)), "Data leakeage detected between train and test sets!"
 
-                    #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    #    continue
+                    if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                        continue
                     
                     with open(Path(path_to_save_final,'config.json'),'w') as f:
                         json.dump(config,f)
@@ -521,7 +522,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                         all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
                     
-                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
+                    all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
                 with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
                     pickle.dump(X_train,f)

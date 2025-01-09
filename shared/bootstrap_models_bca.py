@@ -42,14 +42,14 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'AKU'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = False
+shuffle_labels = True
 feature_selection = True
-n_folds = 5
+n_folds = 3
 
-n_boot = 500
+n_boot = 200
 scaler_name = 'StandardScaler'
 id_col = 'id'
 
@@ -81,7 +81,7 @@ models = {'MCI_classifier':['lr','svc','knnc'],
           'GeroAopathy_reg':['lasso','ridge','elastic','svr'],
           'GERO_Ivo':['lasso','ridge','elastic','svr'],
           'MPLS':['lasso','ridge','elastic','svr'],
-          'AKU':['lasso','ridge','elastic','svr']
+          'AKU':['lasso','ridge','elastic','svr','xgb']
         }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -132,7 +132,8 @@ y_labels = {'MCI_classifier':['target'],
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
-            'AKU':  ['cerad_learn_total_corr',
+            'AKU':  ['sdi0001_age',
+                    'cerad_learn_total_corr',
                     'cerad_dr_correct',
                     'braveman_dr_total',
                     'stick_dr_total',
@@ -209,7 +210,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            '''
+            
             if n_models == np.inf:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
@@ -219,8 +220,8 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
-            '''
-
+            
+            
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))

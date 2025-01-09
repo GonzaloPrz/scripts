@@ -100,9 +100,9 @@ y_labels = {'tell_classifier':['target'],
                          'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'AKU':['picture_description',
-                #'pleasant_memory','
-                # routine',
-                # 'video_retelling'
+                'pleasant_memory',
+                 'routine',
+                 'video_retelling'
                 ]
             }
 

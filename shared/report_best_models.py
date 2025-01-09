@@ -11,9 +11,11 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'Proyecto_Ivo'
+project_name = 'AKU'
 
-shuffle_labels = True
+n_folds = 5
+
+shuffle_labels = False
 
 hyp_opt = True
 
@@ -21,7 +23,6 @@ feature_selection_list = [True]
 
 scaler_name = 'StandardScaler'
 
-n_folds = 3
 ##---------------------------------PARAMETERS---------------------------------##
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -31,7 +32,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
          'MPLS':['Estado General'],
          'AKU':['picture_description','pleasant_memory',
-                #'routine','video_retelling'
+                'routine','video_retelling'
                 ]}
 
 problem_type = {'tell_classifier':'clf',
@@ -53,6 +54,15 @@ stats = {'tell_classifier':'',
             'MPLS':'',
             'AKU':''}
 
+scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
+           'tell_classifier':['norm_cross_entropy'],
+           'Proyecto_Ivo':['roc_auc'],
+           'GeroApathy':['norm_cross_entropy','roc_auc'],
+           'GeroApathy_reg':['r2_score','mean_absolute_error'],
+           'GERO_Ivo':['r2_score','mean_absolute_error'],
+           'MPLS':['r2_score'],
+           'AKU':['r2_score']}
+
 best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names[problem_type[project_name]]] 
                            + [f'{metric}_ic_dev' for metric in metrics_names[problem_type[project_name]]] 
                            + [f'{metric}_mean_holdout' for metric in metrics_names[problem_type[project_name]]]
@@ -60,13 +70,13 @@ best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','m
 
 pd.options.mode.copy_on_write = True 
 
-if n_folds == -1:
+if n_folds == 0:
     kfold_folder = 'l2ocv'
 else:
     kfold_folder = f'{n_folds}_folds'
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
-for scoring,feature_selection in itertools.product(metrics_names[problem_type[project_name]],feature_selection_list):
+for scoring,feature_selection in itertools.product(scoring_metrics[project_name],feature_selection_list):
     for task in tasks[project_name]:
         extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
         ascending = True if extremo == 'sup' else False
@@ -103,8 +113,8 @@ for scoring,feature_selection in itertools.product(metrics_names[problem_type[pr
 
                     best = None
                     for file in files:
-                        if 'svc' in file.stem:
-                            continue
+                        #if 'svc' in file.stem or 'svr' in file.stem:
+                        #    continue
                         
                         df = pd.read_csv(file)
                         
