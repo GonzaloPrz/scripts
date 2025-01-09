@@ -20,6 +20,9 @@ from tqdm import tqdm
 import itertools,pickle,sys, json
 from scipy.stats import loguniform, uniform, randint
 from random import randint as randint_random 
+import warnings 
+
+warnings.filterwarnings("ignore")
 
 from random import randint as randint_random 
 
@@ -34,13 +37,14 @@ hyp_opt = True
 filter_outliers = False
 shuffle_labels = True
 stratify = True
-n_folds = 5
-n_iter = 5
-n_iter_features = 1
+n_folds = 3
+n_iter = 50
+n_iter_features = 50
 feature_sample_ratio = 0.5
 
 scaler_name = 'StandardScaler'
-n_seeds_train = 2
+n_seeds_train = 10
+n_seeds_shuffle = 10
 id_col = 'id'
 
 # Check if required arguments are provided
@@ -71,7 +75,7 @@ cmatrix = None
 
 random_seeds_train = [3**x for x in np.arange(1,n_seeds_train+1)] if n_seeds_train > 0 else ['']
 
-random_seeds_shuffle = random_seeds_train if shuffle_labels else ['']
+random_seeds_shuffle = random_seeds_train[:n_seeds_shuffle-1] if shuffle_labels else ['']
 
 thresholds = {'tell_classifier':[np.log(0.5)],
               'MCI_classifier':[np.log(0.5)],

@@ -209,7 +209,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            
+            '''
             if n_models == np.inf:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
@@ -219,6 +219,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
+            '''
             try:
 
                 all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
