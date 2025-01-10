@@ -42,14 +42,14 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'Proyecto_Ivo'
+project_name = 'AKU'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = True
+shuffle_labels = False
 feature_selection = True
-n_folds = 3
+n_folds = 5
 
-n_boot = 200
+n_boot = 500
 scaler_name = 'StandardScaler'
 id_col = 'id'
 
@@ -70,7 +70,7 @@ if len(sys.argv) > 6:
 
 parallel = True
 
-n_models_ = np.inf
+n_models_ = 0.2
  
 cmatrix = None
 
@@ -213,7 +213,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            
+            '''
             if n_models_ == np.inf:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
@@ -223,7 +223,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
-            
+            '''
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))

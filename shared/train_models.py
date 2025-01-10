@@ -32,19 +32,19 @@ from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'Proyecto_Ivo'
+project_name = 'AKU'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = True
+shuffle_labels = False
 stratify = True
-n_folds = 3
+n_folds = 5
 n_iter = 50
 n_iter_features = 50
 feature_sample_ratio = 0.5
 
 scaler_name = 'StandardScaler'
-n_seeds_train = 10
-n_seeds_shuffle = 10
+n_seeds_train = 1
+n_seeds_shuffle = 5
 id_col = 'id'
 
 # Check if required arguments are provided
@@ -120,7 +120,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':['picture_description','pleasant_memory',
+         'AKU':[#'picture_description','pleasant_memory',
                 'routine','video_retelling'
                 ]
          }
@@ -180,8 +180,8 @@ models_dict = {'clf': {'lr':LR,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
                     #'knnr':KNNR,
-                    'svr':SVR,
-                    #'xgb':xgboostr
+                    #'svr':SVR,
+                    'xgb':xgboostr
                     }
                 }
 
@@ -356,20 +356,20 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                 num_comb = 0
 
-                for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size[project_name]))-1,len(features)-1))):
+                for k in range(np.min((int(feature_sample_ratio*data.shape[0]*(1-test_size[project_name])*((n_folds-1)/n_folds))-1,len(features)-1))):
                     num_comb += math.comb(len(features),k+1)
 
                 feature_sets = list()
 
                 if n_iter_features > num_comb:
                     # Generate combinations of features with different lengths
-                    for k in range(np.min((int(feature_sample_ratio * data.shape[0] * (1 - test_size[project_name])) - 1, len(features) - 1))):
+                    for k in range(np.min((int(feature_sample_ratio * data.shape[0] * (1 - test_size[project_name])*((n_folds-1)/n_folds)) - 1, len(features) - 1))):
                         for comb in itertools.combinations(features, k + 1):
                             feature_sets.append(list(comb))
                 else:
                     # Generate random feature samples
                     feature_sets = [
-                        list(np.unique(np.random.choice(features, int(feature_sample_ratio * data.shape[0] * (1 - test_size[project_name])), replace=True)))
+                        list(np.unique(np.random.choice(features, int(feature_sample_ratio * data.shape[0] * (1 - test_size[project_name])*((n_folds-1)/n_folds)), replace=True)))
                         for _ in range(n_iter_features)
                     ]
 
