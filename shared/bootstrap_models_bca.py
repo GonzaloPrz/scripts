@@ -45,7 +45,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = False
+shuffle_labels = True
 feature_selection = True
 n_folds = 3
 
@@ -70,7 +70,7 @@ if len(sys.argv) > 6:
 
 parallel = True
 
-n_models_ = .2
+n_models_ = np.inf
  
 cmatrix = None
 
@@ -86,7 +86,10 @@ models = {'MCI_classifier':['lr','svc','knnc'],
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':['cog','Animales__P','brain'],
+         'Proyecto_Ivo':['cog',
+                         'Animales__P',
+                         'brain'
+                         ],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['animales','fas','grandmean','fas__animales'],
@@ -210,7 +213,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            
+            '''
             if n_models_ == np.inf:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
@@ -220,7 +223,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
-            
+            '''
             
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
