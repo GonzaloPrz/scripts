@@ -42,14 +42,15 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'AKU'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
 feature_selection = True
-n_folds = 5
+n_folds = 3
+n_models_ = 0.2
 
-n_boot = 500
+n_boot = 200
 scaler_name = 'StandardScaler'
 id_col = 'id'
 
@@ -69,8 +70,6 @@ if len(sys.argv) > 6:
     n_folds = int(sys.argv[6])
 
 parallel = True
-
-n_models_ = 0.2
  
 cmatrix = None
 
@@ -88,7 +87,8 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
          'Proyecto_Ivo':['cog',
                          'Animales__P',
-                         'brain'
+                         'brain',
+                         'Animales','P'
                          ],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
@@ -97,7 +97,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  #'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':[#'picture_description','pleasant_memory',
+         'AKU':['picture_description','pleasant_memory',
                 'routine','video_retelling'
                 ]}
 
@@ -221,6 +221,9 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             elif Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists():
                     continue 
                 
+            if not Path(path,random_seed,f'all_models_{model}.csv').exists():
+                continue
+
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             '''

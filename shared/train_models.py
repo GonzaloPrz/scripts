@@ -36,15 +36,16 @@ project_name = 'AKU'
 hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
+shuffle_all = True
 stratify = True
-n_folds = 5
+n_folds = 3
 n_iter = 50
-n_iter_features = 50
-feature_sample_ratio = 0.5
+n_iter_features = 100
+feature_sample_ratio = 0.8
 
 scaler_name = 'StandardScaler'
-n_seeds_train = 1
-n_seeds_shuffle = 5
+n_seeds_train = 10
+n_seeds_shuffle = n_seeds_train
 id_col = 'id'
 
 # Check if required arguments are provided
@@ -110,8 +111,11 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['cog',
+                         'Animales',
+                         'P',
                          'Animales__P',
-                         'brain'
+                         'brain',
+                         'conn'
                          ],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
@@ -120,21 +124,25 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':[#'picture_description','pleasant_memory',
-                'routine','video_retelling'
+         'AKU':['picture_description','pleasant_memory',
+                #'routine','video_retelling'
                 ]
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing',
+                                                 #'timing__vr','properties__timing__vr'
+                                                 ],
+                                     'P':['properties','timing','properties__timing',
+                                          #'properties__vr','timing__vr','properties__timing__vr'
+                                          ],
                                      'Animales__P': ['properties',
-                                                     #'timing','properties__timing',
+                                                     'timing','properties__timing',
                                                      #'properties__vr','timing__vr','properties__timing__vr'
                                                      ],
                                      'cog':['neuropsico_digits__neuropsico_tmt',
-                                            #'neuropsico_tmt','neuropsico_digits'
+                                            'neuropsico_tmt','neuropsico_digits'
                                             ],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
@@ -198,7 +206,8 @@ y_labels = {'tell_classifier':['target'],
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
-            'AKU':['cerad_learn_total_corr',
+            'AKU':['sdi0001_age',
+                    'cerad_learn_total_corr',
                     'cerad_dr_correct',
                     'braveman_dr_total',
                     'stick_dr_total',
@@ -206,7 +215,7 @@ y_labels = {'tell_classifier':['target'],
                     'fab_total',
                     'setshift_total',
                     'an_correct',
-                    'mint_total'
+                    'mint_total',
                     ]
             }
 
@@ -466,12 +475,14 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                             random_seed_test_predefined = ['']
 
                         models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
-                        if Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv').exists():
-                            model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
-                        elif Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv').exists():
-                            model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
+                        if shuffle_all == False:
+                            if Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv').exists():
+                                model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
+                            elif Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv').exists():
+                                model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
 
-                        models = pd.DataFrame(models.loc[model_index,:]).T
+                            models = pd.DataFrame(models.loc[model_index,:]).T
+
                         all_features = models[[col for col in models.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]].drop_duplicates()
 
                         feature_sets = [list([col for col in all_features.columns if all_features.loc[r,col] == 1]) for r in all_features.index]
@@ -519,43 +530,46 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     sys.stdout = LoggerWriter(logging.info)
                     sys.stderr = LoggerWriter(logging.error)
+                    try:
+                        models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train_,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train_,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
 
-                    models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train_,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train_,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                        outputs[:,rss] = outputs_.copy()
+                        y_dev[rss] = y_dev_.copy()
+                        IDs_dev[rss] = IDs_dev_.copy()
 
-                    outputs[:,rss] = outputs_.copy()
-                    y_dev[rss] = y_dev_.copy()
-                    IDs_dev[rss] = IDs_dev_.copy()
+                        all_models = pd.DataFrame()
+                        
+                        for model_index in range(models.shape[0]):
+                            model_ = {}
+                            for param in models.keys():
+                                if param in [y_label,id_col]:
+                                    continue
+                                model_[param] = models.iloc[model_index][param]
 
-                    all_models = pd.DataFrame()
-                    
-                    for model_index in range(models.shape[0]):
-                        model_ = {}
-                        for param in models.keys():
-                            if param in [y_label,id_col]:
-                                continue
-                            model_[param] = models.iloc[model_index][param]
+                            all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
+                    except Exception as e:
+                        print(e)
+                        continue
+                        
+                    all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
-                        all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
-                    
-                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
+                    with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
+                        pickle.dump(X_train,f)
+                    with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
+                        pickle.dump(y_dev,f)
+                    with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
+                        pickle.dump(y_train,f) 
+                    with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
+                        pickle.dump(IDs_dev,f)
+                    with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
+                        pickle.dump(IDs_train,f)
+                    with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
+                        pickle.dump(outputs,f)
 
-                with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
-                    pickle.dump(X_train,f)
-                with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
-                    pickle.dump(y_dev,f)
-                with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                    pickle.dump(y_train,f) 
-                with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
-                    pickle.dump(IDs_dev,f)
-                with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
-                    pickle.dump(IDs_train,f)
-                with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
-                    pickle.dump(outputs,f)
-
-                if test_size[project_name] > 0:
-                    with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
-                        pickle.dump(X_test,f)
-                    with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                        pickle.dump(y_test,f)
-                    with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                        pickle.dump(IDs_test,f)
+                    if test_size[project_name] > 0:
+                        with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                            pickle.dump(X_test,f)
+                        with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                            pickle.dump(y_test,f)
+                        with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                            pickle.dump(IDs_test,f)

@@ -27,7 +27,7 @@ models = {'MCI_classifier':['lr','svc','knnc','xgb'],
           'GeroApathy':['elastic','lasso','ridge','knnr','svr','xgb'],
             'GERO_Ivo':['elastic','lasso','ridge','knnr','svr'],
             'MPLS':['elastic','lasso','ridge','svr'],
-            'AKU':['elastic','lasso','ridge','svr']
+            'AKU':['elastic','lasso','ridge','svr','xgb']
             }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -64,7 +64,8 @@ y_labels = {'MCI_classifier':['target'],
             'GERO_Ivo':[],
             'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
             'MPLS':['Minimental'],
-            'AKU':['cerad_learn_total_corr',
+            'AKU':['sdi0001_age',
+                    'cerad_learn_total_corr',
                     'cerad_dr_correct',
                     'braveman_dr_total',
                     'stick_dr_total',
@@ -72,7 +73,7 @@ y_labels = {'MCI_classifier':['target'],
                     'fab_total',
                     'setshift_total',
                     'an_correct',
-                    'mint_total'
+                    'mint_total',
                     ]
             }
 
@@ -90,6 +91,9 @@ for scoring in metrics_names[project_name]:
 
     extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
     ascending = True if extremo == 'sup' else False
+
+    if not Path(results_dir,f'best_models_{scoring}_{kfold_folder}_StandardScaler_hyp_opt_feature_selection.csv').exists():
+        continue
 
     best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring}_{kfold_folder}_StandardScaler_hyp_opt_feature_selection.csv'))
 

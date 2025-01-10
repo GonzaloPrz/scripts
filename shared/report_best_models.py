@@ -11,11 +11,11 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'Proyecto_Ivo'
+project_name = 'AKU'
 
-n_folds = 3
+n_folds = 5
 
-shuffle_labels = True
+shuffle_labels = False
 
 hyp_opt = True
 
