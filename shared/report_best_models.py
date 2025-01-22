@@ -11,9 +11,9 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'AKU'
+project_name = 'Proyecto_Ivo'
 
-n_folds = 5
+n_folds = 3
 
 shuffle_labels = False
 
@@ -27,13 +27,15 @@ scaler_name = 'StandardScaler'
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['cog','brain','Animales__P'],
+         'Proyecto_Ivo':['cog','connectivity','Animales','P','brain','Animales__P'],
          'GeroApathy':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
          'MPLS':['Estado General'],
          'AKU':['picture_description','pleasant_memory',
-                'routine','video_retelling'
-                ]}
+                'routine','video_retelling'],
+         'AKU_outliers_as_nan':['picture_description','pleasant_memory',
+                'routine','video_retelling']
+                }
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
@@ -41,7 +43,8 @@ problem_type = {'tell_classifier':'clf',
                 'GeroApathy':'clf',
                 'GERO_Ivo':'reg',
                 'MPLS':'reg',
-                'AKU':'reg'}
+                'AKU':'reg',
+                'AKU_outliers_as_nan':'reg'}
 
 metrics_names = {'clf':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
                 'reg':['r2_score','mean_absolute_error','mean_squared_error']}
@@ -52,7 +55,8 @@ stats = {'tell_classifier':'',
             'GeroApathy':'',
             'GERO_Ivo':'',
             'MPLS':'',
-            'AKU':''}
+            'AKU':'',
+            'AKU_outliers_as_nan':''}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
@@ -61,7 +65,8 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'],
            'GERO_Ivo':['r2_score','mean_absolute_error'],
            'MPLS':['r2_score'],
-           'AKU':['r2_score']}
+           'AKU':['r2_score'],
+           'AKU_outliers_as_nan':['r2_score']}
 
 best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names[problem_type[project_name]]] 
                            + [f'{metric}_ic_dev' for metric in metrics_names[problem_type[project_name]]] 
@@ -130,32 +135,32 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
                         except:
                             continue
                         
-                        print(f'{file.stem.split("_")[2]}:{df.loc[0,scoring_col]}')
+                        print(f'{file.stem.split("_")[2]}:{df.iloc[0,:][scoring_col]}')
                         if best is None:
-                            best = df.loc[0,:]
+                            best = df.iloc[0,:]
                             
                             model_type = file.stem.split('_')[2]
                             best['y_label'] = y_label
                             best['model_type'] = model_type
                             best['random_seed_test'] = random_seed_test
-                            try:
+                            if 'idx' in df.columns:
                                 best['model_index'] = df['idx'][0]
-                            except:
-                                best['model_index'] = np.nan
-                            
+                            else:
+                                best['model_index'] = df.index[0]
+                        
                             best_file = file
                         else:
-                            if new_best(best[scoring_col],df.loc[0,scoring_col],ascending):
-                                best = df.loc[0,:]
+                            if new_best(best[scoring_col],df.iloc[0,:][scoring_col],ascending):
+                                best = df.iloc[0,:]
 
                                 model_type = file.stem.split('_')[2]
                                 best['y_label'] = y_label
                                 best['model_type'] = model_type
                                 best['random_seed_test'] = random_seed_test
-                                try:
+                                if 'idx' in df.columns:
                                     best['model_index'] = df['idx'][0]
-                                except:
-                                    best['model_index'] = np.nan
+                                else:
+                                    best['model_index'] = df.index[0]
 
                                 best_file = file
                     if best is None:

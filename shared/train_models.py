@@ -32,11 +32,11 @@ from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'AKU'
+project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = False
-shuffle_all = True
+shuffle_labels = True
+shuffle_all = False
 stratify = True
 n_folds = 3
 n_iter = 50
@@ -85,7 +85,7 @@ thresholds = {'tell_classifier':[np.log(0.5)],
                 'GeroApathy_reg':[None],
                 'GERO_Ivo':[None],
                 'MPLS':[None],
-                'AKU':[None]}
+                'AKU_outliers_as_nan':[None]}
 
 test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
@@ -93,7 +93,7 @@ test_size = {'tell_classifier':0.3,
             'GeroApathy':0.3,
             'GERO_Ivo':0.3,
             'MPLS':0,
-            'AKU':0}
+            'AKU_outliers_as_nan':0}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -101,12 +101,12 @@ n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
 data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'MCI_classifier':'features_data.csv',
-            'Proyecto_Ivo':'data_total.csv',
+            'Proyecto_Ivo':'all_data.csv',
             'GeroApathy':'data_matched_agradable',
             'GeroApathy_reg':'all_data_agradable.csv',
             'GERO_Ivo':'all_data.csv',
             'MPLS':'all_data.csv',
-            'AKU':'all_data_HC.csv'}
+            'AKU_outliers_as_nan':'all_data_HC_outliers_as_nan.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
@@ -115,7 +115,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                          'P',
                          'Animales__P',
                          'brain',
-                         'conn'
+                         'connectivity'
                          ],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
@@ -124,8 +124,9 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':['picture_description','pleasant_memory',
-                #'routine','video_retelling'
+         'AKU_outliers_as_nan':[#'picture_description','pleasant_memory',
+                #'routine',
+                'video_retelling'
                 ]
          }
 
@@ -146,13 +147,13 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                                             ],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
-                                     'conn':['connectivity']
+                                     'connectivity':['networks','selected_areas']
                                      },
                         'GeroApathy':['mfcc','pitch','talking-intervals'],
                         'GeroApathy_reg':['mfcc','ratio','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing'],
                         'MPLS':['pitch-analysis','talking-intervals','sentiment-analysis'],
-                        'AKU':['pitch','talking-intervals',
+                        'AKU_outliers_as_nan':['pitch','talking-intervals',
                                #'voice-quality'
                                 ]
 }
@@ -164,7 +165,7 @@ scoring_metrics = {'MCI_classifier':'norm_cross_entropy',
            'GeroApathy_reg':'mean_absolute_error',
            'GERO_Ivo':'mean_absolute_error',
            'MPLS':'r2_score',
-           'AKU':'r2_score'}
+           'AKU_outliers_as_nan':'r2_score'}
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -206,7 +207,7 @@ y_labels = {'tell_classifier':['target'],
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
-            'AKU':['sdi0001_age',
+            'AKU_outliers_as_nan':['sdi0001_age',
                     'cerad_learn_total_corr',
                     'cerad_dr_correct',
                     'braveman_dr_total',
@@ -226,7 +227,7 @@ problem_type = {'tell_classifier':'clf',
                 'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg',
                 'MPLS':'reg',
-                'AKU':'reg'}
+                'AKU_outliers_as_nan':'reg'}
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
@@ -477,7 +478,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
                         if shuffle_all == False:
                             if Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv').exists():
-                                model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
+                                model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['Unnamed: 0'].values[0]
                             elif Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv').exists():
                                 model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
 
@@ -550,6 +551,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     except Exception as e:
                         print(e)
                         continue
+
                         
                     all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 

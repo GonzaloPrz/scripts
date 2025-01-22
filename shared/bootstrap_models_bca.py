@@ -8,6 +8,7 @@ import sys,tqdm
 from pingouin import compute_bootci
 from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, f1_score, r2_score, mean_squared_error, mean_absolute_error
 import logging, sys
+import json
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -53,6 +54,9 @@ n_models_ = 0.2
 n_boot = 200
 scaler_name = 'StandardScaler'
 id_col = 'id'
+''''''
+config_bootstrap = {'n_boot':n_boot,
+                    'n_models':n_models_}
 
 # Check if required arguments are provided
 if len(sys.argv) > 1:
@@ -80,7 +84,7 @@ models = {'MCI_classifier':['lr','svc','knnc'],
           'GeroAopathy_reg':['lasso','ridge','elastic','svr'],
           'GERO_Ivo':['lasso','ridge','elastic','svr'],
           'MPLS':['lasso','ridge','elastic','svr'],
-          'AKU':['lasso','ridge','elastic','svr','xgb']
+          'AKU_outliers_as_nan':['lasso','ridge','elastic','svr','xgb']
         }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -88,7 +92,8 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'Proyecto_Ivo':['cog',
                          'Animales__P',
                          'brain',
-                         'Animales','P'
+                         'Animales','P',
+                         'connectivity'
                          ],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
@@ -97,8 +102,10 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  #'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU':['picture_description','pleasant_memory',
-                'routine','video_retelling'
+         'AKU_outliers_as_nan':[#'picture_description',
+                                #'pleasant_memory',
+                                'routine',
+                                'video_retelling'
                 ]}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -108,7 +115,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'GeroApathy_reg':[],
                      'GERO_Ivo':[],
                      'MPLS':[],
-                     'AKU':[]}
+                     'AKU_outliers_as_nan':[]}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
@@ -117,7 +124,7 @@ problem_type = {'tell_classifier':'clf',
                 'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg',
                 'MPLS':'reg',
-                'AKU':'reg'}	
+                'AKU_outliers_as_nan':'reg'}	
 
 metrics_names = {'clf':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'reg':['r2_score','mean_squared_error','mean_absolute_error']}
@@ -135,7 +142,7 @@ y_labels = {'MCI_classifier':['target'],
                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
-            'AKU':  ['sdi0001_age',
+            'AKU_outliers_as_nan':  ['sdi0001_age',
                     'cerad_learn_total_corr',
                     'cerad_dr_correct',
                     'braveman_dr_total',
@@ -154,7 +161,7 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'],
            'GERO_Ivo':['r2_score','mean_absolute_error'],
            'MPLS':['r2_score'],
-           'AKU':['r2_score']}
+           'AKU_outliers_as_nan':['r2_score']}
 ##---------------------------------PARAMETERS---------------------------------##
 
 if n_folds == 0:
@@ -213,7 +220,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            '''
+            
             if n_models_ == np.inf:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
@@ -226,7 +233,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
 
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
-            '''
+            
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
@@ -269,7 +276,11 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
             
             metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],outputs.shape[2],n_boot))) for metric in metrics_names[problem_type[project_name]])
+            
             try:
+                with open(Path(path,random_seed,'config_bootstrap.json'),'w') as f:
+                    json.dump(config_bootstrap,f)
+
                 all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, j, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index,j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
 
                 # Update the metrics array with the computed results
