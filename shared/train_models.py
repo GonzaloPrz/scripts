@@ -469,6 +469,9 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     path_to_save_final.mkdir(parents=True,exist_ok=True)
 
                     if predefined_models:
+                        best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring_metrics[project_name]}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv'))
+                        if all(best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'] != model):
+                            continue
                         random_seed_test_predefined = [folder for folder in path_to_save.iterdir()  if 'random_seed_' in folder.name]
                         extremo = 'sup' if any(x in scoring_metrics[project_name] for x in ['norm','error']) else 'inf'
                         ascending = True if extremo == 'sup' else False
@@ -552,7 +555,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         print(e)
                         continue
 
-                        
+                    
                     all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
                     with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:

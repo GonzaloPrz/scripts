@@ -46,10 +46,10 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 project_name = 'Proyecto_Ivo'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = False
+shuffle_labels = True
 feature_selection = True
 n_folds = 3
-n_models_ = 0.2
+n_models_ = np.inf
 
 n_boot = 200
 scaler_name = 'StandardScaler'

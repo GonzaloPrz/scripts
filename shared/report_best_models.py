@@ -15,7 +15,7 @@ project_name = 'Proyecto_Ivo'
 
 n_folds = 3
 
-shuffle_labels = False
+shuffle_labels = True
 
 hyp_opt = True
 
