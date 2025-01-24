@@ -9,6 +9,7 @@ set "k=0"
 set "n_iter=50"
 set "n_iter_features=50"
 set "feature_sample_ratio=0.5"
+set "n_models=0"
 set "feature_selection=1"
 
 :: Process arguments
@@ -69,6 +70,12 @@ if "%~1"=="-feature_sample_ratio" (
     shift
     goto next_arg
 )
+if "%~1"=="-n_models" (
+    set "n_models=%~2"
+    shift
+    shift
+    goto next_arg
+)
 echo Error: Unknown argument %~1
 goto show_help
 
@@ -87,7 +94,7 @@ call "C:\Users\CNC Audio\gonza\gonza-env\Scripts\activate"
 
 :: Call Python scripts
 python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%stratify%" "%k%" "%n_iter%" "%n_iter_features%" "%feature_sample_ratio%"
-python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%feature_selection%" "%k%"
+python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%feature_selection%" "%k%" "%n_models%"
 ::python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%k%"
 
 :: Display used parameters
@@ -101,3 +108,4 @@ echo   k=%k%
 echo   n_iter=%n_iter%
 echo   n_iter_features=%n_iter_features%
 echo   feature_sample_ratio=%feature_sample_ratio%
+echo   n_models=%n_models%

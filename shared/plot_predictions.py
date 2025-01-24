@@ -10,7 +10,7 @@ from scipy.stats import pearsonr
 
 random_seeds_train = [3**x for x in np.arange(1,11)]
 
-project_name = 'AKU'
+project_name = 'AKU_outliers_as_nan'
 n_folds = 5
 
 cmatrix = None
@@ -21,33 +21,48 @@ feature_selection_list = [True]
 id_col = 'id'
 scaler_name = 'StandardScaler'
 
-models = {'MCI_classifier':['lr','svc','knnc','xgb'],
-          'tell_classifier':['lr','svc','knnc','xgb'],
-          'Proyecto_Ivo':['lr','svc','knnr','xgb'],
-          'GeroApathy':['elastic','lasso','ridge','knnr','svr','xgb'],
-            'GERO_Ivo':['elastic','lasso','ridge','knnr','svr'],
-            'MPLS':['elastic','lasso','ridge','svr'],
-            'AKU':['elastic','lasso','ridge','svr','xgb']
-            }
+models = {'MCI_classifier':['lr','svc','knnc'],
+          'tell_classifier':['lr','svc','knnc'],
+          'Proyecto_Ivo':['lr','svc','knnc','xgb'],
+          'GeroApathy':['lr','svc','knnc',],
+          'GeroAopathy_reg':['lasso','ridge','elastic','svr'],
+          'GERO_Ivo':['lasso','ridge','elastic','svr'],
+          'MPLS':['lasso','ridge','elastic','svr'],
+          'AKU_outliers_as_nan':['lasso','ridge','elastic',
+             'svr',
+             'xgb'
+            ]
+        }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['DiaTipico'],
-         'GERO_Ivo':['animales','grandmean','fas__animales','fas'],
-         'MPLS':['Estado General'],
-         'AKU':['picture_description','pleasant_memory',
-                'routine','video_retelling'
-                ]
-         }
+         'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
+         'Proyecto_Ivo':['cog',
+                         'Animales__P',
+                         'brain',
+                         'Animales','P',
+                         'connectivity'
+                         ],
+         'GeroApathy':['agradable'],
+         'GeroApathy_reg':['agradable'],
+         'GERO_Ivo':['animales','fas','grandmean','fas__animales'],
+         'MPLS':['Estado General','Estado General 2',
+                 #'Consulta sobre soledad 1','Consulta sobre soledad 2',
+                #'Recuerdo feliz','Animales','Palabras con F'
+                ],
+         'AKU_outliers_as_nan':['picture_description',
+                                'pleasant_memory',
+                                'routine',
+                                'video_retelling'
+                ]}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':[],
-                     'GERO_Ivo':[],
                      'GeroApathy':[],
+                     'GeroApathy_reg':[],
+                     'GERO_Ivo':[],
                      'MPLS':[],
-                     'AKU':[]}
+                     'AKU_outliers_as_nan':[]}
 
 metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
@@ -55,16 +70,24 @@ metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expe
                     'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error'],
                     'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error'],
                     'MPLS':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'AKU':['r2_score','mean_squared_error','mean_absolute_error']
+                    'AKU':['r2_score','mean_squared_error','mean_absolute_error'],
+                    'AKU_outliers_as_nan':['r2_score','mean_squared_error','mean_absolute_error']
                     }
 
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GERO_Ivo':[],
-            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'GeroApathy':['DASS_21_Depression_V_label','Depression_Total_Score_label','AES_Total_Score_label',
+                         'MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
+                         ],
+            'GeroApath_reg':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
+                         'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
+                         ],
+            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+                        ],
             'MPLS':['Minimental'],
-            'AKU':['sdi0001_age',
+            'AKU_outliers_as_nan':  ['sdi0001_age',
                     'cerad_learn_total_corr',
                     'cerad_dr_correct',
                     'braveman_dr_total',
@@ -73,9 +96,8 @@ y_labels = {'MCI_classifier':['target'],
                     'fab_total',
                     'setshift_total',
                     'an_correct',
-                    'mint_total',
-                    ]
-            }
+                    'mint_total'
+                    ]}
 
 if n_folds == 0:
     kfold_folder = 'l2ocv'

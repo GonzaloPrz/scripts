@@ -32,10 +32,10 @@ from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'Proyecto_Ivo'
+project_name = 'ad_mci_hc'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = True
+shuffle_labels = False
 shuffle_all = False
 stratify = True
 n_folds = 3
@@ -44,8 +44,6 @@ n_iter_features = 100
 feature_sample_ratio = 0.8
 
 scaler_name = 'StandardScaler'
-n_seeds_train = 10
-n_seeds_shuffle = n_seeds_train
 id_col = 'id'
 
 # Check if required arguments are provided
@@ -70,6 +68,9 @@ if len(sys.argv) > 8:
 if len(sys.argv) > 9:
     feature_sample_ratio = float(sys.argv[9])
 
+n_seeds_train = 10 if n_folds != -1 else 1
+n_seeds_shuffle = n_seeds_train
+
 parallel = True
 
 cmatrix = None 
@@ -85,7 +86,10 @@ thresholds = {'tell_classifier':[np.log(0.5)],
                 'GeroApathy_reg':[None],
                 'GERO_Ivo':[None],
                 'MPLS':[None],
-                'AKU_outliers_as_nan':[None]}
+                'AKU_outliers_as_nan':[None],
+                'arequipa':[np.log(0.5)],
+                'ad_mci_hc':[np.log(0.5)]
+                }
 
 test_size = {'tell_classifier':0.3,
              'MCI_classifier':0.3,
@@ -93,7 +97,9 @@ test_size = {'tell_classifier':0.3,
             'GeroApathy':0.3,
             'GERO_Ivo':0.3,
             'MPLS':0,
-            'AKU_outliers_as_nan':0}
+            'AKU_outliers_as_nan':0,
+            'arequipa':0,
+            'ad_mci_hc':0.15}
 
 n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
 
@@ -106,7 +112,9 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
             'GeroApathy_reg':'all_data_agradable.csv',
             'GERO_Ivo':'all_data.csv',
             'MPLS':'all_data.csv',
-            'AKU_outliers_as_nan':'all_data_HC_outliers_as_nan.csv'}
+            'AKU_outliers_as_nan':'all_data_HC_outliers_as_nan.csv',
+            'arequipa':'data_matched_group.csv',
+            'ad_mci_hc':'data_matched_group.csv'}
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
@@ -127,7 +135,9 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'AKU_outliers_as_nan':[#'picture_description','pleasant_memory',
                 #'routine',
                 'video_retelling'
-                ]
+                ],
+        'arequipa':['dia_tipico','lamina1','lamina2','fugu','testimonio'],
+        'ad_mci_hc':['fugu']
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
@@ -155,7 +165,9 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                         'MPLS':['pitch-analysis','talking-intervals','sentiment-analysis'],
                         'AKU_outliers_as_nan':['pitch','talking-intervals',
                                #'voice-quality'
-                                ]
+                                ],
+                        'arequipa':['pitch','talking_intervals','word_properties'],
+                        'ad_mci_hc':['pitch','talking-intervals','voice-quality']
 }
 
 scoring_metrics = {'MCI_classifier':'norm_cross_entropy',
@@ -165,7 +177,9 @@ scoring_metrics = {'MCI_classifier':'norm_cross_entropy',
            'GeroApathy_reg':'mean_absolute_error',
            'GERO_Ivo':'mean_absolute_error',
            'MPLS':'r2_score',
-           'AKU_outliers_as_nan':'r2_score'}
+           'AKU_outliers_as_nan':'r2_score',
+           'arequipa':'roc_auc',
+           'ad_mci_hc':'norm_expected_cost'}
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -177,6 +191,8 @@ imputer = KNNImputer
 
 if n_folds == 0:
     kfold_folder = 'l2ocv'
+elif n_folds == -1:
+    kfold_folder = 'loocv'
 else:
     kfold_folder = f'{n_folds}_folds'
 
@@ -217,7 +233,9 @@ y_labels = {'tell_classifier':['target'],
                     'setshift_total',
                     'an_correct',
                     'mint_total',
-                    ]
+                    ],
+            'arequipa':['group'],
+            'ad_mci_hc':['group']
             }
 
 problem_type = {'tell_classifier':'clf',
@@ -227,7 +245,9 @@ problem_type = {'tell_classifier':'clf',
                 'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg',
                 'MPLS':'reg',
-                'AKU_outliers_as_nan':'reg'}
+                'AKU_outliers_as_nan':'reg',
+                'arequipa':'clf',
+                'ad_mci_hc':'clf'}
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 results_dir = Path(str(data_dir).replace('data','results'))
@@ -250,7 +270,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
         else:
             data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
-        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
+        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
         
         data = data[all_features + [y_label,id_col]]
         
@@ -273,14 +293,21 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             if held_out:
                 if n_folds == 0:
                     n_folds = int((data.shape[0]*(1-test_size[project_name]))/2)
+                elif n_folds == -1:
+                    n_folds = data.shape[0]*(1-test_size[project_name])
+                    stratify = False
                 n_seeds_test = n_seeds_test_
             else:
                 if n_folds == 0:
                     n_folds = int(data.shape[0]/2)
+                elif n_folds == -1:
+                    n_folds = data.shape[0]
+                    stratify = False
+
                 n_seeds_test = 1
             
             random_seeds_test = np.arange(n_seeds_test) if test_size[project_name] > 0 else ['']
-
+            
             CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
 
             path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if n_iter > 0 else 'no_hyp_opt','feature_selection' if n_iter_features >0 else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
@@ -406,14 +433,6 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             
             for random_seed_test in random_seeds_test:
                 
-                X_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name])),data.shape[1]))
-                X_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name])),data.shape[1]))
-                y_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))))
-                y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
-                outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False else 1,len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name])),2)) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))))
-                IDs_train = np.empty((len(random_seeds_shuffle),int(data.shape[0]*(1-test_size[project_name]))),dtype=object)
-                IDs_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),int(data.shape[0]*(1-test_size[project_name]))),dtype=object)
-
                 if test_size[project_name] > 0:
                     X_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name])))),data.shape[1]))
                     y_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name]))))))
@@ -442,10 +461,12 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
                         
                         X_train_,X_test_,y_train_,y_test_,ID_train_,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify and problem_type[project_name] == 'clf' else None)
+                        X_train_ = pd.DataFrame(X_train_.squeeze(),columns=data.columns)
+                        X_test_ = pd.DataFrame(X_test_.squeeze(),columns=data.columns)
                         X_train_.reset_index(drop=True,inplace=True)
-                        X_test.reset_index(drop=True,inplace=True)
-                        y_train.reset_index(drop=True,inplace=True)
-                        y_test.reset_index(drop=True,inplace=True)
+                        X_test_.reset_index(drop=True,inplace=True)
+                        y_train_.reset_index(drop=True,inplace=True)
+                        y_test_.reset_index(drop=True,inplace=True)
                         ID_train_.reset_index(drop=True,inplace=True)
                         ID_test.reset_index(drop=True,inplace=True)
 
@@ -458,7 +479,17 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         y_test_ = pd.Series()
                         ID_test_ = pd.Series()
                         path_to_save_final = path_to_save
-
+                    if rss == 0:
+                        X_train = np.empty((len(random_seeds_shuffle),X_train_.shape[0],X_train_.shape[1]))
+                        X_test = np.empty((len(random_seeds_shuffle),X_test_.shape[0],X_test_.shape[1]))
+                        X_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],X_train_.shape[1]))
+                        y_train = np.empty((len(random_seeds_shuffle),X_train_.shape[0]))
+                        y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
+                        outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False else 1,len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],len(np.unique(y)))) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
+                        IDs_train = np.empty((len(random_seeds_shuffle),X_train_.shape[0]),dtype=object)
+                        IDs_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]),dtype=object)
+                        IDs_test = np.empty((len(random_seeds_shuffle),X_test_.shape[0]),dtype=object)
+                    
                     X_train[rss] = X_train_.copy()
                     IDs_train[rss] = ID_train_.copy()
 
@@ -501,7 +532,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                                 except:
                                     pass
 
-                    assert not set(ID_train_).intersection(set(ID_test_)), "Data leakeage detected between train and test sets!"
+                    assert not set(ID_train_).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
                     #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
                     #    continue
@@ -534,26 +565,26 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     sys.stdout = LoggerWriter(logging.info)
                     sys.stderr = LoggerWriter(logging.error)
-                    try:
-                        models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train_,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train_,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                    #try:
+                    models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train_,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train_,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
 
-                        outputs[:,rss] = outputs_.copy()
-                        y_dev[rss] = y_dev_.copy()
-                        IDs_dev[rss] = IDs_dev_.copy()
+                    outputs[:,rss] = outputs_.copy()
+                    y_dev[rss] = y_dev_.copy()
+                    IDs_dev[rss] = IDs_dev_.copy()
 
-                        all_models = pd.DataFrame()
-                        
-                        for model_index in range(models.shape[0]):
-                            model_ = {}
-                            for param in models.keys():
-                                if param in [y_label,id_col]:
-                                    continue
-                                model_[param] = models.iloc[model_index][param]
+                    all_models = pd.DataFrame()
+                    
+                    for model_index in range(models.shape[0]):
+                        model_ = {}
+                        for param in models.keys():
+                            if param in [y_label,id_col]:
+                                continue
+                            model_[param] = models.iloc[model_index][param]
 
-                            all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
-                    except Exception as e:
-                        print(e)
-                        continue
+                        all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
+                    #except Exception as e:
+                    #    print(e)
+                    #    continue
 
                     
                     all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)

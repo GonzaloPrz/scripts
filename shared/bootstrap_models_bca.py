@@ -30,26 +30,29 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
     all_metrics = dict((metric,np.empty(n_boot)) for metric in metrics_names)
     
     for metric in metrics_names:
+
         def get_metric(indices):
             if problem_type == 'clf':
                 metric_value, y_pred = get_metrics_clf(samples[indices], targets[indices], [metric], cmatrix)
             else:
                 metric_value = get_metrics_reg(samples[indices], targets[indices], [metric])
             return metric_value[metric]
-                    
-        results = compute_bootci(x=np.arange(targets.shape[0]),func=get_metric,n_boot=n_boot,method='cper',seed=random_state,return_dist=True,decimals=decimals)
-        metrics_ci[metric] = (np.round(np.nanmean(results[1]),2),results[0])
-        all_metrics[metric] = results[1]
+        try:            
+            results = compute_bootci(x=np.arange(targets.shape[0]),func=get_metric,n_boot=n_boot,method='cper',seed=random_state,return_dist=True,decimals=decimals)
+            metrics_ci[metric] = (np.round(np.nanmean(results[1]),2),results[0])
+            all_metrics[metric] = results[1]
+        except:
+            pass
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'Proyecto_Ivo'
+project_name = 'AKU_outliers_as_nan'
 hyp_opt = True
 filter_outliers = False
-shuffle_labels = True
+shuffle_labels = False
 feature_selection = True
-n_folds = 3
-n_models_ = np.inf
+n_folds = 5
+n_models_ = 0
 
 n_boot = 200
 scaler_name = 'StandardScaler'
@@ -72,6 +75,8 @@ if len(sys.argv) > 5:
     feature_selection = bool(int(sys.argv[5]))
 if len(sys.argv) > 6:
     n_folds = int(sys.argv[6])
+if len(sys.argv) > 7:
+    n_models_ = sys.argv[7]
 
 parallel = True
  
@@ -84,7 +89,12 @@ models = {'MCI_classifier':['lr','svc','knnc'],
           'GeroAopathy_reg':['lasso','ridge','elastic','svr'],
           'GERO_Ivo':['lasso','ridge','elastic','svr'],
           'MPLS':['lasso','ridge','elastic','svr'],
-          'AKU_outliers_as_nan':['lasso','ridge','elastic','svr','xgb']
+          'AKU_outliers_as_nan':['lasso','ridge','elastic',
+             'svr',
+             'xgb'
+            ],
+            'arequipa':['lr','svc','knnc','xgb'],
+            'ad_mci_hc':['lr','svc','knnc','xgb']
         }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
@@ -102,11 +112,13 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                  #'Consulta sobre soledad 1','Consulta sobre soledad 2',
                 #'Recuerdo feliz','Animales','Palabras con F'
                 ],
-         'AKU_outliers_as_nan':[#'picture_description',
-                                #'pleasant_memory',
+         'AKU_outliers_as_nan':['picture_description',
+                                'pleasant_memory',
                                 'routine',
                                 'video_retelling'
-                ]}
+                ],
+            'arequipa':['dia_tipico','lamina1','lamina2','fugu','testimonio'],
+            'ad_mci_hc':['fugu']}
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
@@ -115,7 +127,11 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                      'GeroApathy_reg':[],
                      'GERO_Ivo':[],
                      'MPLS':[],
-                     'AKU_outliers_as_nan':[]}
+                     'AKU_outliers_as_nan':[],
+                     'arequipa':[],
+                     'ad_mci_hc':[]
+                     }
+
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
@@ -124,7 +140,10 @@ problem_type = {'tell_classifier':'clf',
                 'GeroApathy_reg':'reg',
                 'GERO_Ivo':'reg',
                 'MPLS':'reg',
-                'AKU_outliers_as_nan':'reg'}	
+                'AKU_outliers_as_nan':'reg',
+                'arequipa':'clf',
+                'ad_mci_hc':'clf'
+                }	
 
 metrics_names = {'clf':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'reg':['r2_score','mean_squared_error','mean_absolute_error']}
@@ -152,7 +171,9 @@ y_labels = {'MCI_classifier':['target'],
                     'setshift_total',
                     'an_correct',
                     'mint_total'
-                    ]}
+                    ],
+                'arequipa':['group'],
+                'ad_mci_hc':['group']}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
@@ -161,11 +182,16 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'],
            'GERO_Ivo':['r2_score','mean_absolute_error'],
            'MPLS':['r2_score'],
-           'AKU_outliers_as_nan':['r2_score']}
+           'AKU_outliers_as_nan':['r2_score'],
+           'arequipa':['roc_auc'],
+           'ad_mci_hc':['norm_expected_cost']
+           }
 ##---------------------------------PARAMETERS---------------------------------##
 
 if n_folds == 0:
     kfold_folder = 'l2ocv'
+elif n_folds == -1:
+    kfold_folder = 'loocv'
 else:
     kfold_folder = f'{n_folds}_folds'
 
@@ -221,7 +247,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
         
         for random_seed in random_seeds:
             
-            if n_models_ == np.inf:
+            if n_models_ == 0:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
                     continue
@@ -244,7 +270,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
 
             scorings = np.empty(outputs.shape[0])
             
-            if n_models_ == np.inf:
+            if n_models_ == 0:
                 n_models = outputs.shape[0]
                 all_models_bool = True
             else:
@@ -280,6 +306,9 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             try:
                 with open(Path(path,random_seed,'config_bootstrap.json'),'w') as f:
                     json.dump(config_bootstrap,f)
+
+                if np.isnan(outputs).sum() > len(outputs.flatten())/5:
+                    continue
 
                 all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, j, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index,j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
 

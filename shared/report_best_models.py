@@ -11,11 +11,11 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'Proyecto_Ivo'
+project_name = 'AKU_outliers_as_nan'
 
-n_folds = 3
+n_folds = 5
 
-shuffle_labels = True
+shuffle_labels = False
 
 hyp_opt = True
 
@@ -34,7 +34,8 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'AKU':['picture_description','pleasant_memory',
                 'routine','video_retelling'],
          'AKU_outliers_as_nan':['picture_description','pleasant_memory',
-                'routine','video_retelling']
+                'routine','video_retelling'],
+          'arequipa':['día_típico','descripción_de_dibujo_1','descripción_de_dibujo_2','descripción_de_video','testimonio']
                 }
 
 problem_type = {'tell_classifier':'clf',
