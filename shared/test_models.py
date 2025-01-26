@@ -71,12 +71,11 @@ hyp_opt = True
 filter_outliers = True
 shuffle_labels = False
 feature_selection = True
-n_folds = -1
+n_folds = 5
 
 # Check if required arguments are provided
 if len(sys.argv) > 1:
     #print("Usage: python test_models.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k]")
-
     project_name = sys.argv[1]
 if len(sys.argv) > 2:
     hyp_opt = bool(int(sys.argv[2]))
@@ -87,16 +86,15 @@ if len(sys.argv) > 4:
 if len(sys.argv) > 5:
     feature_selection = bool(int(sys.argv[5]))
 if len(sys.argv) > 6:
-    xn_folds = int(sys.argv[6])
-
-l2ocv = False
+    n_folds = int(sys.argv[6])
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
             'GeroApathy': ['DASS_21_Depression_label','AES_Total_Score_label','Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'],
             'GeroApathy_reg': ['DASS_21_Depression','AES_Total_Score','Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo': [#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD', 
+            'GERO_Ivo': ['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD', 
+                         'GM','WM','vol_bilateral_HIP','vol_mask_AD',
                          'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'AKU':['picture_description',
@@ -143,10 +141,11 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'], 
            'GERO_Ivo':['r2_score','mean_absolute_error']}
 
-if l2ocv:
+if n_folds == 0:
     kfold_folder = 'l2ocv'
+elif n_folds == -1:
+    kfold_folder = 'loocv'
 else:
-    n_folds = 5
     kfold_folder = f'{n_folds}_folds'
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -192,11 +191,11 @@ models_dict = {'clf':{'lr': LogisticRegression,
                     'knn': KNNC},
                 
                 'reg':{'lasso':Lasso,
-                                'ridge':Ridge,
-                                'elastic':ElasticNet,
-                                #'knn':KNNR,
-                                'svr':SVR,
-                                'xgb':xgboostr
+                        'ridge':Ridge,
+                        'elastic':ElasticNet,
+                        #'knn':KNNR,
+                        'svr':SVR,
+                        'xgb':xgboostr
                     }
 }
 
@@ -236,7 +235,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                 
                     IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
 
-                    all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+                    #all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
                     
                     for file in files:
                         model_name = file.stem.split('_')[2]
@@ -257,10 +256,11 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
 
                         results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
                         
+                        all_features = [col for col in results_dev.columns if f'{task}_{dimension}__' in col]
                         if 'threshold' not in results_dev.columns:
                             results_dev['threshold'] = thresholds[project_name][0]
 
-                        results = Parallel(n_jobs=-1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
+                        results = Parallel(n_jobs=1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
                                                                                     X_test,y_test,all_features,y_labels[project_name],metrics_names[problem_type[project_name]],IDs_test,boot_train,
                                                                                     boot_test,problem_type[project_name],threshold=results_dev.loc[r,'threshold']) 
                                                                                     for r in results_dev.index)

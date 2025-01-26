@@ -11,7 +11,7 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'AKU_outliers_as_nan'
+project_name = 'arequipa'
 
 n_folds = 5
 
@@ -35,7 +35,7 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                 'routine','video_retelling'],
          'AKU_outliers_as_nan':['picture_description','pleasant_memory',
                 'routine','video_retelling'],
-          'arequipa':['día_típico','descripción_de_dibujo_1','descripción_de_dibujo_2','descripción_de_video','testimonio']
+          'arequipa':['dia_tipico','lamina1','lamina2','fugu','testimonio']
                 }
 
 problem_type = {'tell_classifier':'clf',
@@ -45,7 +45,8 @@ problem_type = {'tell_classifier':'clf',
                 'GERO_Ivo':'reg',
                 'MPLS':'reg',
                 'AKU':'reg',
-                'AKU_outliers_as_nan':'reg'}
+                'AKU_outliers_as_nan':'reg',
+                'arequipa':'clf'}
 
 metrics_names = {'clf':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
                 'reg':['r2_score','mean_absolute_error','mean_squared_error']}
@@ -57,12 +58,14 @@ stats = {'tell_classifier':'',
             'GERO_Ivo':'',
             'MPLS':'',
             'AKU':'',
-            'AKU_outliers_as_nan':''}
+            'AKU_outliers_as_nan':'',
+            'arequipa':''}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
            'Proyecto_Ivo':['roc_auc'],
            'GeroApathy':['norm_cross_entropy','roc_auc'],
+           'arequipa':['roc_auc'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'],
            'GERO_Ivo':['r2_score','mean_absolute_error'],
            'MPLS':['r2_score'],
@@ -78,6 +81,8 @@ pd.options.mode.copy_on_write = True
 
 if n_folds == 0:
     kfold_folder = 'l2ocv'
+elif n_folds == -1:
+    kfold_folder = 'loocv'
 else:
     kfold_folder = f'{n_folds}_folds'
 

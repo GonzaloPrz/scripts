@@ -76,7 +76,7 @@ if len(sys.argv) > 5:
 if len(sys.argv) > 6:
     n_folds = int(sys.argv[6])
 if len(sys.argv) > 7:
-    n_models_ = sys.argv[7]
+    n_models_ = float(sys.argv[7])
 
 parallel = True
  
@@ -158,7 +158,8 @@ y_labels = {'MCI_classifier':['target'],
                          'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                          ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
-                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+                        'GM','WM','vol_bilateral_HIP','vol_mask_AD',
+                        #'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
             'AKU_outliers_as_nan':  ['sdi0001_age',

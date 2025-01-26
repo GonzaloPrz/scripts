@@ -220,7 +220,8 @@ y_labels = {'tell_classifier':['target'],
                           #'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                           ],
             'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
-                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+                        'GM','WM','vol_bilateral_HIP','vol_mask_AD',
+                        #'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
             'AKU_outliers_as_nan':['sdi0001_age',
@@ -270,7 +271,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
         else:
             data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
-        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
+        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
         
         data = data[all_features + [y_label,id_col]]
         
@@ -477,7 +478,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                         X_test_ = pd.DataFrame()
                         y_test_ = pd.Series()
-                        ID_test_ = pd.Series()
+                        ID_test = pd.Series()
                         path_to_save_final = path_to_save
                     if rss == 0:
                         X_train = np.empty((len(random_seeds_shuffle),X_train_.shape[0],X_train_.shape[1]))
@@ -534,8 +535,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     assert not set(ID_train_).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                    #if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    #    continue
+                    if Path(path_to_save_final,f'all_models_{model}.csv').exists():
+                        continue
                     
                     with open(Path(path_to_save_final,'config.json'),'w') as f:
                         json.dump(config,f)
