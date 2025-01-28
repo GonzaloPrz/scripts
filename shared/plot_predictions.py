@@ -139,7 +139,7 @@ for scoring in metrics_names[project_name]:
             task = best_models_y_label['task'].values[0]
             dim = best_models_y_label['dimension'].values[0]
             random_seed_test = best_models_y_label['random_seed_test'].values[0]
-            if random_seed_test is np.nan:
+            if np.isnan(random_seed_test):
                 random_seed_test = ''
 
             for ndim in range(1,len(single_dimensions[project_name])+1):

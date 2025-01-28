@@ -32,16 +32,16 @@ from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
-project_name = 'ad_mci_hc'
+project_name = 'GERO_Ivo'
 hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
 shuffle_all = False
 stratify = True
-n_folds = 3
+n_folds = 5
 n_iter = 50
-n_iter_features = 100
-feature_sample_ratio = 0.8
+n_iter_features = 50
+feature_sample_ratio = 0.5
 
 scaler_name = 'StandardScaler'
 id_col = 'id'
@@ -205,7 +205,7 @@ models_dict = {'clf': {'lr':LR,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
                     #'knnr':KNNR,
-                    #'svr':SVR,
+                    'svr':SVR,
                     'xgb':xgboostr
                     }
                 }
@@ -219,9 +219,11 @@ y_labels = {'tell_classifier':['target'],
             'GeroApathy_reg':['DASS_21_Depression_V','AES_Total_Score',
                           #'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                           ],
-            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
-                        'GM','WM','vol_bilateral_HIP','vol_mask_AD',
-                        #'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+                        'GM','WM',
+                        'vol_bilateral_HIP',
+                        'vol_mask_AD',
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
             'AKU_outliers_as_nan':['sdi0001_age',
@@ -434,11 +436,6 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             
             for random_seed_test in random_seeds_test:
                 
-                if test_size[project_name] > 0:
-                    X_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name])))),data.shape[1]))
-                    y_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name]))))))
-                    IDs_test = np.empty((len(random_seeds_shuffle),np.max((1,int(data.shape[0]*(test_size[project_name]))))),dtype=object)
-
                 for rss,random_seed_shuffle in enumerate(random_seeds_shuffle):
                     if shuffle_labels and problem_type[project_name] == 'clf':
                         np.random.seed(random_seed_shuffle)
@@ -535,9 +532,16 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     assert not set(ID_train_).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                    if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                        continue
-                    
+                    if Path(path_to_save_final,f'all_models_{model}.csv').exists():    
+                        y_dev = pickle.load(open(Path(path_to_save_final,f'y_dev.pkl'),'rb'))
+                        outputs = pickle.load(open(Path(path_to_save_final,f'outputs_{model}.pkl'),'rb'))
+                        
+                        if (y_dev.shape[-1] == outputs.shape[-1]) or (len(np.unique(y_dev)) > 1):
+                            continue
+                        
+                        y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
+                        outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False else 1,len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],len(np.unique(y)))) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
+
                     with open(Path(path_to_save_final,'config.json'),'w') as f:
                         json.dump(config,f)
 
@@ -572,7 +576,6 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     outputs[:,rss] = outputs_.copy()
                     y_dev[rss] = y_dev_.copy()
                     IDs_dev[rss] = IDs_dev_.copy()
-
                     all_models = pd.DataFrame()
                     
                     for model_index in range(models.shape[0]):
@@ -607,6 +610,6 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
                             pickle.dump(X_test,f)
                         with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                            pickle.dump(y_test,f)
+                            pickle.dump(y_test_,f)
                         with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
                             pickle.dump(IDs_test,f)

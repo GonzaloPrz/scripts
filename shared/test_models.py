@@ -25,7 +25,13 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold):
     results_r = row.dropna().to_dict()
-                                        
+
+    if not isinstance(X_dev,pd.DataFrame):
+        X_dev = pd.DataFrame(X_dev.squeeze(),columns=all_features)
+
+    if not isinstance(X_test,pd.DataFrame):
+        X_test = pd.DataFrame(X_test.squeeze(),columns=all_features)
+
     params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold','idx']))
 
     features = [col for col in all_features if col in results_r.keys() and results_r[col] == 1]
@@ -68,7 +74,7 @@ project_name = 'GERO_Ivo'
 scaler_name = 'StandardScaler'
 boot_test = 200
 hyp_opt = True
-filter_outliers = True
+filter_outliers = False
 shuffle_labels = False
 feature_selection = True
 n_folds = 5
@@ -207,6 +213,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
     for dimension in dimensions:
         print(task,dimension)
         for y_label in y_labels[project_name]:
+            print(y_label)
             path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
 
             if not path_to_results.exists():
@@ -242,8 +249,8 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
 
                         print(model_name)
                         
-                        if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                            continue
+                        #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                        #    continue
                         
                         results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                         

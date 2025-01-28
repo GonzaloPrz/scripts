@@ -46,13 +46,13 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'AKU_outliers_as_nan'
+project_name = 'GERO_Ivo'
 hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
 feature_selection = True
 n_folds = 5
-n_models_ = 0
+n_models_ = 0.2
 
 n_boot = 200
 scaler_name = 'StandardScaler'
@@ -157,9 +157,9 @@ y_labels = {'MCI_classifier':['target'],
             'GeroApath_reg':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
                          'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
                          ],
-            'GERO_Ivo':[#'GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
                         'GM','WM','vol_bilateral_HIP','vol_mask_AD',
-                        #'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
+                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
             'MPLS':['Minimental'],
             'AKU_outliers_as_nan':  ['sdi0001_age',
@@ -181,7 +181,7 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'Proyecto_Ivo':['roc_auc'],
            'GeroApathy':['norm_cross_entropy','roc_auc'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'],
-           'GERO_Ivo':['r2_score','mean_absolute_error'],
+           'GERO_Ivo':['r2_score'],
            'MPLS':['r2_score'],
            'AKU_outliers_as_nan':['r2_score'],
            'arequipa':['roc_auc'],
@@ -247,14 +247,14 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            
+            '''
             if n_models_ == 0:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
                     continue
             elif Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists():
                     continue 
-                
+            '''  
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
 
@@ -279,6 +279,12 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 if n_models_ < 1:
                     n_models = int(outputs.shape[0]*n_models_)
 
+            if outputs.shape[-1] != y_dev.shape[-1]:
+                print('Mismatch between outputs and y_dev shapes')
+                continue
+            try:
+                if y_dev.ndim == 4:
+                    y_dev = y_dev.squeeze(axis=0)
                 for i in range(outputs.shape[0]):
                     scorings_i = np.empty((outputs.shape[1],outputs.shape[2]))
                     for j,r in itertools.product(range(outputs.shape[1]),range(outputs.shape[2])):
@@ -298,13 +304,13 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 all_models['idx'] = best_models
                 outputs = outputs[best_models]
             
-            outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
-            y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
-            y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
-            
-            metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],outputs.shape[2],n_boot))) for metric in metrics_names[problem_type[project_name]])
-            
-            try:
+                outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
+                y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
+                y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
+                
+                metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],outputs.shape[2],n_boot))) for metric in metrics_names[problem_type[project_name]])
+                
+                
                 with open(Path(path,random_seed,'config_bootstrap.json'),'w') as f:
                     json.dump(config_bootstrap,f)
 
@@ -332,4 +338,4 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 #pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca_{scoring}.pkl'),'wb'))
             except Exception as e:
                 print(e)
-                continue    
+                continue

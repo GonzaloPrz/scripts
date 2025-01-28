@@ -11,7 +11,7 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'arequipa'
+project_name = 'GERO_Ivo'
 
 n_folds = 5
 
@@ -106,7 +106,7 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
                 if not path.exists():
                     continue
                 random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
-
+                random_seeds_test = []
                 if len(random_seeds_test) == 0:
                     random_seeds_test = ['']
 
