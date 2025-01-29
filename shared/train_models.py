@@ -32,9 +32,10 @@ from utils import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 
+filter_outliers = False
+
 project_name = 'GERO_Ivo'
 hyp_opt = True
-filter_outliers = False
 shuffle_labels = False
 shuffle_all = False
 stratify = True
@@ -54,7 +55,7 @@ if len(sys.argv) > 1:
 if len(sys.argv) > 2:
     hyp_opt = bool(int(sys.argv[2]))
 if len(sys.argv) > 3:
-    filter_outliers = bool(int(sys.argv[3]))
+    all_stats = bool(int(sys.argv[3]))
 if len(sys.argv) > 4:
     shuffle_labels = bool(int(sys.argv[4]))
 if len(sys.argv) > 5:
@@ -67,6 +68,9 @@ if len(sys.argv) > 8:
     n_iter_features = int(sys.argv[8])
 if len(sys.argv) > 9:
     feature_sample_ratio = float(sys.argv[9])
+
+avoid_stats = ['min','max','skewness','kurtosis','median'] if all_stats == False else []
+stat_folder = '_'.join(list(set(['mean','std','min','max','median','kurtosis','skewness']) - set(avoid_stats))) if all_stats == False else 'all_stats'
 
 n_seeds_train = 10 if n_folds != -1 else 1
 n_seeds_shuffle = n_seeds_train
@@ -273,7 +277,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
         else:
             data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
-        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
+        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
         
         data = data[all_features + [y_label,id_col]]
         
@@ -313,7 +317,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             
             CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
 
-            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if n_iter > 0 else 'no_hyp_opt','feature_selection' if n_iter_features >0 else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
+            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if n_iter > 0 else 'no_hyp_opt','feature_selection' if n_iter_features >0 else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
 
             path_to_save.mkdir(parents=True,exist_ok=True)
 
@@ -536,8 +540,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         y_dev = pickle.load(open(Path(path_to_save_final,f'y_dev.pkl'),'rb'))
                         outputs = pickle.load(open(Path(path_to_save_final,f'outputs_{model}.pkl'),'rb'))
                         
-                        if (y_dev.shape[-1] == outputs.shape[-1]) or (len(np.unique(y_dev)) > 1):
-                            continue
+                        #if (y_dev.shape[-1] == outputs.shape[-1]) or (len(np.unique(y_dev)) > 1):
+                        #    continue
                         
                         y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
                         outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False else 1,len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],len(np.unique(y)))) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))

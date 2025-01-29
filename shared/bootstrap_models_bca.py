@@ -46,9 +46,10 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
 
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
+filter_outliers = False
+
 project_name = 'GERO_Ivo'
 hyp_opt = True
-filter_outliers = False
 shuffle_labels = False
 feature_selection = True
 n_folds = 5
@@ -68,7 +69,7 @@ if len(sys.argv) > 1:
 if len(sys.argv) > 2:
     hyp_opt = bool(int(sys.argv[2]))
 if len(sys.argv) > 3:
-    filter_outliers = bool(int(sys.argv[3]))
+    all_stats = bool(int(sys.argv[3]))
 if len(sys.argv) > 4:
     shuffle_labels = bool(int(sys.argv[4]))
 if len(sys.argv) > 5:
@@ -77,6 +78,9 @@ if len(sys.argv) > 6:
     n_folds = int(sys.argv[6])
 if len(sys.argv) > 7:
     n_models_ = float(sys.argv[7])
+
+avoid_stats = ['min','max','skewness','kurtosis','median'] if all_stats == False else []
+stat_folder = '_'.join(list(set(['mean','std','min','max','median','kurtosis','skewness']) - set(avoid_stats))) if all_stats == False else 'all_stats'
 
 parallel = True
  
@@ -237,7 +241,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
 
     for dimension in dimensions:
         print(task,model,dimension,y_label)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
         
         if not path.exists():  
             continue
