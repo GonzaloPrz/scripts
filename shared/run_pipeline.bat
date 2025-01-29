@@ -28,8 +28,8 @@ if "%~1"=="-hyp_opt" (
     shift
     goto next_arg
 )
-if "%~1"=="-filter_outliers" (
-    set "filter_outliers=%~2"
+if "%~1"=="-all_stats" (
+    set "all_stats=%~2"
     shift
     shift
     goto next_arg
@@ -101,7 +101,7 @@ python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" "%proje
 echo Pipeline executed with:
 echo   project_name=%project_name%
 echo   hyp_opt=%hyp_opt%
-echo   filter_outliers=%filter_outliers%
+echo   all_stats=%all_stats%
 echo   shuffle_labels=%shuffle_labels%
 echo   stratify=%stratify%
 echo   k=%k%
