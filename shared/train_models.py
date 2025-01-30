@@ -34,14 +34,15 @@ from utils import *
 
 filter_outliers = False
 
-project_name = 'GERO_Ivo'
+project_name = 'arequipa'
 hyp_opt = True
+all_stats = False
 shuffle_labels = False
-shuffle_all = False
+shuffle_all = True
 stratify = True
 n_folds = 5
 n_iter = 50
-n_iter_features = 50
+n_iter_features = 0
 feature_sample_ratio = 0.5
 
 scaler_name = 'StandardScaler'
@@ -69,11 +70,12 @@ if len(sys.argv) > 8:
 if len(sys.argv) > 9:
     feature_sample_ratio = float(sys.argv[9])
 
-avoid_stats = ['min','max','skewness','kurtosis','median'] if all_stats == False else []
-stat_folder = '_'.join(list(set(['mean','std','min','max','median','kurtosis','skewness']) - set(avoid_stats))) if all_stats == False else 'all_stats'
+avoid_stats = ['min','max','median','skewness','kurtosis'] if all_stats == False else []
+
+stat_folder = '_'.join(sorted(list(set(['mean','std','min','max','median','kurtosis','skewness']) - set(avoid_stats)))) if all_stats == False else ''
 
 n_seeds_train = 10 if n_folds != -1 else 1
-n_seeds_shuffle = n_seeds_train
+n_seeds_shuffle = n_seeds_train 
 
 parallel = True
 
@@ -140,7 +142,10 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                 #'routine',
                 'video_retelling'
                 ],
-        'arequipa':['dia_tipico','lamina1','lamina2','fugu','testimonio'],
+        'arequipa':['dia_tipico',
+                    'lamina1',
+                    'lamina2','fugu','testimonio'
+                    ],
         'ad_mci_hc':['fugu']
          }
 
@@ -277,8 +282,7 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
         else:
             data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
 
-        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and 'timestamp' not in col]
-        
+        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and not isinstance(data.loc[0,col],str) and all(f'_{x}' not in col for x in avoid_stats + ['query','timestamp'])]
         data = data[all_features + [y_label,id_col]]
         
         data = data.dropna(subset=[y_label])
@@ -419,24 +423,6 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                 # Add the full set of features
                 feature_sets.append(features)
-            else:
-                all_models = pd.read_csv(Path(str(path_to_save).replace('shuffle',''),f'random_seed_{random_seeds_test[0]}' if test_size[project_name]>0 else '',f'all_models_{model}.csv'))
-                hyperp[model] = all_models[[col for col in all_models.columns if task not in col]]
-                feature_sets = []
-                for r, row in all_models.iterrows():
-                    feature_sets.append([feature for feature in all_models.columns if task in feature and row[feature] == 1])
-                
-            features_df = pd.DataFrame(index=np.arange(len(feature_sets)),columns=features)
-            for f, feature_set in enumerate(feature_sets):
-                features_df.loc[f,features] = [1 if feature in feature_set else 0 for feature in features]
-            
-            features_df.drop_duplicates(inplace=True)
-            features_df = features_df.reset_index(drop=True)
-
-            feature_sets = list()
-            
-            for r in features_df.index:
-                feature_sets.append(list(features_df.columns[features_df.loc[r,:]==1]))
             
             for random_seed_test in random_seeds_test:
                 
@@ -520,8 +506,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                             models = pd.DataFrame(models.loc[model_index,:]).T
 
-                        all_features = models[[col for col in models.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]].drop_duplicates()
-
+                        all_features = models[[col for col in models.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]].drop_duplicates()
+                        
                         feature_sets = [list([col for col in all_features.columns if all_features.loc[r,col] == 1]) for r in all_features.index]
                         # Remove duplicates by converting to set and back to list of lists
                         feature_sets = [list(t) for t in set(tuple(sorted(fs)) for fs in feature_sets)]
@@ -540,8 +526,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         y_dev = pickle.load(open(Path(path_to_save_final,f'y_dev.pkl'),'rb'))
                         outputs = pickle.load(open(Path(path_to_save_final,f'outputs_{model}.pkl'),'rb'))
                         
-                        #if (y_dev.shape[-1] == outputs.shape[-1]) or (len(np.unique(y_dev)) > 1):
-                        #    continue
+                        if (y_dev.shape[-1] == outputs.shape[-2]) and (len(np.unique(y_dev)) > 1):
+                            continue
                         
                         y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
                         outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False else 1,len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],len(np.unique(y)))) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
@@ -595,25 +581,25 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     #    continue
 
                     
-                    all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
+                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
 
-                    with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
-                        pickle.dump(X_train,f)
-                    with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
-                        pickle.dump(y_dev,f)
-                    with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                        pickle.dump(y_train,f) 
-                    with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
-                        pickle.dump(IDs_dev,f)
-                    with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
-                        pickle.dump(IDs_train,f)
-                    with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
-                        pickle.dump(outputs,f)
+                with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
+                    pickle.dump(X_train,f)
+                with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
+                    pickle.dump(y_dev,f)
+                with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
+                    pickle.dump(y_train,f) 
+                with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
+                    pickle.dump(IDs_dev,f)
+                with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
+                    pickle.dump(IDs_train,f)
+                with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
+                    pickle.dump(outputs,f)
 
-                    if test_size[project_name] > 0:
-                        with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
-                            pickle.dump(X_test,f)
-                        with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                            pickle.dump(y_test_,f)
-                        with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                            pickle.dump(IDs_test,f)
+                if test_size[project_name] > 0:
+                    with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                        pickle.dump(X_test,f)
+                    with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                        pickle.dump(y_test_,f)
+                    with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                        pickle.dump(IDs_test,f)

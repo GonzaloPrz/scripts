@@ -47,13 +47,14 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
 filter_outliers = False
+all_stats = False
 
-project_name = 'GERO_Ivo'
+project_name = 'arequipa'
 hyp_opt = True
 shuffle_labels = False
-feature_selection = True
+feature_selection = False
 n_folds = 5
-n_models_ = 0.2
+n_models_ = 0
 
 n_boot = 200
 scaler_name = 'StandardScaler'
@@ -80,7 +81,7 @@ if len(sys.argv) > 7:
     n_models_ = float(sys.argv[7])
 
 avoid_stats = ['min','max','skewness','kurtosis','median'] if all_stats == False else []
-stat_folder = '_'.join(list(set(['mean','std','min','max','median','kurtosis','skewness']) - set(avoid_stats))) if all_stats == False else 'all_stats'
+stat_folder = '_'.join(sorted(list(set(['mean','std','min','max','median','kurtosis','skewness']) - set(avoid_stats)))) if all_stats == False else ''
 
 parallel = True
  
@@ -251,20 +252,18 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            '''
+            '''            
             if n_models_ == 0:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
                     continue
             elif Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists():
                     continue 
-            '''  
+                    
+            '''
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
 
-            if not Path(path,random_seed,f'all_models_{model}.csv').exists():
-                continue
-            
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
@@ -283,7 +282,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 if n_models_ < 1:
                     n_models = int(outputs.shape[0]*n_models_)
 
-            if outputs.shape[-1] != y_dev.shape[-1]:
+            if outputs.shape[-2] != y_dev.shape[-1]:
                 print('Mismatch between outputs and y_dev shapes')
                 continue
             try:

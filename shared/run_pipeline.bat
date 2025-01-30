@@ -92,7 +92,6 @@ if "%n_iter_features%"=="0" (
 
 call "C:\Users\CNC Audio\gonza\gonza-env\Scripts\activate"
 
-:: Call Python scripts
 python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" "%project_name%" "%hyp_opt%" "%all_stats%" "%shuffle_labels%" "%stratify%" "%k%" "%n_iter%" "%n_iter_features%" "%feature_sample_ratio%"
 python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" "%project_name%" "%hyp_opt%" "%all_stats%" "%shuffle_labels%" "%feature_selection%" "%k%" "%n_models%"
 ::python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" "%project_name%" "%hyp_opt%" "%filter_outliers%" "%shuffle_labels%" "%k%"
