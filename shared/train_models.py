@@ -533,8 +533,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     assert not set(ID_train_).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                    #if Path(path_to_save_final,f'all_models_{model}.csv').exists():    
-                    #    continue
+                    if Path(path_to_save_final,f'all_models_{model}.csv').exists():    
+                        continue
                         
                     with open(Path(path_to_save_final,'config.json'),'w') as f:
                         json.dump(config,f)

@@ -252,7 +252,7 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            '''            
+                      
             if n_models_ == 0:
 
                 if Path(path,random_seed,f'all_models_{model}_dev_bca.csv').exists():
@@ -260,7 +260,6 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             elif Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv').exists():
                     continue 
                     
-            '''
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
 

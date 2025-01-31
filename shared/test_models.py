@@ -99,7 +99,6 @@ from psrcal import *
 
 ##---------------------------------PARAMETERS---------------------------------##
 project_name = 'ad_mci_hc'
-stat_folder = 'mean_std'
 
 scaler_name = 'StandardScaler'
 boot_test = 200
@@ -117,13 +116,15 @@ if len(sys.argv) > 1:
 if len(sys.argv) > 2:
     hyp_opt = bool(int(sys.argv[2]))
 if len(sys.argv) > 3:
-    filter_outliers = bool(int(sys.argv[3]))
+    all_stats = bool(int(sys.argv[3]))
 if len(sys.argv) > 4:
     shuffle_labels = bool(int(sys.argv[4]))
 if len(sys.argv) > 5:
     feature_selection = bool(int(sys.argv[5]))
 if len(sys.argv) > 6:
     n_folds = int(sys.argv[6])
+
+stat_folder = 'mean_std' if not all_stats else ''
 
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
