@@ -37,7 +37,7 @@ filter_outliers = False
 project_name = 'arequipa'
 hyp_opt = True
 all_stats = False
-shuffle_labels = False
+shuffle_labels = True
 shuffle_all = True
 stratify = True
 n_folds = 5
@@ -94,7 +94,7 @@ thresholds = {'tell_classifier':[np.log(0.5)],
                 'MPLS':[None],
                 'AKU_outliers_as_nan':[None],
                 'arequipa':[np.log(0.5)],
-                'ad_mci_hc':[np.log(0.5)]
+                'ad_mci_hc':[None]
                 }
 
 test_size = {'tell_classifier':0.3,
@@ -473,7 +473,6 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                         X_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],X_train_.shape[1]))
                         y_train = np.empty((len(random_seeds_shuffle),X_train_.shape[0]))
                         y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
-                        outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False else 1,len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],len(np.unique(y)))) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
                         IDs_train = np.empty((len(random_seeds_shuffle),X_train_.shape[0]),dtype=object)
                         IDs_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]),dtype=object)
                         IDs_test = np.empty((len(random_seeds_shuffle),X_test_.shape[0]),dtype=object)
@@ -488,23 +487,35 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     path_to_save_final.mkdir(parents=True,exist_ok=True)
 
                     if predefined_models:
-                        best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring_metrics[project_name]}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv'))
-                        if all(best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'] != model):
-                            continue
                         random_seed_test_predefined = [folder for folder in path_to_save.iterdir()  if 'random_seed_' in folder.name]
-                        extremo = 'sup' if any(x in scoring_metrics[project_name] for x in ['norm','error']) else 'inf'
-                        ascending = True if extremo == 'sup' else False
                         if len(random_seed_test_predefined) == 0:
-                            random_seed_test_predefined = ['']
+                                random_seed_test_predefined = ['']
 
-                        models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
                         if shuffle_all == False:
+
+                            best_models_file = f'best_models_{scoring_metrics[project_name]}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection.csv'
+                        
+                            if not hyp_opt:
+                                best_models_file = best_models_file.replace('hyp_opt','no_hyp_opt')
+                            if n_iter_features == 0:
+                                best_models_file = best_models_file.replace('_feature_selection','')
+
+                            best_models = pd.read_csv(Path(results_dir,best_models_file))
+
+                            if all(best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'] != model):
+                                continue
+                            extremo = 'sup' if any(x in scoring_metrics[project_name] for x in ['norm','error']) else 'inf'
+                            ascending = True if extremo == 'sup' else False
+                            
+                            models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
                             if Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv').exists():
                                 model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}_dev_bca.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['Unnamed: 0'].values[0]
                             elif Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv').exists():
                                 model_index = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'best_models_{model}_dev_bca_{scoring_metrics[project_name]}.csv')).sort_values(f'{scoring_metrics[project_name]}_{extremo}',ascending=ascending)['idx'].values[0]
 
                             models = pd.DataFrame(models.loc[model_index,:]).T
+                        else:
+                            models = pd.read_csv(Path(str(Path(path_to_save,random_seed_test_predefined[0])).replace('shuffle',''),f'all_models_{model}.csv'))
 
                         all_features = models[[col for col in models.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]].drop_duplicates()
                         
@@ -522,16 +533,9 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
 
                     assert not set(ID_train_).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
 
-                    if Path(path_to_save_final,f'all_models_{model}.csv').exists():    
-                        y_dev = pickle.load(open(Path(path_to_save_final,f'y_dev.pkl'),'rb'))
-                        outputs = pickle.load(open(Path(path_to_save_final,f'outputs_{model}.pkl'),'rb'))
+                    #if Path(path_to_save_final,f'all_models_{model}.csv').exists():    
+                    #    continue
                         
-                        if (y_dev.shape[-1] == outputs.shape[-2]) and (len(np.unique(y_dev)) > 1):
-                            continue
-                        
-                        y_dev = np.empty((len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
-                        outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False else 1,len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],len(np.unique(y)))) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
-
                     with open(Path(path_to_save_final,'config.json'),'w') as f:
                         json.dump(config,f)
 
@@ -562,6 +566,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     sys.stderr = LoggerWriter(logging.error)
                     #try:
                     models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train_,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train_,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                    if rss == 0:
+                        outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False or shuffle_all == True else 1,len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],len(np.unique(y)))) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
 
                     outputs[:,rss] = outputs_.copy()
                     y_dev[rss] = y_dev_.copy()
@@ -581,25 +587,27 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     #    continue
 
                     
-                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
+                    all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
+                try:
+                    with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
+                        pickle.dump(X_train,f)
+                    with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
+                        pickle.dump(y_dev,f)
+                    with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
+                        pickle.dump(y_train,f) 
+                    with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
+                        pickle.dump(IDs_dev,f)
+                    with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
+                        pickle.dump(IDs_train,f)
+                    with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
+                        pickle.dump(outputs,f)
 
-                with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
-                    pickle.dump(X_train,f)
-                with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
-                    pickle.dump(y_dev,f)
-                with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                    pickle.dump(y_train,f) 
-                with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
-                    pickle.dump(IDs_dev,f)
-                with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
-                    pickle.dump(IDs_train,f)
-                with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
-                    pickle.dump(outputs,f)
-
-                if test_size[project_name] > 0:
-                    with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
-                        pickle.dump(X_test,f)
-                    with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                        pickle.dump(y_test_,f)
-                    with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                        pickle.dump(IDs_test,f)
+                    if test_size[project_name] > 0:
+                        with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                            pickle.dump(X_test,f)
+                        with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                            pickle.dump(y_test_,f)
+                        with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                            pickle.dump(IDs_test,f)
+                except:
+                    pass

@@ -51,7 +51,7 @@ all_stats = False
 
 project_name = 'arequipa'
 hyp_opt = True
-shuffle_labels = False
+shuffle_labels = True
 feature_selection = False
 n_folds = 5
 n_models_ = 0
@@ -201,7 +201,7 @@ elif n_folds == -1:
 else:
     kfold_folder = f'{n_folds}_folds'
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 
 log_file = Path(results_dir,Path(__file__).stem + '.log')
 
@@ -265,7 +265,10 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 continue
 
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
-            outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
+            try:
+                outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
+            except:
+                continue
             y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
             
             if not shuffle_labels and outputs.shape[1] != 1:
@@ -313,7 +316,6 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                 
                 metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],outputs.shape[2],n_boot))) for metric in metrics_names[problem_type[project_name]])
                 
-                
                 with open(Path(path,random_seed,'config_bootstrap.json'),'w') as f:
                     json.dump(config_bootstrap,f)
 
@@ -334,11 +336,12 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
                         all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(5)
                         all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(5)
                 all_models.to_csv(Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv')) if all_models_bool == False else all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_bca.csv')) 
-
+            except:
+                continue
                 #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
                 #pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
                 #pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
                 #pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca_{scoring}.pkl'),'wb'))
-            except Exception as e:
-                print(e)
-                continue
+            #except Exception as e:
+            #    print(e)
+            #    continue

@@ -69,14 +69,15 @@ from expected_cost.ec import *
 from psrcal import *
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GERO_Ivo'
+project_name = 'ad_mci_hc'
+stat_folder = 'mean_std'
 
 scaler_name = 'StandardScaler'
 boot_test = 200
 hyp_opt = True
 filter_outliers = False
 shuffle_labels = False
-feature_selection = True
+feature_selection = False
 n_folds = 5
 
 # Check if required arguments are provided
@@ -103,22 +104,26 @@ y_labels = {'tell_classifier':['target'],
                          'GM','WM','vol_bilateral_HIP','vol_mask_AD',
                          'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
                         ],
-            'AKU':['picture_description',
-                'pleasant_memory',
-                 'routine',
-                 'video_retelling'
-                ]
+            'ad_mci_hc': ['group']           
             }
 
-metrics_names = {'clf': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                'reg':['r2_score','mean_absolute_error','mean_squared_error']}
+metrics_names = {'tell_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'MCI_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'ad_mci_hc':['accuracy','norm_expected_cost','norm_cross_entropy'],
+                 'Proyecto_Ivo': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'GeroApathy': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'GeroApthy_reg':['r2_score','mean_absolute_error','mean_squared_error'],
+                 'GERO_Ivo':['r2_score','mean_absolute_error','mean_squared_error']
+}
 
-thresholds = {'tell_classifier':[0.5],
-                'MCI_classifier':[0.5],
-                'Proyecto_Ivo':[0.5],
-                'GeroApathy':[0.5],
+thresholds = {'tell_classifier':[np.log(0.5)],
+                'MCI_classifier':[np.log(0.5)],
+                'Proyecto_Ivo':[np.log(0.5)],
+                'GeroApathy':[np.log(0.5)],
                 'GeroApathy_reg':[None],
-                'GERO_Ivo':[None]}
+                'GERO_Ivo':[None],
+                'ad_mci_hc':[None]
+                }
 
 boot_train = 0
 
@@ -131,21 +136,33 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
-         'GERO_Ivo':['fas','animales','fas__animales','grandmean']}
+         'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
+         'ad_mci_hc':['fugu'],
+         'AKU':['picture_description',
+                'pleasant_memory',
+                 'routine',
+                 'video_retelling'
+                ],
+            'AKU_outliers_as_nan':['picture_description',
+                'pleasant_memory',
+                 'routine',
+                 'video_retelling']}
 
 problem_type = {'tell_classifier':'clf',
                 'MCI_classifier':'clf',
                 'Proyecto_Ivo':'clf',
                 'GeroApathy':'clf',
                 'GeroApathy_reg':'reg',
-                'GERO_Ivo':'reg'}
+                'GERO_Ivo':'reg',
+                'ad_mci_hc':'clf'}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
            'Proyecto_Ivo':['roc_auc'],
            'GeroApathy':['norm_cross_entropy','roc_auc'],
            'GeroApathy_reg':['r2_score','mean_absolute_error'], 
-           'GERO_Ivo':['r2_score','mean_absolute_error']}
+           'GERO_Ivo':['r2_score','mean_absolute_error'],
+           'ad_mci_hc':['norm_cross_entropy']}
 
 if n_folds == 0:
     kfold_folder = 'l2ocv'
@@ -156,32 +173,6 @@ else:
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 save_dir = Path(str(data_dir).replace('data','results'))    
-
-log_file = Path(save_dir,Path(__file__).stem + '.log')
-
-logging.basicConfig(
-    level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(log_file),  # Log to a file
-        logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
-    ]
-)
-
-# Redirect stdout and stderr to the logger
-class LoggerWriter:
-    def __init__(self, level):
-        self.level = level
-
-    def write(self, message):
-        if message.strip():  # Avoid logging blank lines
-            self.level(message)
-
-    def flush(self):  # Required for file-like behavior
-        pass
-
-sys.stdout = LoggerWriter(logging.info)
-sys.stderr = LoggerWriter(logging.error)
 
 if scaler_name == 'StandardScaler':
     scaler = StandardScaler
@@ -194,7 +185,7 @@ imputer = KNNImputer
 models_dict = {'clf':{'lr': LogisticRegression,
                     'svc': SVC, 
                     'xgb': XGBClassifier,
-                    'knn': KNNC},
+                    'knnc': KNNC},
                 
                 'reg':{'lasso':Lasso,
                         'ridge':Ridge,
@@ -214,7 +205,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
         print(task,dimension)
         for y_label in y_labels[project_name]:
             print(y_label)
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
 
             if not path_to_results.exists():
                 continue
@@ -225,71 +216,76 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                 random_seeds_test = ['']
                 
             for random_seed_test in random_seeds_test:
-                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'best_models_' in file.stem and 'dev' in file.stem and scoring in file.stem]
-                
+
+                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev_bca' in file.stem]
+                filename_to_save = 'all_models_'
+                if len(files) == 0:
+                    files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'best_models_' in file.stem and 'dev' in file.stem and scoring in file.stem]
+                    filename_to_save = f'best_models_{scoring[project_name]}_'
                 if len(files) == 0:
                     continue
-                try:
-                    X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
 
-                    y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb'))
-                    
-                    IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb'))
+                X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
 
-                    X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
-                    
-                    y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
+                y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_true_dev.pkl'),'rb'))
                 
-                    IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
-
-                    #all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
-                    
-                    for file in files:
-                        model_name = file.stem.split('_')[2]
-
-                        print(model_name)
-                        
-                        #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                        #    continue
-                        
-                        results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
-                        
-                        if f'{extremo}_{scoring}' in results_dev.columns:
-                            scoring_col = f'{extremo}_{scoring}'
-                        elif f'{extremo}_{scoring}_dev' in results_dev.columns:
-                            scoring_col = f'{extremo}_{scoring}_dev'
-                        else:
-                            scoring_col = f'{scoring}_{extremo}'
-
-                        results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
-                        
-                        all_features = [col for col in results_dev.columns if f'{task}_{dimension}__' in col]
-                        if 'threshold' not in results_dev.columns:
-                            results_dev['threshold'] = thresholds[project_name][0]
-
-                        results = Parallel(n_jobs=1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
-                                                                                    X_test,y_test,all_features,y_labels[project_name],metrics_names[problem_type[project_name]],IDs_test,boot_train,
-                                                                                    boot_test,problem_type[project_name],threshold=results_dev.loc[r,'threshold']) 
-                                                                                    for r in results_dev.index)
-                        
-                        results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
-                        results_test['idx'] = results_dev['Unnamed: 0'].values
-
-                        outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
-                        y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
-                        y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
-                        IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
-
-                        results_test.to_csv(Path(file.parent,f'best_models_{model_name}_test_{scoring}.csv'))
-                        
-                        if not Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                            with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
-                                pickle.dump(y_true_bootstrap,f)
-                            with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:   
-                                pickle.dump(IDs_test_bootstrap,f)
+                IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb'))
                 
-                        with open(Path(file.parent,f'y_pred_bootstrap_{model_name}_{scoring}.pkl'),'wb') as f:
-                            pickle.dump(y_pred_bootstrap,f)
-                        
-                except Exception as e:
-                    logging.exception(e)
+                dev = pd.DataFrame({'y_dev':y_dev.flatten(), 'ID':IDs_dev.flatten()})
+
+                dev = dev.drop_duplicates(subset=['ID'])
+
+                X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
+                
+                y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
+            
+                IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
+
+                #all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+                
+                for file in files:
+                    model_name = file.stem.split('_')[2]
+
+                    print(model_name)
+                    
+                    #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                    #    continue
+                    
+                    results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
+                    
+                    if f'{extremo}_{scoring}' in results_dev.columns:
+                        scoring_col = f'{extremo}_{scoring}'
+                    elif f'{extremo}_{scoring}_dev' in results_dev.columns:
+                        scoring_col = f'{extremo}_{scoring}_dev'
+                    else:
+                        scoring_col = f'{scoring}_{extremo}'
+
+                    results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
+                    
+                    all_features = [col for col in results_dev.columns if f'{task}__{dimension}__' in col]
+                    if 'threshold' not in results_dev.columns:
+                        results_dev['threshold'] = thresholds[project_name][0]
+
+                    results = Parallel(n_jobs=1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,dev.y_dev,
+                                                                                X_test,y_test,all_features,y_labels[project_name],metrics_names[project_name],IDs_test,boot_train,
+                                                                                boot_test,problem_type[project_name],threshold=results_dev.loc[r,'threshold']) 
+                                                                                for r in results_dev.index)
+                    
+                    results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
+                    results_test['idx'] = results_dev['Unnamed: 0'].values
+
+                    outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
+                    y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
+                    y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
+                    IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
+
+                    results_test.to_csv(Path(file.parent,f'{filename_to_save}_{model_name}_test.csv'))
+
+                    if not Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                        with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
+                            pickle.dump(y_true_bootstrap,f)
+                        with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:   
+                            pickle.dump(IDs_test_bootstrap,f)
+            
+                    with open(Path(file.parent,f'y_pred_bootstrap_{model_name}_{scoring}.pkl'),'wb') as f:
+                        pickle.dump(y_pred_bootstrap,f)

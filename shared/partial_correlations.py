@@ -4,8 +4,10 @@ from pingouin import partial_corr
 import pickle, itertools
 import numpy as np
 from sklearn.model_selection import KFold
+from sklearn.preprocessing import LabelEncoder
 
-project_name = 'GERO_Ivo'
+covars = ['sdi0001_age','sdi0004_sex','sdi0006_edu','language']
+project_name = 'AKU_outliers_as_nan'
 l2ocv = False
 
 cmatrix = None
@@ -22,47 +24,64 @@ models = {'MCI_classifier':['lr','svc','knnc','xgb'],
           'tell_classifier':['lr','svc','knnc','xgb'],
           'Proyecto_Ivo':['lr','svc','knnr','xgb'],
           'GeroApathy':['elastic','lasso','ridge','knnr','svr','xgb'],
-            'GERO_Ivo':['elastic','lasso','ridge','svr','xgboost']
+            'GERO_Ivo':['elastic','lasso','ridge','svr','xgboost'],
+            'AKU_outliers_as_nan':['elastic','lasso','ridge','svr','xgboost']
             }
 
 scoring = {'MCI_classifier':'roc_auc',
            'tell_classifier':'roc_auc',
            'Proyecto_Ivo':'roc_auc',
            'GeroApathy':'mean_absolute_error',
-           'GERO_Ivo':'r2_score'
+           'GERO_Ivo':'r2_score',
+           'AKU_outliers_as_nan':'r2_score'
            }
 
 ascending = {'MCI_classifier':True,
                 'tell_classifier':True,
                 'Proyecto_Ivo':True,
                 'GeroApathy':False,
-                'GERO_Ivo':False
+                'GERO_Ivo':False,
+                'AKU_outliers_as_nan':False
                 }
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
          'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
          'GeroApathy':['DiaTipico'],
-         'GERO_Ivo':['animales','grandmean','fas__animales','fas']
+         'GERO_Ivo':['animales','grandmean','fas__animales','fas'],
+         'AKU_outliers_as_nan':['picture_description','video_retelling','routine','pleasant_memory']
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
                      'Proyecto_Ivo':[],
                      'GERO_Ivo':[],
-                     'GeroApathy':[]}
+                     'GeroApathy':[],
+                     'AKU_outliers_as_nan':[]}
 
 metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                  'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
                     'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error']}
+                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error'],
+                    'AKU_outliers_as_nan':['r2_score','mean_squared_error','mean_absolute_error']}
 
 y_labels = {'MCI_classifier':['target'],
             'tell_classifier':['target'],
             'Proyecto_Ivo':['target'],
             'GERO_Ivo':[],
             'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'AKU_outliers_as_nan':[
+                    #'cerad_learn_total_corr',
+                    'cerad_dr_correct',
+                    'braveman_dr_total',
+                    'stick_dr_total',
+                    'bird_total',
+                    'fab_total',
+                    'setshift_total',
+                    'an_correct',
+                    'mint_total',
+                    ]
             }
 
 if n_folds == 0:
@@ -74,13 +93,16 @@ else:
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
-demographic_data = pd.read_csv(Path('D:','CNC_Audio','gonza','data',project_name,'all_labels.csv')) 
+demographic_data = pd.read_csv(Path('D:','CNC_Audio','gonza','data',project_name,'all_data_HC_outliers_as_nan.csv')) 
 
-best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring[project_name]}_{n_folds}_folds_StandardScaler_hyp_opt_feature_selection.csv'))
+try:
+    best_models = pd.read_csv(Path(results_dir,f'best_best_models_{scoring[project_name]}.csv'))
+except:
+    best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring[project_name]}_{n_folds}_folds_StandardScaler_hyp_opt_feature_selection.csv'))
 
 dimensions = list()
 
-pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
+pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value','covars'])
 
 if y_labels[project_name] == []:
     y_labels = {project_name:best_models['y_label'].unique()}
@@ -119,16 +141,17 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         data = data.drop_duplicates('id')
 
         data = pd.merge(data,demographic_data,on='id',how='outer')
-        data['education'] = data['education'].astype(float)
-        if any(y_label == x for x in ['GM','WM','vol_mask_AD','vol_bilateral_HIP']):
-            covars = ['sex','education','age','TIV','MoCA_Total_Boni_3']
-        elif  'norm' in y_label:
-            covars = ['sex','education','age','MoCA_Total_Boni_3']
-        else:
-            covars = ['sex','education','age']
+        data['sdi0006_edu'] = data['sdi0006_edu'].astype(float)
+        for covar in covars:
+            if isinstance(data.loc[0,covar],str):
+                data[covar] = LabelEncoder().fit_transform(data[covar])
+                
+        if y_label in covars:
+            covars = list(set(covars) - set([y_label]))
+        
         stats = partial_corr(data=data,x='y_pred',y='y_true',covar=covars,method='pearson')
 
-        pearsons_results.loc[len(pearsons_results.index),:] = {'task':task,'dimension':dim,'y_label':y_label,'model_type':model_name,'r':stats['r'].values[0],'p_value':stats['p-val'].values[0]}
+        pearsons_results.loc[len(pearsons_results.index),:] = {'task':task,'dimension':dim,'y_label':y_label,'model_type':model_name,'r':stats['r'].values[0],'p_value':stats['p-val'].values[0],'covars':str(covars)}
 
 pearsons_results.to_csv(Path(results_dir,f'partial_pearsons_results_{scoring[project_name]}_{n_folds}_folds.csv'),index=False)
 

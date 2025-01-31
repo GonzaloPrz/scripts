@@ -11,7 +11,9 @@ def new_best(current_best,value,ascending):
 
 ##---------------------------------PARAMETERS---------------------------------##
     
-project_name = 'GERO_Ivo'
+project_name = 'ad_mci_hc'
+
+stat_folder = ''
 
 n_folds = 5
 
@@ -35,7 +37,8 @@ tasks = {'tell_classifier':['MOTOR-LIBRE'],
                 'routine','video_retelling'],
          'AKU_outliers_as_nan':['picture_description','pleasant_memory',
                 'routine','video_retelling'],
-          'arequipa':['dia_tipico','lamina1','lamina2','fugu','testimonio']
+          'arequipa':['dia_tipico','lamina1','lamina2','fugu','testimonio'],
+          'ad_mci_hc':['fugu']
                 }
 
 problem_type = {'tell_classifier':'clf',
@@ -46,7 +49,8 @@ problem_type = {'tell_classifier':'clf',
                 'MPLS':'reg',
                 'AKU':'reg',
                 'AKU_outliers_as_nan':'reg',
-                'arequipa':'clf'}
+                'arequipa':'clf',
+                'ad_mci_hc':'clf'}
 
 metrics_names = {'clf':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
                 'reg':['r2_score','mean_absolute_error','mean_squared_error']}
@@ -59,7 +63,8 @@ stats = {'tell_classifier':'',
             'MPLS':'',
             'AKU':'',
             'AKU_outliers_as_nan':'',
-            'arequipa':''}
+            'arequipa':'',
+            'ad_mci_hc':''}
 
 scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'tell_classifier':['norm_cross_entropy'],
@@ -70,7 +75,8 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'GERO_Ivo':['r2_score','mean_absolute_error'],
            'MPLS':['r2_score'],
            'AKU':['r2_score'],
-           'AKU_outliers_as_nan':['r2_score']}
+           'AKU_outliers_as_nan':['r2_score'],
+           'ad_mci_hc':['norm_cross_entropy']}
 
 best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names[problem_type[project_name]]] 
                            + [f'{metric}_ic_dev' for metric in metrics_names[problem_type[project_name]]] 
@@ -86,7 +92,7 @@ elif n_folds == -1:
 else:
     kfold_folder = f'{n_folds}_folds'
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 for scoring,feature_selection in itertools.product(scoring_metrics[project_name],feature_selection_list):
     for task in tasks[project_name]:
         extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
@@ -94,6 +100,8 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
+            if 'pitch' in dimension:
+                continue
             print(task,dimension)
             path = Path(results_dir,task,dimension,scaler_name,kfold_folder)
 
@@ -102,11 +110,10 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
             
             y_labels = [folder.name for folder in path.iterdir() if folder.is_dir() and folder.name != 'mean_std']
             for y_label in y_labels:
-                path = Path(results_dir,task,dimension,scaler_name,kfold_folder,stats[project_name],y_label,'hyp_opt' if hyp_opt else 'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+                path = Path(results_dir,task,dimension,scaler_name,kfold_folder,stats[project_name],y_label,stat_folder,'hyp_opt' if hyp_opt else 'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
                 if not path.exists():
                     continue
                 random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
-                random_seeds_test = []
                 if len(random_seeds_test) == 0:
                     random_seeds_test = ['']
 
@@ -208,7 +215,7 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
                         dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names[problem_type[project_name]]))
                     best_models.loc[len(best_models),:] = pd.Series(dict_append)
 
-    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_no_hyp_opt_feature_selection_shuffled.csv'
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_no_hyp_opt_feature_selection_shuffled.csv'
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
