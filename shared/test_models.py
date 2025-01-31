@@ -21,10 +21,18 @@ from xgboost import XGBRegressor as xgboostr
 
 from sklearn.neighbors import KNeighborsRegressor
 
+from sklearn.utils import resample 
+
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold):
+def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,):
     results_r = row.dropna().to_dict()
+
+    outputs_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
+    y_true_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
+    y_pred_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
+    IDs_test_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)), dtype=object)
+    metrics_test_bootstrap = {metric: np.empty((np.max((1,boot_train)),np.max((1,boot_test)))) for metric in metrics_names}
 
     if not isinstance(X_dev,pd.DataFrame):
         X_dev = pd.DataFrame(X_dev.squeeze(),columns=all_features)
@@ -45,13 +53,34 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     if 'random_state' in params.keys():
         params['random_state'] = int(params['random_state'])
     
-    metrics_test_bootstrap,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_model(model_class,params,scaler,imputer,X_dev[features],y_dev,X_test[features],y_test,metrics_names,IDs_test,boot_train,boot_test,cmatrix=None,priors=None,problem_type=problem_type,threshold=threshold)
+    for b_train in range(np.max((1,boot_train))):
+        boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
+
+        for b_test in range(np.max((1,boot_test))):
+            boot_index = resample(X_test.index, n_samples=X_test.shape[0], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
+
+            outputs = test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,:], y_dev[boot_index_train], X_test.loc[boot_index,:], y_test[boot_index], metrics_names, IDs_test.squeeze()[boot_index], cmatrix, priors, problem_type=problem_type,threshold=threshold)
+
+            outputs_bootstrap[b_train,b_test,:] = outputs
+
+            if problem_type == 'clf':
+                metrics_test, y_pred = get_metrics_clf(outputs, y_test[boot_index], metrics_names, cmatrix, priors,threshold)
+                y_pred_bootstrap[b_train,b_test,:] = y_pred
+            else:
+                metrics_test = get_metrics_reg(outputs, y_test[boot_index], metrics_names)
+                y_pred_bootstrap[b_train,b_test,:] = outputs
+                
+            y_true_bootstrap[b_train,b_test,:] = y_test[boot_index]
+            IDs_test_bootstrap[b_train,b_test,:] = IDs_test.squeeze()[boot_index]
+
+            for metric in metrics_names:
+                metrics_test_bootstrap[metric][b_train,b_test] = metrics_test[metric]
 
     result_append = params.copy()
     result_append.update(features_dict)
 
     for metric in metrics_names:
-        mean, inf, sup = conf_int_95(metrics_test_bootstrap[metric])
+        mean, inf, sup = conf_int_95(metrics_test_bootstrap[metric].flatten())
 
         result_append[f'inf_{metric}_test'] = np.round(inf,5)
         result_append[f'mean_{metric}_test'] = np.round(mean,5)
@@ -218,10 +247,10 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
             for random_seed_test in random_seeds_test:
 
                 files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev_bca' in file.stem]
-                filename_to_save = 'all_models_'
+                filename_to_save = 'all_models'
                 if len(files) == 0:
                     files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'best_models_' in file.stem and 'dev' in file.stem and scoring in file.stem]
-                    filename_to_save = f'best_models_{scoring[project_name]}_'
+                    filename_to_save = f'best_models_{scoring[project_name]}'
                 if len(files) == 0:
                     continue
 
@@ -248,7 +277,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
 
                     print(model_name)
                     
-                    #if Path(file.parent,f'all_models_{model_name}_test.csv').exists():
+                    #if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
                     #    continue
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
@@ -262,9 +291,12 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
 
                     results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
                     
-                    all_features = [col for col in results_dev.columns if f'{task}__{dimension}__' in col]
+                    all_features = [col for col in results_dev.columns if any([dim in col for dim in dimension.split('__')])]
                     if 'threshold' not in results_dev.columns:
                         results_dev['threshold'] = thresholds[project_name][0]
+
+                    if len(all_features) == 0:
+                        continue
 
                     results = Parallel(n_jobs=1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,dev.y_dev,
                                                                                 X_test,y_test,all_features,y_labels[project_name],metrics_names[project_name],IDs_test,boot_train,

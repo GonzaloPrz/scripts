@@ -13,7 +13,7 @@ def new_best(current_best,value,ascending):
     
 project_name = 'ad_mci_hc'
 
-stat_folder = ''
+stat_folder = 'mean_std'
 
 n_folds = 5
 
@@ -21,7 +21,7 @@ shuffle_labels = False
 
 hyp_opt = True
 
-feature_selection_list = [True]
+feature_selection_list = [False]
 
 scaler_name = 'StandardScaler'
 
@@ -52,9 +52,14 @@ problem_type = {'tell_classifier':'clf',
                 'arequipa':'clf',
                 'ad_mci_hc':'clf'}
 
-metrics_names = {'clf':['roc_auc','accuracy','norm_expected_cost','norm_cross_entropy','recall','f1'],
-                'reg':['r2_score','mean_absolute_error','mean_squared_error']}
-
+metrics_names = {'tell_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'MCI_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'ad_mci_hc':['accuracy','norm_expected_cost','norm_cross_entropy'],
+                 'Proyecto_Ivo': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'GeroApathy': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
+                 'GeroApthy_reg':['r2_score','mean_absolute_error','mean_squared_error'],
+                 'GERO_Ivo':['r2_score','mean_absolute_error','mean_squared_error']
+}
 stats = {'tell_classifier':'',
             'MCI_classifier':'',
             'Proyecto_Ivo':'',
@@ -78,10 +83,10 @@ scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
            'AKU_outliers_as_nan':['r2_score'],
            'ad_mci_hc':['norm_cross_entropy']}
 
-best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names[problem_type[project_name]]] 
-                           + [f'{metric}_ic_dev' for metric in metrics_names[problem_type[project_name]]] 
-                           + [f'{metric}_mean_holdout' for metric in metrics_names[problem_type[project_name]]]
-                           + [f'{metric}_ic_holdout' for metric in metrics_names[problem_type[project_name]]])
+best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names[project_name]] 
+                           + [f'{metric}_ic_dev' for metric in metrics_names[project_name]] 
+                           + [f'{metric}_mean_holdout' for metric in metrics_names[project_name]]
+                           + [f'{metric}_ic_holdout' for metric in metrics_names[project_name]])
 
 pd.options.mode.copy_on_write = True 
 
@@ -100,8 +105,6 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
-            if 'pitch' in dimension:
-                continue
             print(task,dimension)
             path = Path(results_dir,task,dimension,scaler_name,kfold_folder)
 
@@ -152,7 +155,7 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
                         if best is None:
                             best = df.iloc[0,:]
                             
-                            model_type = file.stem.split('_')[2]
+                            model_type = file.stem.split('_')[-2]
                             best['y_label'] = y_label
                             best['model_type'] = model_type
                             best['random_seed_test'] = random_seed_test
@@ -176,11 +179,9 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
                                     best['model_index'] = df.index[0]
 
                                 best_file = file
-                    if best is None:
-                        continue
                     
-                    print(best['model_type'])
-                    for metric in metrics_names[problem_type[project_name]]:
+                    for metric in metrics_names[project_name]:
+                        print(metric)
                         if f'inf_{metric}_dev' in best.index:
                             best[f'{metric}_mean_dev'] = np.round(best[f"mean_{metric}_dev"],5)
                             best[f'{metric}_ic_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],5)} - {np.round(best[f"sup_{metric}_dev"],5)}]'
@@ -191,29 +192,27 @@ for scoring,feature_selection in itertools.product(scoring_metrics[project_name]
                             best[f'{metric}_mean_dev'] = np.round(best[f"{metric}_mean"],5)
                             best[f'{metric}_ic_dev'] = f'[{np.round(best[f"{metric}_inf"],5)}, {np.round(best[f"{metric}_sup"],5)}]'
 
-                        best[f'{metric}_holdout'] = np.nan
-                        try:
-                            mean = np.round(best[f'mean_{metric}_test'],5)
-                            inf = np.round(best[f'inf_{metric}_test'],5)
-                            sup = np.round(best[f'sup_{metric}_test'],5)
-                            best[f'{metric}_mean_holdout'] = mean
-                            best[f'{metric}_ic_holdout'] = f'[{inf}, {sup}]'
-                            
-                        except:
-                            continue
+                        best[f'{metric}_test'] = np.nan
 
+                        mean = np.round(best[f'mean_{metric}_test'],5)
+                        inf = np.round(best[f'inf_{metric}_test'],5)
+                        sup = np.round(best[f'sup_{metric}_test'],5)
+                        best[f'{metric}_mean_holdout'] = mean
+                        best[f'{metric}_ic_holdout'] = f'[{inf}, {sup}]'
                     model_type = file
                     
                     dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':best['model_type'],'model_index':best['model_index'],'random_seed_test':random_seed_test}
-                    dict_append.update(dict((f'{metric}_mean_dev',best[f'{metric}_mean_dev']) for metric in metrics_names[problem_type[project_name]]))
-                    dict_append.update(dict((f'{metric}_ic_dev',best[f'{metric}_ic_dev']) for metric in metrics_names[problem_type[project_name]]))
+                    dict_append.update(dict((f'{metric}_mean_dev',best[f'{metric}_mean_dev']) for metric in metrics_names[project_name]))
+                    dict_append.update(dict((f'{metric}_ic_dev',best[f'{metric}_ic_dev']) for metric in metrics_names[project_name]))
+                    dict_append.update(dict((f'{metric}_mean_hodlout',np.nan) for metric in metrics_names[project_name]))
+                    dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names[project_name]))
+                    
                     try:
-                        dict_append.update(dict((f'{metric}_mean_holdout',best[f'{metric}_mean_holdout']) for metric in metrics_names[problem_type[project_name]]))
-                        dict_append.updata(dict((f'{metric}_ic_hodldout',best[f'{metric}_ic_holdout']) for metric in metrics_names[problem_type[project_name]]))
+                        dict_append.update(dict((f'{metric}_mean_holdout',best[f'{metric}_mean_holdout']) for metric in metrics_names[project_name]))
+                        dict_append.update(dict((f'{metric}_ic_holdout',best[f'{metric}_ic_holdout']) for metric in metrics_names[project_name]))
                     except:
-                        dict_append.update(dict((f'{metric}_mean_hodlout',np.nan) for metric in metrics_names[problem_type[project_name]]))
-                        dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names[problem_type[project_name]]))
-                    best_models.loc[len(best_models),:] = pd.Series(dict_append)
+                        pass
+                    best_models.loc[len(best_models),:] = dict_append
 
     filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_no_hyp_opt_feature_selection_shuffled.csv'
 
