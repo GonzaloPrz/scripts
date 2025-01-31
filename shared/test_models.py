@@ -108,6 +108,7 @@ filter_outliers = False
 shuffle_labels = False
 feature_selection = False
 n_folds = 5
+parallel = True
 
 # Check if required arguments are provided
 if len(sys.argv) > 1:
@@ -255,22 +256,13 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                     continue
 
                 X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
-
                 y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_true_dev.pkl'),'rb'))
-                
                 IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb'))
-                
                 dev = pd.DataFrame({'y_dev':y_dev.flatten(), 'ID':IDs_dev.flatten()})
-
                 dev = dev.drop_duplicates(subset=['ID'])
-
-                X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
-                
+                X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))   
                 y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
-            
                 IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
-
-                #all_features = [col for col in X_dev.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
                 
                 for file in files:
                     model_name = file.stem.split('_')[2]
@@ -298,7 +290,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                     if len(all_features) == 0:
                         continue
 
-                    results = Parallel(n_jobs=1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,dev.y_dev,
+                    results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,dev.y_dev,
                                                                                 X_test,y_test,all_features,y_labels[project_name],metrics_names[project_name],IDs_test,boot_train,
                                                                                 boot_test,problem_type[project_name],threshold=results_dev.loc[r,'threshold']) 
                                                                                 for r in results_dev.index)
