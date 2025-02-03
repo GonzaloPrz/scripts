@@ -36,13 +36,13 @@ filter_outliers = False
 
 project_name = 'arequipa'
 hyp_opt = True
-all_stats = False
-shuffle_labels = True
+all_stats = True
+shuffle_labels = False
 shuffle_all = True
 stratify = True
 n_folds = 5
 n_iter = 50
-n_iter_features = 0
+n_iter_features = 50
 feature_sample_ratio = 0.5
 
 scaler_name = 'StandardScaler'
@@ -124,46 +124,22 @@ data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
 
 tasks = {'tell_classifier':['MOTOR-LIBRE'],
          'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['cog',
-                         'Animales',
-                         'P',
-                         'Animales__P',
-                         'brain',
-                         'connectivity'
-                         ],
+         'Proyecto_Ivo':['cog','Animales','P','Animales__P','brain','connectivity'],
          'GeroApathy':['agradable'],
          'GeroApathy_reg':['agradable'],
          'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
-         'MPLS':[#'Estado General','Estado General 2',
-                 'Consulta sobre soledad 1','Consulta sobre soledad 2',
-                #'Recuerdo feliz','Animales','Palabras con F'
-                ],
-         'AKU_outliers_as_nan':[#'picture_description','pleasant_memory',
-                #'routine',
-                'video_retelling'
-                ],
-        'arequipa':['dia_tipico',
-                    'lamina1',
-                    'lamina2','fugu','testimonio'
-                    ],
+         'MPLS':['Estado General','Estado General 2','Consulta sobre soledad 1','Consulta sobre soledad 2','Recuerdo feliz','Animales','Palabras con F'],
+         'AKU_outliers_as_nan':['picture_description','pleasant_memory','routine','video_retelling'],
+        'arequipa':['dia_tipico','lamina1','lamina2','fugu','testimonio'],
         'ad_mci_hc':['fugu']
          }
 
 single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
                      'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing',
-                                                 #'timing__vr','properties__timing__vr'
-                                                 ],
-                                     'P':['properties','timing','properties__timing',
-                                          #'properties__vr','timing__vr','properties__timing__vr'
-                                          ],
-                                     'Animales__P': ['properties',
-                                                     'timing','properties__timing',
-                                                     #'properties__vr','timing__vr','properties__timing__vr'
-                                                     ],
-                                     'cog':['neuropsico_digits__neuropsico_tmt',
-                                            'neuropsico_tmt','neuropsico_digits'
-                                            ],
+                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','timing__vr','properties__timing__vr'],
+                                     'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+                                     'cog':['neuropsico_digits__neuropsico_tmt','neuropsico_tmt','neuropsico_digits'],
                                      'brain':['norm_brain_lit'],
                                      'AAL':['norm_AAL'],
                                      'connectivity':['networks','selected_areas']
@@ -172,9 +148,7 @@ single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pit
                         'GeroApathy_reg':['mfcc','ratio','pitch','talking-intervals'],
                         'GERO_Ivo':['psycholinguistic','speech-timing'],
                         'MPLS':['pitch-analysis','talking-intervals','sentiment-analysis'],
-                        'AKU_outliers_as_nan':['pitch','talking-intervals',
-                               #'voice-quality'
-                                ],
+                        'AKU_outliers_as_nan':['pitch','talking-intervals','voice-quality'],
                         'arequipa':['pitch','talking_intervals','word_properties'],
                         'ad_mci_hc':['pitch','talking-intervals','voice-quality']
 }
@@ -222,30 +196,11 @@ models_dict = {'clf': {'lr':LR,
 y_labels = {'tell_classifier':['target'],
             'MCI_classifier':['target'],
             'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression_V_label','AES_Total_Score_label',
-                          #'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
-                          ],
-            'GeroApathy_reg':['DASS_21_Depression_V','AES_Total_Score',
-                          #'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
-                          ],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
-                        'GM','WM',
-                        'vol_bilateral_HIP',
-                        'vol_mask_AD',
-                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
-                        ],
+            'GeroApathy':['DASS_21_Depression_V_label','AES_Total_Score_label','Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'],
+            'GeroApathy_reg':['DASS_21_Depression_V','AES_Total_Score','Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD','GM','WM','vol_bilateral_HIP','vol_mask_AD','MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'],
             'MPLS':['Minimental'],
-            'AKU_outliers_as_nan':['sdi0001_age',
-                    'cerad_learn_total_corr',
-                    'cerad_dr_correct',
-                    'braveman_dr_total',
-                    'stick_dr_total',
-                    'bird_total',
-                    'fab_total',
-                    'setshift_total',
-                    'an_correct',
-                    'mint_total',
-                    ],
+            'AKU_outliers_as_nan':['sdi0001_age','cerad_learn_total_corr','cerad_dr_correct','braveman_dr_total','stick_dr_total','bird_total','fab_total','setshift_total','an_correct','mint_total'],
             'arequipa':['group'],
             'ad_mci_hc':['group']
             }
@@ -539,33 +494,8 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                     with open(Path(path_to_save_final,'config.json'),'w') as f:
                         json.dump(config,f)
 
-                    log_file = Path(results_dir,Path(__file__).stem + '.log')
-
-                    logging.basicConfig(
-                        level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-                        format="%(asctime)s - %(levelname)s - %(message)s",
-                        handlers=[
-                            logging.FileHandler(log_file),  # Log to a file
-                            logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
-                        ]
-                    )
-
-                    # Redirect stdout and stderr to the logger
-                    class LoggerWriter:
-                        def __init__(self, level):
-                            self.level = level
-
-                        def write(self, message):
-                            if message.strip():  # Avoid logging blank lines
-                                self.level(message)
-
-                        def flush(self):  # Required for file-like behavior
-                            pass
-
-                    sys.stdout = LoggerWriter(logging.info)
-                    sys.stderr = LoggerWriter(logging.error)
-                    #try:
                     models,outputs_,y_pred_,y_dev_,IDs_dev_ = CVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train_, y_train_,CV_type,random_seeds_train,hyperp[model],feature_sets,ID_train_,thresholds[project_name],cmatrix=cmatrix,parallel=parallel,problem_type=problem_type[project_name])        
+                    
                     if rss == 0:
                         outputs = np.empty((hyperp[model].shape[0]*len(feature_sets) if shuffle_labels==False or shuffle_all == True else 1,len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0],len(np.unique(y)))) if problem_type[project_name] == 'clf' else np.empty((hyperp[model].shape[0]*len(feature_sets),len(random_seeds_shuffle),len(random_seeds_train),X_train_.shape[0]))
 
@@ -582,32 +512,28 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
                             model_[param] = models.iloc[model_index][param]
 
                         all_models = pd.concat([all_models,pd.DataFrame(model_,index=[0])],ignore_index=True,axis=0)
-                    #except Exception as e:
-                    #    print(e)
-                    #    continue
 
+                if Path(path_to_save_final,f'all_models_{model}.csv').exists():    
+                        continue
                     
-                    all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
-                try:
-                    with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
-                        pickle.dump(X_train,f)
-                    with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
-                        pickle.dump(y_dev,f)
-                    with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
-                        pickle.dump(y_train,f) 
-                    with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
-                        pickle.dump(IDs_dev,f)
-                    with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
-                        pickle.dump(IDs_train,f)
-                    with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
-                        pickle.dump(outputs,f)
+                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
+                with open(Path(path_to_save_final,f'X_dev.pkl'),'wb') as f:
+                    pickle.dump(X_train,f)
+                with open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb') as f:
+                    pickle.dump(y_dev,f)
+                with open(Path(path_to_save_final,f'y_dev.pkl'),'wb') as f:
+                    pickle.dump(y_train,f) 
+                with open(Path(path_to_save_final,f'IDs_dev.pkl'),'wb') as f:
+                    pickle.dump(IDs_dev,f)
+                with open(Path(path_to_save_final,f'IDs_train.pkl'),'wb') as f:
+                    pickle.dump(IDs_train,f)
+                with open(Path(path_to_save_final,f'outputs_{model}.pkl'),'wb') as f:
+                    pickle.dump(outputs,f)
 
-                    if test_size[project_name] > 0:
-                        with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
-                            pickle.dump(X_test,f)
-                        with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
-                            pickle.dump(y_test_,f)
-                        with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
-                            pickle.dump(IDs_test,f)
-                except:
-                    pass
+                if test_size[project_name] > 0:
+                    with open(Path(path_to_save_final,f'X_test.pkl'),'wb') as f:
+                        pickle.dump(X_test,f)
+                    with open(Path(path_to_save_final,f'y_test.pkl'),'wb') as f:
+                        pickle.dump(y_test_,f)
+                    with open(Path(path_to_save_final,f'IDs_test.pkl'),'wb') as f:
+                        pickle.dump(IDs_test,f)
