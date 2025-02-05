@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import itertools, sys, pickle, tqdm, warnings
 from joblib import Parallel, delayed
-import logging, sys
+import logging, sys, json, os
 
 warnings.filterwarnings('ignore')
 
@@ -23,9 +23,14 @@ from sklearn.neighbors import KNeighborsRegressor
 
 from sklearn.utils import resample 
 
+from expected_cost.ec import *
+from psrcal import *
+
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,):
+import utils
+
+def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False):
     results_r = row.dropna().to_dict()
 
     outputs_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
@@ -57,6 +62,11 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
         boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
 
         for b_test in range(np.max((1,boot_test))):
+            if bayesian:
+                weights = np.random.dirichlet(np.ones(y_test.shape[0]))
+            else:
+                weigths = None
+
             boot_index = resample(X_test.index, n_samples=X_test.shape[0], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
 
             outputs = test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,:], y_dev[boot_index_train], X_test.loc[boot_index,:], y_test[boot_index], metrics_names, IDs_test.squeeze()[boot_index], cmatrix, priors, problem_type=problem_type,threshold=threshold)
@@ -64,7 +74,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
             outputs_bootstrap[b_train,b_test,:] = outputs
 
             if problem_type == 'clf':
-                metrics_test, y_pred = get_metrics_clf(outputs, y_test[boot_index], metrics_names, cmatrix, priors,threshold)
+                metrics_test, y_pred = get_metrics_clf(outputs, y_test[boot_index], metrics_names, cmatrix, priors,threshold,weigths)
                 y_pred_bootstrap[b_train,b_test,:] = y_pred
             else:
                 metrics_test = get_metrics_reg(outputs, y_test[boot_index], metrics_names)
@@ -91,117 +101,47 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
         result_append[f'sup_{metric}_dev'] = np.round(results_r[f'{metric}_sup'],5)
     
     return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
-
-from utils import *
-
-from expected_cost.ec import *
-from psrcal import *
-
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'ad_mci_hc'
-
-scaler_name = 'StandardScaler'
+project_name = 'arequipa'
+bayesian = True
 boot_test = 200
-hyp_opt = True
-filter_outliers = False
-shuffle_labels = False
-feature_selection = False
-n_folds = 5
-parallel = True
-
-# Check if required arguments are provided
-if len(sys.argv) > 1:
-    #print("Usage: python test_models.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k]")
-    project_name = sys.argv[1]
-if len(sys.argv) > 2:
-    hyp_opt = bool(int(sys.argv[2]))
-if len(sys.argv) > 3:
-    all_stats = bool(int(sys.argv[3]))
-if len(sys.argv) > 4:
-    shuffle_labels = bool(int(sys.argv[4]))
-if len(sys.argv) > 5:
-    feature_selection = bool(int(sys.argv[5]))
-if len(sys.argv) > 6:
-    n_folds = int(sys.argv[6])
-
-stat_folder = 'mean_std' if not all_stats else ''
-
-y_labels = {'tell_classifier':['target'],
-            'MCI_classifier':['target'],
-            'Proyecto_Ivo':['target'],
-            'GeroApathy': ['DASS_21_Depression_label','AES_Total_Score_label','Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'],
-            'GeroApathy_reg': ['DASS_21_Depression','AES_Total_Score','Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'GERO_Ivo': ['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD', 
-                         'GM','WM','vol_bilateral_HIP','vol_mask_AD',
-                         'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'
-                        ],
-            'ad_mci_hc': ['group']           
-            }
-
-metrics_names = {'tell_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                 'MCI_classifier': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                 'ad_mci_hc':['accuracy','norm_expected_cost','norm_cross_entropy'],
-                 'Proyecto_Ivo': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                 'GeroApathy': ['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                 'GeroApthy_reg':['r2_score','mean_absolute_error','mean_squared_error'],
-                 'GERO_Ivo':['r2_score','mean_absolute_error','mean_squared_error']
-}
-
-thresholds = {'tell_classifier':[np.log(0.5)],
-                'MCI_classifier':[np.log(0.5)],
-                'Proyecto_Ivo':[np.log(0.5)],
-                'GeroApathy':[np.log(0.5)],
-                'GeroApathy_reg':[None],
-                'GERO_Ivo':[None],
-                'ad_mci_hc':[None]
-                }
-
 boot_train = 0
 
-n_seeds_test = 1
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
+else:
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+
+config = json.load(Path(results_dir,'config.json').open())
+
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+hyp_opt = True if config['n_iter'] > 0 else False
+feature_selection = True if config['n_iter_features'] > 0 else False
+filter_outliers = config['filter_outliers']
+n_models = int(config["n_models"])
+n_boot = int(config["n_boot"])
+
+parallel = True 
+cmatrix = None
+
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
+
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+test_size = main_config['test_size'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config['data_file'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+problem_type = main_config['problem_type'][project_name]
+metrics_names = main_config['metrics_names'][project_name]
 
 ##---------------------------------PARAMETERS---------------------------------##
-
-tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['agradable'],
-         'GeroApathy_reg':['agradable'],
-         'GERO_Ivo':['fas','animales','fas__animales','grandmean'],
-         'ad_mci_hc':['fugu'],
-         'AKU':['picture_description',
-                'pleasant_memory',
-                 'routine',
-                 'video_retelling'
-                ],
-            'AKU_outliers_as_nan':['picture_description',
-                'pleasant_memory',
-                 'routine',
-                 'video_retelling']}
-
-problem_type = {'tell_classifier':'clf',
-                'MCI_classifier':'clf',
-                'Proyecto_Ivo':'clf',
-                'GeroApathy':'clf',
-                'GeroApathy_reg':'reg',
-                'GERO_Ivo':'reg',
-                'ad_mci_hc':'clf'}
-
-scoring_metrics = {'MCI_classifier':['norm_cross_entropy'],
-           'tell_classifier':['norm_cross_entropy'],
-           'Proyecto_Ivo':['roc_auc'],
-           'GeroApathy':['norm_cross_entropy','roc_auc'],
-           'GeroApathy_reg':['r2_score','mean_absolute_error'], 
-           'GERO_Ivo':['r2_score','mean_absolute_error'],
-           'ad_mci_hc':['norm_cross_entropy']}
-
-if n_folds == 0:
-    kfold_folder = 'l2ocv'
-elif n_folds == -1:
-    kfold_folder = 'loocv'
-else:
-    kfold_folder = f'{n_folds}_folds'
-
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 save_dir = Path(str(data_dir).replace('data','results'))    
 
@@ -227,7 +167,7 @@ models_dict = {'clf':{'lr': LogisticRegression,
                     }
 }
 
-for task,scoring in itertools.product(tasks[project_name],scoring_metrics[project_name]):
+for task,scoring in itertools.product(tasks,scoring_metrics):
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
@@ -236,7 +176,7 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
         print(task,dimension)
         for y_label in y_labels[project_name]:
             print(y_label)
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
 
             if not path_to_results.exists():
                 continue
@@ -248,10 +188,10 @@ for task,scoring in itertools.product(tasks[project_name],scoring_metrics[projec
                 
             for random_seed_test in random_seeds_test:
 
-                files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'all_models_' in file.stem and 'dev_bca' in file.stem]
+                files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if 'all_models_' in file.stem and 'dev_bca' in file.stem]
                 filename_to_save = 'all_models'
                 if len(files) == 0:
-                    files = [file for file in Path(path_to_results,random_seed_test).iterdir() if 'best_models_' in file.stem and 'dev' in file.stem and scoring in file.stem]
+                    files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if 'best_models_' in file.stem and 'dev' in file.stem and scoring in file.stem]
                     filename_to_save = f'best_models_{scoring[project_name]}'
                 if len(files) == 0:
                     continue
