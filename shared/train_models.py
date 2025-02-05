@@ -153,14 +153,14 @@ with Path(Path(__file__).parent,'default_hp.json').open('rb') as f:
 
 #C: inverse of regularization strength, 10**x, x in [-5,5]
 hp_ranges = {
-        'lr': {'C': [x**y for x,y in itertools.product(range(1,9),range(-3, 2))]},
-        'svc': {'C': [x**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'gamma': ['scale', 'auto'], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'probability': [True]},
+        'lr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))]},
+        'svc': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'gamma': ['scale', 'auto'], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'probability': [True]},
         'knnc': {'n_neighbors': [x for x in range(1, 21)]},
-        'xgb': {'n_estimators': [x**y for x,y in itertools.product(range(1,9),range(1,3))], 'max_depth': [3, 6, 9], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
-        'ridge': {'alpha': [x**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'tol': [.0001], 'solver': ['auto'], 'random_state': [42]},
-        'lasso': {'alpha': [x**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'tol': [.0001], 'random_state': [42]},
-        'elastic': {'alpha': [x**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'l1_ratio': [.1, .5, .9], 'tol': [.0001], 'random_state': [42]},
-        'svr': {'C': [x**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'gamma': ['scale', 'auto']}
+        'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,9),range(1,3))], 'max_depth': [3, 6, 9], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
+        'ridge': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'tol': [.0001], 'solver': ['auto'], 'random_state': [42]},
+        'lasso': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'tol': [.0001], 'random_state': [42]},
+        'elastic': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'l1_ratio': [.1, .5, .9], 'tol': [.0001], 'random_state': [42]},
+        'svr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'gamma': ['scale', 'auto']}
 }
 ##------------------ Main Model Training Loop ------------------##
 args = parse_args()
