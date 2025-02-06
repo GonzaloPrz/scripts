@@ -285,16 +285,16 @@
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "models": {
-        "tell_classifier": ["lr","svc","knnc","xgboost"],
-        "MCI_classifier": ["lr","svc","knnc","xgboost"],
-        "Proyecto_Ivo": ["lr","svc","knnc","xgboost"],
-        "GeroApathy": ["lr","svc","knnc","xgboost"],
-        "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgboostr"],
-        "GERO_Ivo": ["lasso","ridge","elastic","svr","knnr","xgboostr"],
-        "MPLS": ["lasso","ridge","elastic","svr","knnr","xgboostr"],
-        "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgboostr"],
-        "arequipa": ["lr","svc","knnc","xgboost"],
-        "ad_mci_hc": ["lr","svc","knnc","xgboost"]
+        "tell_classifier": ["lr","svc","knnc","xgb"],
+        "MCI_classifier": ["lr","svc","knnc","xgb"],
+        "Proyecto_Ivo": ["lr","svc","knnc","xgb"],
+        "GeroApathy": ["lr","svc","knnc","xgb"],
+        "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgbb"],
+        "GERO_Ivo": ["lasso","ridge","elastic","svr","knnr","xgb"],
+        "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
+        "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
+        "arequipa": ["lr","svc","knnc","xgb","nb"],
+        "ad_mci_hc": ["lr","svc","knnc","xgb","nb"]
     }
     
 }

@@ -14,6 +14,7 @@ from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier as xgboost
 from xgboost import XGBRegressor as xgboostr
+from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
 from tqdm import tqdm
@@ -137,7 +138,8 @@ models_dict = {
             'lr': LR,
             'svc': SVC,
             'knnc': KNNC,
-            'xgb': xgboost
+            'xgb': xgboost,
+            'nb':GaussianNB
         },
         'reg': {
             'lasso': Lasso,
@@ -156,7 +158,8 @@ hp_ranges = {
         'lr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))]},
         'svc': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'gamma': ['scale', 'auto'], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'probability': [True]},
         'knnc': {'n_neighbors': [x for x in range(1, 21)]},
-        'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,9),range(1,3))], 'max_depth': [3, 6, 9], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
+        'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,9),range(1,3))], 'max_depth': [1, 2, 3, 4], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
+        'nb': {'priors':[None]},
         'ridge': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'tol': [.0001], 'solver': ['auto'], 'random_state': [42]},
         'lasso': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'tol': [.0001], 'random_state': [42]},
         'elastic': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'l1_ratio': [.1, .5, .9], 'tol': [.0001], 'random_state': [42]},
@@ -169,6 +172,8 @@ logging.info("Configuration loaded. Starting training...")
 logging.info("Training completed.")
 
 for y_label, task in itertools.product(y_labels, tasks):
+    print(y_label)
+    print(task)
     # Determine feature dimensions. For projects with a dictionary, pick based on the task.
     dimensions = []
     single_dims = single_dimensions
@@ -182,6 +187,7 @@ for y_label, task in itertools.product(y_labels, tasks):
             dimensions = [dimensions]
     
     for dimension in dimensions:
+        print(dimension)
         logging.info(f"Processing: y_label={y_label}, task={task}, dimension={dimension}")
         # Load dataset. Use CSV or Excel based on file extension.
         data_file = data_file
@@ -212,7 +218,6 @@ for y_label, task in itertools.product(y_labels, tasks):
         # Iterate over each model defined for this problem type.
         problem = problem_type
         for model_key, model_class in models_dict[problem].items():
-            logging.info(f"Training model: {model_key}")
             # Determine held-out settings based on hyperparameter or feature iterations.
             held_out = (config["n_iter"] > 0 or config["n_iter_features"] > 0)
             n_folds = config["n_folds"]
@@ -303,12 +308,14 @@ for y_label, task in itertools.product(y_labels, tasks):
                     with open(results_dir/'config.json', 'w') as f:
                         json.dump(config, f, indent=4)
                     
-                    if Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '', f"all_models_{model_key}.csv").exists():
-                        logging.info(f"Results already exist for random_seed={random_seed_test}. Skipping...")
-                        continue
-                
+                    #if Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '', f"all_models_{model_key}.csv").exists():
+                    #    print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
+                    #    continue
+                        
+                    print(f"Training model: {model_key}")
+
                     # Call CVT from utils to perform cross-validation training and tuning.
-                    all_models, outputs_, _, y_dev_, IDs_dev_ = utils.CVT(
+                    all_models, outputs_, y_dev_, IDs_dev_ = utils.CVT(
                         model=model_class,
                         scaler=(StandardScaler if config["scaler_name"] == 'StandardScaler' else MinMaxScaler),
                         imputer=KNNImputer,
@@ -344,9 +351,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                     # Save results.
                     all_models.to_csv(Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '', f"all_models_{model_key}.csv"),index=False)
 
-                if X_dev.size == 0:
-                    logging.info(f"No results obtained for random_seed={random_seed_test}. Skipping...")
-                    continue
+                #if X_dev.size == 0:
+                #   logging.info(f"No results obtained for random_seed={random_seed_test}. Skipping...")
+                #  continue
 
                 result_files = {
                     "X_dev.pkl": X_dev,

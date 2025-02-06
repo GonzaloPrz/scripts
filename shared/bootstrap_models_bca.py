@@ -44,7 +44,6 @@ def get_metrics_bootstrap(samples, targets, metrics_names, n_boot=2000,cmatrix=N
     return all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
 project_name = 'arequipa'
-bayesian = True
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -64,7 +63,7 @@ feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
-
+bayesian = bool(config["bayesian"])
 parallel = True 
 cmatrix = None
 
@@ -82,8 +81,7 @@ models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
 
 ##---------------------------------PARAMETERS---------------------------------##
-for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,scoring_metrics):    
-    
+for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scoring_metrics]):    
     dimensions = list()
 
     for ndim in range(1,len(single_dimensions)+1):
@@ -153,6 +151,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,scorin
             metrics = dict((metric,np.empty((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
             
             if np.isnan(outputs).sum() > len(outputs.flatten())/5:
+                flag = True
                 continue
 
             all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'],bayesian=True) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
@@ -172,5 +171,5 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,scorin
                 Path(path,random_seed,'bayesian').mkdir(exist_ok=True)
                 
             all_models.to_csv(Path(path,random_seed,'bayesian' if bayesian else '',f'best_models_{model}_dev_bca_{scoring}.csv')) if all_models_bool == False else all_models.to_csv(Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv')) 
- 
-    logging.info("Training completed.")
+    
+logging.info("Bootstrap completed.")

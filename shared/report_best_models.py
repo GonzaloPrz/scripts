@@ -12,7 +12,7 @@ def new_best(current_best,value,ascending):
 ##---------------------------------PARAMETERS---------------------------------##
 
 project_name = 'arequipa'
-bayesian = True
+bayesian = False
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -25,11 +25,11 @@ shuffle_labels = False
 hyp_opt_list = [True]
 feature_selection_list = [False]
 
-config = json.load(Path(results_dir,'config.json').open())
+#config = json.load(Path(results_dir,'config.json').open())
 
-scaler_name = config['scaler_name']
-stat_folder = config['stat_folder']
-filter_outliers = config['filter_outliers']
+scaler_name = 'StandardScaler'
+stat_folder = 'mean_std'
+filter_outliers = False
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
@@ -42,8 +42,7 @@ thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 models = main_config["models"][project_name]
-#metrics_names = main_config["metrics_names"][problem_type]
-metrics_names = ['roc_auc','accuracy','f1','norm_cross_entropy','norm_expected_cost']
+metrics_names = main_config["metrics_names"][problem_type]
 
 best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names] 
                            + [f'{metric}_ic_dev' for metric in metrics_names] 
@@ -89,8 +88,8 @@ for scoring in [scoring_metrics]:
 
                     best = None
                     for file in files:
-                        #if 'svc' in file.stem or 'svr' in file.stem:
-                        #    continue
+                        if 'svc' in file.stem or 'svr' in file.stem:
+                            continue
                         
                         df = pd.read_csv(file)
                         
@@ -105,7 +104,7 @@ for scoring in [scoring_metrics]:
                         if best is None:
                             best = df.iloc[0,:]
                             
-                            model_type = file.stem.split('_')[-2]
+                            model_type = file.stem.split('_')[2]
                             best['y_label'] = y_label
                             best['model_type'] = model_type
                             best['random_seed_test'] = random_seed_test

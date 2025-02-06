@@ -16,6 +16,9 @@
         "max_depth": 6,
         "learning_rate": 0.3
     },
+    "nb": {
+        "priors": null
+    },
     "ridge": {
         "alpha": 1,
         "tol": 0.0001,
