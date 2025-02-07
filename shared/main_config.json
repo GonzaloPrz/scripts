@@ -293,8 +293,8 @@
         "GERO_Ivo": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
         "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
-        "arequipa": ["lr","svc","knnc","xgb","nb"],
-        "ad_mci_hc": ["lr","svc","knnc","nb"]
+        "arequipa": ["lr","svc","knnc","xgb"],
+        "ad_mci_hc": ["lr","svc","knnc","xgb"]
     }
     
 }

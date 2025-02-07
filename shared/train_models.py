@@ -138,8 +138,8 @@ models_dict = {
             'lr': LR,
             'svc': SVC,
             'knnc': KNNC,
-            #'xgb': xgboost,
-            'nb':GaussianNB
+            'xgb': xgboost,
+            #'nb':GaussianNB
         },
         'reg': {
             'lasso': Lasso,
