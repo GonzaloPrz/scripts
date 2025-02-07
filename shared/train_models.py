@@ -31,6 +31,10 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 import utils
 
+project_name = "arequipa"
+cmatrix = None
+parallel = True
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Train models with hyperparameter optimization and feature selection"
@@ -41,15 +45,15 @@ def parse_args():
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
     parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
     parser.add_argument("--n_iter", type=int, default=50, help="Number of hyperparameter iterations")
-    parser.add_argument("--n_iter_features", type=int, default=50, help="Number of feature selection iterations")
-    parser.add_argument("--feature_sample_ratio", type=float, default=0.5, help="Feature sample ratio")
-    parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for training")
+    parser.add_argument("--n_iter_features", type=int, default=50, help="Number of feature sets to try and select from")
+    parser.add_argument("--feature_sample_ratio", type=float, default=0.5, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
+    parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for cross-validation training")
     parser.add_argument("--n_seeds_shuffle",type=int,default=1,help="Number of seeds for shuffling")
     parser.add_argument("--scaler_name", type=str, default="StandardScaler", help="Scaler name")
     parser.add_argument("--id_col", type=str, default="id", help="ID column name")
-    parser.add_argument("--n_models",type=int,default=0,help="Number of models to train")
+    parser.add_argument("--n_models",type=int,default=0,help="Number of hyperparameter combinatios to try and select from  to train")
     parser.add_argument("--n_boot",type=int,default=200,help="Number of features to select")
-    parser.add_argument("--bayesian",type=int,default=0,help='Whether to calculate bayesian credible intervals calculations or not')
+    parser.add_argument("--bayesian",type=int,default=0,help='Whether to calculate bayesian credible intervals or bootstrap confidence intervals')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -108,10 +112,6 @@ def load_configuration(args):
     return config
 
 ##------------------ Configuration and Parameter Parsing ------------------##
-project_name = "arequipa"
-cmatrix = None
-parallel = True
-
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
     data_dir = home / 'data' / project_name
@@ -138,7 +138,7 @@ models_dict = {
             'lr': LR,
             'svc': SVC,
             'knnc': KNNC,
-            'xgb': xgboost,
+            #'xgb': xgboost,
             'nb':GaussianNB
         },
         'reg': {

@@ -226,16 +226,16 @@
     },
     "thresholds": {
         "tell_classifier": [
-            -0.6931471805599453
+            null
         ],
         "MCI_classifier": [
-            -0.6931471805599453
+            null
         ],
         "Proyecto_Ivo": [
-            -0.6931471805599453
+            null
         ],
         "GeroApathy": [
-            -0.6931471805599453
+            null
         ],
         "GeroApathy_reg": [
             null
@@ -250,7 +250,7 @@
             null
         ],
         "arequipa": [
-            -0.6931471805599453
+            null
         ],
         "ad_mci_hc": [
             null
@@ -294,7 +294,7 @@
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
         "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa": ["lr","svc","knnc","xgb","nb"],
-        "ad_mci_hc": ["lr","svc","knnc","xgb","nb"]
+        "ad_mci_hc": ["lr","svc","knnc","nb"]
     }
     
 }
