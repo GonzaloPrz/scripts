@@ -36,7 +36,7 @@ def get_metrics_bootstrap(samples, targets, metrics_names, n_boot=2000,cmatrix=N
         for b in range(n_boot):
             indices = np.random.choice(targets.shape[0], targets.shape[0], replace=True)
             if problem_type == 'clf':
-                metric_value, _ = utils.get_metrics_clf(samples[indices], targets[indices], [metric], cmatrix,priors,threshold,weights)
+                metric_value, y_pred = utils.get_metrics_clf(samples[indices], targets[indices], [metric], cmatrix,priors,threshold,weights)
             else:
                 metric_value = utils.get_metrics_reg(samples[indices], targets[indices], [metric])
             all_metrics[metric][b] = metric_value[metric]
@@ -64,7 +64,7 @@ filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 bayesian = bool(config["bayesian"])
-parallel = True 
+parallel = False 
 cmatrix = None
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
@@ -103,7 +103,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             random_seeds = ['']
         
         for random_seed in random_seeds:
-                    
+            '''        
             if config['n_models'] == 0:
 
                 if Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv').exists():
@@ -113,7 +113,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
-
+            '''
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
 
@@ -150,11 +150,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             
             metrics = dict((metric,np.empty((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
             
-            if np.isnan(outputs).sum() > len(outputs.flatten())/5:
-                flag = True
-                continue
-
-            all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'],bayesian=True) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
+            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'],bayesian=True) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
 
             # Update the metrics array with the computed results
             for j,model_index,r, metrics_result in tqdm.tqdm(all_results):

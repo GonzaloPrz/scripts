@@ -139,7 +139,7 @@ models_dict = {
             'svc': SVC,
             'knnc': KNNC,
             'xgb': xgboost,
-            #'nb':GaussianNB
+            'nb':GaussianNB
         },
         'reg': {
             'lasso': Lasso,
@@ -308,9 +308,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                     with open(results_dir/'config.json', 'w') as f:
                         json.dump(config, f, indent=4)
                     
-                    #if Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '', f"all_models_{model_key}.csv").exists():
-                    #    print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
-                    #    continue
+                    if Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '', f"all_models_{model_key}.csv").exists():
+                        print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
+                        continue
                         
                     print(f"Training model: {model_key}")
 
@@ -350,10 +350,6 @@ for y_label, task in itertools.product(y_labels, tasks):
 
                     # Save results.
                     all_models.to_csv(Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '', f"all_models_{model_key}.csv"),index=False)
-
-                #if X_dev.size == 0:
-                #   logging.info(f"No results obtained for random_seed={random_seed_test}. Skipping...")
-                #  continue
 
                 result_files = {
                     "X_dev.pkl": X_dev,
