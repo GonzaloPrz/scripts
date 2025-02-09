@@ -41,7 +41,7 @@ def parse_args():
     )
     parser.add_argument("--project_name", type=str, default="arequipa", help="Project name")
     parser.add_argument("--all_stats", type=int, default=1, help="All stats flag (1 or 0)")
-    parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
+    parser.add_argument("--shuffle_labels", type=int, default=1, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
     parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
     parser.add_argument("--n_iter", type=int, default=50, help="Number of hyperparameter iterations")
@@ -257,7 +257,7 @@ for y_label, task in itertools.product(y_labels, tasks):
             feature_sets = utils.generate_feature_sets(features, config, data.shape)
             
             for random_seed_test in random_seeds_test:
-                Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '').mkdir(exits_ok=True,parents=True)
+                Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '').mkdir(exist_ok=True,parents=True)
                 X_dev, y_dev, IDs_dev, outputs, X_test, y_test, IDs_test = np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0)
 
                 if test_size > 0:
@@ -301,7 +301,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                             hyperp = all_models[param_names]
                             feature_sets = []
                             for r,row in all_models.iterrows():
-                                feature_sets.append([col for col in all_models.columns if row[col] == 1])
+                                feature_sets.append([col for col in all_models.columns if col in feature_names and row[col] == 1])
                             
                     # Check for data leakage.
                     assert set(ID_train_).isdisjoint(set(ID_test_)), "Data leakage detected between train and test sets!"
