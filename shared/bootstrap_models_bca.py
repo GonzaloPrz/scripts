@@ -64,7 +64,7 @@ filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 bayesian = bool(config["bayesian"])
-parallel = False 
+parallel = True 
 cmatrix = None
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())

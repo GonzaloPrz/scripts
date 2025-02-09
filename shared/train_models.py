@@ -84,7 +84,7 @@ def load_configuration(args):
 
     # Seeds configuration
     config["random_seeds_train"] = [float(3**x) for x in np.arange(1, config["n_seeds_train"]+1)]
-    config["random_seeds_shuffle"] = config["random_seeds_train"][:config["n_seeds_shuffle"]] if config["shuffle_labels"] else ['']
+    config["random_seeds_shuffle"] = config["random_seeds_train"][:int(config["n_seeds_shuffle"])] if config["shuffle_labels"] else ['']
     
     # Thresholds, test size, and other project-specific dictionaries.
     config["thresholds"] = thresholds
@@ -251,11 +251,13 @@ for y_label, task in itertools.product(y_labels, tasks):
             ]
             path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
             path_to_save.mkdir(parents=True, exist_ok=True)
+            
 
             hyperp = utils.initialize_hyperparameters(model_key, config, data.shape, default_hp, hp_ranges)
             feature_sets = utils.generate_feature_sets(features, config, data.shape)
             
             for random_seed_test in random_seeds_test:
+                Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '').mkdir(exits_ok=True,parents=True)
                 X_dev, y_dev, IDs_dev, outputs, X_test, y_test, IDs_test = np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0)
 
                 if test_size > 0:
@@ -280,7 +282,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                 # If shuffling is requested, perform label shuffling before training.
                 for rss, random_seed_shuffle in enumerate(config["random_seeds_shuffle"]):
                     if config["shuffle_labels"]:
-                        np.random.seed(random_seed_shuffle)
+                        np.random.seed(int(random_seed_shuffle))
                         #For binary classification, swap half of the labels.
                         if problem == 'clf' and len(np.unique(y_train_)) == 2:
                             zero_indices = np.where(y_train_ == 0)[0]
@@ -293,8 +295,8 @@ for y_label, task in itertools.product(y_labels, tasks):
                             y_train_ = pd.Series(np.random.permutation(y_train_.values))
 
                         if config['shuffle_all']:
-                            all_models = pd.read_csv(Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '', f"all_models_{model_key}.csv"))
-                            feature_names = [col for col in all_models.columns if f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'), dimension.split('__'))]
+                            all_models = pd.read_csv(Path(str(Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '')).replace('shuffle',''),f'random_seed_{random_seed_test}' if config['test_size'] else '', f"all_models_{model_key}.csv"))
+                            feature_names = [col for col in all_models.columns if any(x in col for x in dimension.split('__'))]
                             param_names = list(set(all_models.columns) - set(feature_names))
                             hyperp = all_models[param_names]
                             feature_sets = []
@@ -364,7 +366,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                         "IDs_test.pkl": ID_test_,
                     })
                 for fname, obj in result_files.items():
-                    with open(path_to_save / fname, 'wb') as f:
+                    with open(Path(path_to_save,f'random_seed_{random_seed_test}' if config['test_size'] else '', fname), 'wb') as f:
                         pickle.dump(obj, f)
                 logging.info(f"Results saved to {path_to_save}")
 
