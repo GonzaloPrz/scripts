@@ -41,7 +41,7 @@ def parse_args():
     )
     parser.add_argument("--project_name", type=str, default="arequipa", help="Project name")
     parser.add_argument("--all_stats", type=int, default=1, help="All stats flag (1 or 0)")
-    parser.add_argument("--shuffle_labels", type=int, default=1, help="Shuffle labels flag (1 or 0)")
+    parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
     parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
     parser.add_argument("--n_iter", type=int, default=50, help="Number of hyperparameter iterations")
