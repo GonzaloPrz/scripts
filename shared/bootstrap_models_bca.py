@@ -15,6 +15,10 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 import utils
 
+project_name = 'arequipa'
+parallel = True 
+cmatrix = None
+
 def compute_metrics(j, model_index, r,outputs, y_dev, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None,bayesian=False):
     # Calculate the metrics using the bootstrap method
     results = get_metrics_bootstrap(outputs[j,model_index,r], y_dev[j, r], metrics_names, n_boot=n_boot, cmatrix=cmatrix,priors=priors,threshold=threshold,problem_type=problem_type,bayesian=bayesian)
@@ -43,7 +47,6 @@ def get_metrics_bootstrap(samples, targets, metrics_names, n_boot=2000,cmatrix=N
         
     return all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'arequipa'
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -64,8 +67,6 @@ filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 bayesian = bool(config["bayesian"])
-parallel = True 
-cmatrix = None
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
@@ -92,7 +93,6 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
     for dimension in dimensions:
-        print(task,model,dimension,y_label)
         path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
         
         if not path.exists():  
@@ -114,6 +114,11 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             '''
+            if not Path(path,random_seed,f'all_models_{model}.csv').exists():
+                continue
+            
+            print(task,model,dimension,y_label)
+
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
 

@@ -10,7 +10,6 @@ def new_best(current_best,value,ascending):
         return value > current_best
 
 ##---------------------------------PARAMETERS---------------------------------##
-
 project_name = 'arequipa'
 bayesian = False
 
@@ -21,14 +20,12 @@ else:
     results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
 kfold_folder = '5_folds'
-shuffle_labels = False
+shuffle_labels = True
 hyp_opt_list = [True]
-feature_selection_list = [False]
-
-#config = json.load(Path(results_dir,'config.json').open())
+feature_selection_list = [True]
 
 scaler_name = 'StandardScaler'
-stat_folder = 'mean_std'
+stat_folder = ''
 filter_outliers = False
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
@@ -54,6 +51,8 @@ pd.options.mode.copy_on_write = True
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 for scoring in [scoring_metrics]:
     for task,hyp_opt,feature_selection in itertools.product(tasks,hyp_opt_list,feature_selection_list):
+        if task == 'testimonio':
+            continue
         extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
         ascending = True if extremo == 'sup' else False
 

@@ -16,6 +16,13 @@
             "MiniSea_MiniSea_Total_EkmanFaces_label",
             "MiniSea_minisea_total_label"
         ],
+        
+        "arequipa": [
+            "group"
+        ],
+        "ad_mci_hc": [
+            "group"
+        ],
         "GeroApathy_reg": [
             "DASS_21_Depression_V",
             "AES_Total_Score",
@@ -52,11 +59,16 @@
             "an_correct",
             "mint_total"
         ],
-        "arequipa": [
-            "group"
-        ],
-        "ad_mci_hc": [
-            "group"
+        "arequipa_reg": [
+            "MOCA_TOTAL",
+            "IFS",
+            "TMT_A_LINEAS_COMPLETAS",
+            "TMT_B_LINEAS_COMPLETAS",
+            "TMT_A_TIEMPO",
+            "TMT_B_TIEMPO",
+            "DIGITOS_DIRECTO",
+            "DIGITOS_INVERSO",
+            "HAYLING"
         ]
     },
     "tasks": {
@@ -79,6 +91,16 @@
         ],
         "GeroApathy": [
             "agradable"
+        ],
+        "arequipa": [
+            "dia_tipico",
+            "lamina1",
+            "lamina2",
+            "fugu",
+            "testimonio"
+        ],
+        "ad_mci_hc": [
+            "fugu"
         ],
         "GeroApathy_reg": [
             "agradable"
@@ -104,14 +126,16 @@
             "routine",
             "video_retelling"
         ],
-        "arequipa": [
+        "arequipa_reg": [
             "dia_tipico",
             "lamina1",
             "lamina2",
-            "fugu",
-            "testimonio"
+            "fugu"
         ],
-        "ad_mci_hc": [
+        "arequipa_reg_mci": [
+            "dia_tipico",
+            "lamina1",
+            "lamina2",
             "fugu"
         ]
     },
@@ -120,11 +144,14 @@
         "MCI_classifier": 0.3,
         "Proyecto_Ivo": 0,
         "GeroApathy": 0.3,
+        "arequipa": 0,
+        "ad_mci_hc": 0.15,
         "GERO_Ivo": 0.3,
         "MPLS": 0,
         "AKU_outliers_as_nan": 0,
-        "arequipa": 0,
-        "ad_mci_hc": 0.15
+        "GeroApathy_reg": 0.3,
+        "arequipa_reg": 0,
+        "arequipa_reg_mci": 0
     },
     "single_dimensions": {
         "tell_classifier": [
@@ -181,6 +208,16 @@
             "pitch",
             "talking-intervals"
         ],
+        "arequipa": [
+            "pitch",
+            "talking_intervals",
+            "word_properties"
+        ],
+        "ad_mci_hc": [
+            "pitch",
+            "talking-intervals",
+            "voice-quality"
+        ],
         "GeroApathy_reg": [
             "mfcc",
             "ratio",
@@ -201,15 +238,15 @@
             "talking-intervals",
             "voice-quality"
         ],
-        "arequipa": [
+        "arequipa_reg": [
             "pitch",
             "talking_intervals",
             "word_properties"
         ],
-        "ad_mci_hc": [
+        "arequipa_reg_mci": [
             "pitch",
-            "talking-intervals",
-            "voice-quality"
+            "talking_intervals",
+            "word_properties"
         ]
     },
     "data_file": {
@@ -217,12 +254,14 @@
         "MCI_classifier": "features_data.csv",
         "Proyecto_Ivo": "all_data.csv",
         "GeroApathy": "data_matched_agradable",
+        "arequipa": "data_matched_group.csv",
+        "ad_mci_hc": "data_matched_group.csv",
         "GeroApathy_reg": "all_data_agradable.csv",
         "GERO_Ivo": "all_data.csv",
         "MPLS": "all_data.csv",
         "AKU_outliers_as_nan": "all_data_HC_outliers_as_nan.csv",
-        "arequipa": "data_matched_group.csv",
-        "ad_mci_hc": "data_matched_group.csv"
+        "arequipa_reg": "all_data.csv",
+        "arequipa_reg_mci":"all_data.csv"
     },
     "thresholds": {
         "tell_classifier": [
@@ -237,6 +276,12 @@
         "GeroApathy": [
             null
         ],
+        "arequipa": [
+            null
+        ],
+        "ad_mci_hc": [
+            null
+        ],
         "GeroApathy_reg": [
             null
         ],
@@ -249,10 +294,10 @@
         "AKU_outliers_as_nan": [
             null
         ],
-        "arequipa": [
+        "arequipa_reg": [
             null
         ],
-        "ad_mci_hc": [
+        "arequipa_reg_mci": [
             null
         ]
     },
@@ -261,24 +306,28 @@
         "tell_classifier": "norm_cross_entropy",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
+        "arequipa": "roc_auc",
+        "ad_mci_hc": "norm_expected_cost",
         "GeroApathy_reg": "mean_absolute_error",
         "GERO_Ivo": "mean_absolute_error",
         "MPLS": "r2_score",
         "AKU_outliers_as_nan": "r2_score",
-        "arequipa": "roc_auc",
-        "ad_mci_hc": "norm_expected_cost"
+        "arequipa_reg": "mean_absolute_error",
+        "arequipa_reg_mci": "mean_absolute_error"
     },
     "problem_type": {
         "tell_classifier": "clf",
         "MCI_classifier": "clf",
         "Proyecto_Ivo": "clf",
         "GeroApathy": "clf",
+        "arequipa": "clf",
+        "ad_mci_hc": "clf",
         "GeroApathy_reg": "reg",
         "GERO_Ivo": "reg",
         "MPLS": "reg",
         "AKU_outliers_as_nan": "reg",
-        "arequipa": "clf",
-        "ad_mci_hc": "clf"
+        "arequipa_reg":"reg",
+        "arequipa_reg_mci":"reg"
     },
     "metrics_names": {
         "clf": ["roc_auc","accuracy","f1","recall", "norm_cross_entropy", "norm_expected_cost"],
@@ -289,12 +338,14 @@
         "MCI_classifier": ["lr","svc","knnc","xgb"],
         "Proyecto_Ivo": ["lr","svc","knnc","xgb"],
         "GeroApathy": ["lr","svc","knnc","xgb"],
+        "arequipa": ["lr","svc","knnc","xgb","nb"],
+        "ad_mci_hc": ["lr","svc","knnc","xgb","nb"],
         "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgbb"],
         "GERO_Ivo": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
         "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
-        "arequipa": ["lr","svc","knnc","xgb","nb"],
-        "ad_mci_hc": ["lr","svc","knnc","xgb","nb"]
+        "arequipa_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
+        "arequipa_reg_mci": ["lasso","ridge","elastic","svr","knnr","xgb"]
     }
     
 }
