@@ -145,7 +145,7 @@ models_dict = {
             "ridge": Ridge,
             "elastic": ElasticNet,
             "svr": SVR,
-            "xgb": xgboost
+            "xgb": xgboostr
         }
     }
 
@@ -161,6 +161,7 @@ hp_ranges = {
         "nb": {"priors":[None]},
         "ridge": {"alpha": [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
                   "tol": [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
+                  "solver": ["auto"],
                   "max_iter": [5000],
                   "random_state": [42]},
         "lasso": {"alpha": [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
@@ -337,9 +338,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                     with open(results_dir/"config.json", "w") as f:
                         json.dump(config, f, indent=4)
                     
-                    #if Path(path_to_save,f"random_seed_{random_seed_test}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
-                    #    print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
-                    #    continue
+                    if Path(path_to_save,f"random_seed_{random_seed_test}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
+                        print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
+                        continue
                         
                     print(f"Training model: {model_key}")
 
