@@ -209,14 +209,17 @@
             "talking-intervals"
         ],
         "arequipa": [
+            "freeling",
             "pitch",
             "talking_intervals",
+            "universal_dependencies",
+            "voice_quality",
             "word_properties"
         ],
         "ad_mci_hc": [
             "pitch",
             "talking-intervals",
-            "voice-quality"
+            "voice_quality"
         ],
         "GeroApathy_reg": [
             "mfcc",
@@ -239,13 +242,19 @@
             "voice-quality"
         ],
         "arequipa_reg": [
+            "freeling",
             "pitch",
             "talking_intervals",
+            "universal_dependencies",
+            "voice-quality",
             "word_properties"
         ],
         "arequipa_reg_mci": [
+            "freeling",
             "pitch",
             "talking_intervals",
+            "universal_dependencies",
+            "voice-quality",
             "word_properties"
         ]
     },
@@ -338,7 +347,7 @@
         "MCI_classifier": ["lr","svc","knnc","xgb"],
         "Proyecto_Ivo": ["lr","svc","knnc","xgb"],
         "GeroApathy": ["lr","svc","knnc","xgb"],
-        "arequipa": ["lr","svc","knnc","xgb","nb"],
+        "arequipa": ["lr","svc","knnc","xgb"],
         "ad_mci_hc": ["lr","svc","knnc","xgb","nb"],
         "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgbb"],
         "GERO_Ivo": ["lasso","ridge","elastic","svr","knnr","xgb"],

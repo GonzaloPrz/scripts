@@ -38,7 +38,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train models with hyperparameter optimization and feature selection"
     )
-    parser.add_argument("--project_name", type=str, default="arequipa_reg", help="Project name")
+    parser.add_argument("--project_name", type=str, default="arequipa", help="Project name")
     parser.add_argument("--all_stats", type=int, default=1, help="All stats flag (1 or 0)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
@@ -50,11 +50,13 @@ def parse_args():
     parser.add_argument("--n_seeds_shuffle",type=int,default=10,help="Number of seeds for shuffling")
     parser.add_argument("--scaler_name", type=str, default="StandardScaler", help="Scaler name")
     parser.add_argument("--id_col", type=str, default="id", help="ID column name")
-    parser.add_argument("--n_models",type=int,default=0,help="Number of hyperparameter combinatios to try and select from  to train")
+    parser.add_argument("--n_models",type=float,default=0,help="Number of hyperparameter combinatios to try and select from  to train")
     parser.add_argument("--n_boot",type=int,default=200,help="Number of features to select")
     parser.add_argument("--bayesian",type=int,default=0,help="Whether to calculate bayesian credible intervals or bootstrap confidence intervals")
     parser.add_argument("--shuffle_all",type=int,default=0,help="Whether to shuffle all models or only the best ones")
     parser.add_argument("--filter_outliers",type=int,default=0,help="Whether to filter outliers in regression problems")
+    parser.add_argument("--early_fusion",type=int,default=1,help="Whether to perform early fusion")
+
     return parser.parse_args()
 
 def load_configuration(args):
@@ -76,7 +78,8 @@ def load_configuration(args):
         n_models = float(args.n_models),
         n_boot = float(args.n_boot),
         bayesian = bool(args.bayesian),
-        filter_outliers = bool(args.filter_outliers)
+        filter_outliers = bool(args.filter_outliers),
+        early_fusion = bool(args.early_fusion)
     )
 
     return config
@@ -138,7 +141,7 @@ models_dict = {
             "svc": SVC,
             "knnc": KNNC,
             "xgb": xgboost,
-            "nb":GaussianNB
+            #"nb":GaussianNB
         },
         "reg": {
             "lasso": Lasso,
@@ -183,14 +186,12 @@ for y_label, task in itertools.product(y_labels, tasks):
     # Determine feature dimensions. For projects with a dictionary, pick based on the task.
     dimensions = []
     single_dims = single_dimensions
-    if isinstance(single_dims, list):
+    if isinstance(single_dims, list) and config["early_fusion"]:
         for ndim in range(1, len(single_dims)+1):
             for dimension in itertools.combinations(single_dims, ndim):
                 dimensions.append("__".join(dimension))
     else:
-        dimensions = single_dims.get(task, [])
-        if not isinstance(dimensions, list):
-            dimensions = [dimensions]
+        dimensions = single_dims
     
     for dimension in dimensions:
         print(dimension)
