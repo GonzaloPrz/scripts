@@ -65,19 +65,19 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
             if bayesian:
                 weights = np.random.dirichlet(np.ones(y_test.shape[0]))
             else:
-                weigths = None
+                weights = None
 
             boot_index = resample(X_test.index, n_samples=X_test.shape[0], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
 
-            outputs = test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,:], y_dev[boot_index_train], X_test.loc[boot_index,:], y_test[boot_index], metrics_names, IDs_test.squeeze()[boot_index], cmatrix, priors, problem_type=problem_type,threshold=threshold)
+            outputs = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev[boot_index_train], X_test.loc[boot_index,features], problem_type=problem_type)
 
             outputs_bootstrap[b_train,b_test,:] = outputs
 
             if problem_type == 'clf':
-                metrics_test, y_pred = get_metrics_clf(outputs, y_test[boot_index], metrics_names, cmatrix, priors,threshold,weigths)
+                metrics_test, y_pred = utils.get_metrics_clf(outputs, y_test[boot_index], metrics_names, cmatrix, priors,threshold,weights)
                 y_pred_bootstrap[b_train,b_test,:] = y_pred
             else:
-                metrics_test = get_metrics_reg(outputs, y_test[boot_index], metrics_names)
+                metrics_test = utils.get_metrics_reg(outputs, y_test[boot_index], metrics_names)
                 y_pred_bootstrap[b_train,b_test,:] = outputs
                 
             y_true_bootstrap[b_train,b_test,:] = y_test[boot_index]
@@ -90,7 +90,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     result_append.update(features_dict)
 
     for metric in metrics_names:
-        mean, inf, sup = conf_int_95(metrics_test_bootstrap[metric].flatten())
+        mean, inf, sup = utils.conf_int_95(metrics_test_bootstrap[metric].flatten())
 
         result_append[f'inf_{metric}_test'] = np.round(inf,5)
         result_append[f'mean_{metric}_test'] = np.round(mean,5)
@@ -103,7 +103,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
 ##---------------------------------PARAMETERS---------------------------------##
 project_name = 'arequipa'
-bayesian = True
+bayesian = False
 boot_test = 200
 boot_train = 0
 
@@ -125,6 +125,7 @@ feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
+early_fusion = bool(config["early_fusion"])
 
 parallel = True 
 cmatrix = None
@@ -137,9 +138,9 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
+scoring_metrics = [main_config['scoring_metrics'][project_name]]
 problem_type = main_config['problem_type'][project_name]
-metrics_names = main_config['metrics_names'][project_name]
+metrics_names = main_config['metrics_names'][problem_type]
 
 ##---------------------------------PARAMETERS---------------------------------##
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -171,10 +172,21 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
-    dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
+    dimensions = list()
+
+    if early_fusion:
+        for ndim in range(1,len(single_dimensions)+1):
+            for dimension in itertools.combinations(single_dimensions,ndim):
+                dimensions.append('__'.join(dimension))
+        if len(dimensions) == 0:
+            dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+
+    else:
+        dimensions = single_dimensions
+
     for dimension in dimensions:
         print(task,dimension)
-        for y_label in y_labels[project_name]:
+        for y_label in y_labels:
             print(y_label)
             path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
 
@@ -196,11 +208,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 if len(files) == 0:
                     continue
 
-                X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))
-                y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_true_dev.pkl'),'rb'))
-                IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb'))
-                dev = pd.DataFrame({'y_dev':y_dev.flatten(), 'ID':IDs_dev.flatten()})
-                dev = dev.drop_duplicates(subset=['ID'])
+                X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb')).squeeze()[0]
+                y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb')).squeeze()[0]
+                IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb')).squeeze()[0]
                 X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))   
                 y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
                 IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
@@ -226,14 +236,14 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     all_features = [col for col in results_dev.columns if any([dim in col for dim in dimension.split('__')])]
                     if 'threshold' not in results_dev.columns:
-                        results_dev['threshold'] = thresholds[project_name][0]
+                        results_dev['threshold'] = thresholds[0]
 
                     if len(all_features) == 0:
                         continue
-
-                    results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type[project_name]][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,dev.y_dev,
-                                                                                X_test,y_test,all_features,y_labels[project_name],metrics_names[project_name],IDs_test,boot_train,
-                                                                                boot_test,problem_type[project_name],threshold=results_dev.loc[r,'threshold']) 
+                    
+                    results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
+                                                                                X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,
+                                                                                boot_test,problem_type,threshold=results_dev.loc[r,'threshold']) 
                                                                                 for r in results_dev.index)
                     
                     results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
@@ -254,3 +264,4 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
             
                     with open(Path(file.parent,f'y_pred_bootstrap_{model_name}_{scoring}.pkl'),'wb') as f:
                         pickle.dump(y_pred_bootstrap,f)
+                

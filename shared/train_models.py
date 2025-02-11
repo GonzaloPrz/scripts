@@ -38,7 +38,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train models with hyperparameter optimization and feature selection"
     )
-    parser.add_argument("--project_name", type=str, default="arequipa", help="Project name")
+    parser.add_argument("--project_name", type=str, default="ad_mci_hc", help="Project name")
     parser.add_argument("--all_stats", type=int, default=1, help="All stats flag (1 or 0)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
@@ -258,12 +258,11 @@ for y_label, task in itertools.product(y_labels, tasks):
             path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
             path_to_save.mkdir(parents=True, exist_ok=True)
             
-
             hyperp = utils.initialize_hyperparameters(model_key, config, data.shape, default_hp, hp_ranges)
             feature_sets = utils.generate_feature_sets(features, config, data.shape)
             
             for random_seed_test in random_seeds_test:
-                Path(path_to_save,f"random_seed_{random_seed_test}" if config["test_size"] else "").mkdir(exist_ok=True,parents=True)
+                Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "").mkdir(exist_ok=True,parents=True)
                 X_dev, y_dev, IDs_dev, outputs, X_test, y_test, IDs_test = np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0),np.empty(0)
 
                 if test_size > 0:
@@ -300,7 +299,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                         else:
                             y_train_ = pd.Series(np.random.permutation(y_train_.values))
 
-                        all_models = pd.read_csv(Path(str(Path(path_to_save,f"random_seed_{random_seed_test}" if config["test_size"] else "")).replace("shuffle",""),f"random_seed_{random_seed_test}" if config["test_size"] else "", f"all_models_{model_key}.csv"))
+                        all_models = pd.read_csv(Path(str(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "")).replace("shuffle",""), f"all_models_{model_key}.csv"))
 
                         if config["shuffle_all"]:
                             feature_names = [col for col in all_models.columns if any(x in col for x in dimension.split("__"))]
@@ -339,7 +338,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                     with open(results_dir/"config.json", "w") as f:
                         json.dump(config, f, indent=4)
                     
-                    if Path(path_to_save,f"random_seed_{random_seed_test}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
+                    if Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
                         print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
                         continue
                         
@@ -380,7 +379,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                     IDs_test[rss] = ID_test_
 
                     # Save results.
-                    all_models.to_csv(Path(path_to_save,f"random_seed_{random_seed_test}" if config["test_size"] else "", f"all_models_{model_key}.csv"),index=False)
+                    all_models.to_csv(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv"),index=False)
 
                 if outputs.shape[0] == 0:
                     continue
@@ -398,7 +397,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                         "IDs_test.pkl": ID_test_,
                     })
                 for fname, obj in result_files.items():
-                    with open(Path(path_to_save,f"random_seed_{random_seed_test}" if config["test_size"] else "", fname), "wb") as f:
+                    with open(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", fname), "wb") as f:
                         pickle.dump(obj, f)
                 logging.info(f"Results saved to {path_to_save}")
 

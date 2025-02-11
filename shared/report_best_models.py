@@ -20,12 +20,12 @@ else:
     results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
 kfold_folder = '5_folds'
-shuffle_labels = True
-hyp_opt_list = [True]
-feature_selection_list = [True]
+shuffle_labels = False
+hyp_opt_list = [False]
+feature_selection_list = [False]
 
 scaler_name = 'StandardScaler'
-stat_folder = ''
+stat_folder = 'mean_std'
 filter_outliers = False
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
@@ -87,17 +87,15 @@ for scoring in [scoring_metrics]:
 
                     best = None
                     for file in files:
-                        if 'svc' in file.stem or 'svr' in file.stem:
-                            continue
                         
                         df = pd.read_csv(file)
                         
-                        scoring_col = f'{scoring}_{extremo}'
+                        if f'{extremo}_{scoring}_dev' in df.columns:
+                            scoring_col = f'{extremo}_{scoring}_dev'
+                        else:
+                            scoring_col = f'{scoring}_{extremo}'
 
-                        try:
-                            df = df.sort_values(by=scoring_col,ascending=ascending)
-                        except:
-                            continue
+                        df = df.sort_values(by=scoring_col,ascending=ascending)
                         
                         print(f'{file.stem.split("_")[2]}:{df.iloc[0,:][scoring_col]}')
                         if best is None:

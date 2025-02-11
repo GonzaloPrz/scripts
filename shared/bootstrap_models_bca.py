@@ -16,8 +16,9 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 import utils
 
 project_name = 'arequipa'
-parallel = True 
+parallel = False 
 cmatrix = None
+bayesian = False
 
 def compute_metrics(j, model_index, r,outputs, y_dev, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None,bayesian=False):
     # Calculate the metrics using the bootstrap method
@@ -47,7 +48,6 @@ def get_metrics_bootstrap(samples, targets, metrics_names, n_boot=2000,cmatrix=N
         
     return all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
     results_dir = home / 'results' / project_name
@@ -66,7 +66,7 @@ feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
-bayesian = bool(config["bayesian"])
+early_fusion = bool(config["early_fusion"])
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
@@ -80,17 +80,18 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
-
 ##---------------------------------PARAMETERS---------------------------------##
 for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scoring_metrics]):    
     dimensions = list()
+    if early_fusion:
+        for ndim in range(1,len(single_dimensions)+1):
+            for dimension in itertools.combinations(single_dimensions,ndim):
+                dimensions.append('__'.join(dimension))
+        if len(dimensions) == 0:
+            dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
-    for ndim in range(1,len(single_dimensions)+1):
-        for dimension in itertools.combinations(single_dimensions,ndim):
-            dimensions.append('__'.join(dimension))
-
-    if len(dimensions) == 0:
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+    else:
+        dimensions = single_dimensions
 
     for dimension in dimensions:
         path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
@@ -103,7 +104,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            '''        
+            
             if config['n_models'] == 0:
 
                 if Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv').exists():
@@ -113,7 +114,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
-            '''
+            
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             

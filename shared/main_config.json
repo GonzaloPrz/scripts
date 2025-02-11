@@ -94,10 +94,8 @@
         ],
         "arequipa": [
             "dia_tipico",
-            "lamina1",
             "lamina2",
-            "fugu",
-            "testimonio"
+            "fugu"
         ],
         "ad_mci_hc": [
             "fugu"
@@ -128,13 +126,11 @@
         ],
         "arequipa_reg": [
             "dia_tipico",
-            "lamina1",
             "lamina2",
             "fugu"
         ],
         "arequipa_reg_mci": [
             "dia_tipico",
-            "lamina1",
             "lamina2",
             "fugu"
         ]
@@ -209,17 +205,20 @@
             "talking-intervals"
         ],
         "arequipa": [
+            "freeling__mlu__universal_dependencies__word_properties",
             "freeling",
+            "mlu",
+            "universal_dependencies",
+            "word_properties",
+            "pitch__talking_intervals__voice_quality",
             "pitch",
             "talking_intervals",
-            "universal_dependencies",
-            "voice_quality",
-            "word_properties"
+            "voice_quality"
         ],
         "ad_mci_hc": [
             "pitch",
             "talking-intervals",
-            "voice_quality"
+            "voice-quality"
         ],
         "GeroApathy_reg": [
             "mfcc",
@@ -272,6 +271,11 @@
         "arequipa_reg": "all_data.csv",
         "arequipa_reg_mci":"all_data.csv"
     },
+
+    "data_file_test": {
+        "arequipa" : "data_unmatched_group.csv"
+    },
+
     "thresholds": {
         "tell_classifier": [
             null
@@ -355,6 +359,20 @@
         "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg_mci": ["lasso","ridge","elastic","svr","knnr","xgb"]
+    },
+    "id_col":{
+        "tell_classifier": "id",
+        "MCI_classifier": "id",
+        "Proyecto_Ivo": "id",
+        "GeroApathy": "id",
+        "arequipa": "id",
+        "ad_mci_hc": "id",
+        "GeroApathy_reg": "id",
+        "GERO_Ivo": "id",
+        "MPLS": "id",
+        "AKU_outliers_as_nan": "id",
+        "arequipa_reg": "id",
+        "arequipa_reg_mci": "id"
     }
-    
+
 }
