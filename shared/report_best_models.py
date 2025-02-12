@@ -10,23 +10,25 @@ def new_best(current_best,value,ascending):
         return value > current_best
 
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'arequipa'
 bayesian = False
 
-home = Path(os.environ.get("HOME", Path.home()))
-if "Users/gp" in str(home):
-    results_dir = home / 'results' / project_name
-else:
-    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-kfold_folder = '5_folds'
-shuffle_labels = False
-hyp_opt_list = [False]
-feature_selection_list = [False]
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+hyp_opt = True if config['n_iter'] > 0 else False
+feature_selection = True if config['n_iter_features'] > 0 else False
+filter_outliers = config['filter_outliers']
+n_models = int(config["n_models"])
+n_boot = int(config["n_boot"])
+early_fusion = bool(config["early_fusion"])
 
-scaler_name = 'StandardScaler'
-stat_folder = 'mean_std'
-filter_outliers = False
+hyp_opt = True if config["n_iter"] > 0 else False
+feature_selection = True if config["n_iter_features"] > 0 else False
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
@@ -39,7 +41,7 @@ thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 models = main_config["models"][project_name]
-metrics_names = main_config["metrics_names"][problem_type]
+metrics_names = main_config["metrics_names"][problem_type] 
 
 best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test'] + [f'{metric}_mean_dev' for metric in metrics_names] 
                            + [f'{metric}_ic_dev' for metric in metrics_names] 
@@ -50,13 +52,21 @@ pd.options.mode.copy_on_write = True
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 for scoring in [scoring_metrics]:
-    for task,hyp_opt,feature_selection in itertools.product(tasks,hyp_opt_list,feature_selection_list):
-        if task == 'testimonio':
-            continue
+    for task in tasks:
+
         extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
         ascending = True if extremo == 'sup' else False
 
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+        dimensions = list()
+        if early_fusion:
+            for ndim in range(1,len(single_dimensions)+1):
+                for dimension in itertools.combinations(single_dimensions,ndim):
+                    dimensions.append('__'.join(dimension))
+            if len(dimensions) == 0:
+                dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+        else:
+            dimensions = single_dimensions
+
         for dimension in dimensions:
             print(task,dimension)
             path = Path(results_dir,task,dimension,scaler_name,kfold_folder)
@@ -64,7 +74,6 @@ for scoring in [scoring_metrics]:
             if not path.exists():
                 continue
             
-            y_labels = [folder.name for folder in path.iterdir() if folder.is_dir() and folder.name != 'mean_std']
             for y_label in y_labels:
                 path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
                 if not path.exists():
@@ -130,13 +139,16 @@ for scoring in [scoring_metrics]:
                         print(metric)
                         if f'inf_{metric}_dev' in best.index:
                             best[f'{metric}_mean_dev'] = np.round(best[f"mean_{metric}_dev"],5)
-                            best[f'{metric}_ic_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],5)} - {np.round(best[f"sup_{metric}_dev"],5)}]'
+                            best[f'{metric}_ic_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],5)}, {np.round(best[f"sup_{metric}_dev"],5)}]'
                         elif f'inf_{metric}' in best.index:
                             best[f'{metric}_mean_dev'] = np.round(best[f"mean_{metric}"],5)
                             best[f'{metric}_ic_dev'] = f'[{np.round(best[f"inf_{metric}"],5)}, {np.round(best[f"sup_{metric}"],5)}]'
-                        else:
+                        elif f'{metric}_inf' in best.index:
                             best[f'{metric}_mean_dev'] = np.round(best[f"{metric}_mean"],5)
                             best[f'{metric}_ic_dev'] = f'[{np.round(best[f"{metric}_inf"],5)}, {np.round(best[f"{metric}_sup"],5)}]'
+                        else:
+                            best[f'{metric}_mean_dev'] = np.nan
+                            best[f'{metric}_ic_dev'] = np.nan
 
                         best[f'{metric}_test'] = np.nan
                         try:
@@ -155,11 +167,12 @@ for scoring in [scoring_metrics]:
                     dict_append.update(dict((f'{metric}_mean_hodlout',np.nan) for metric in metrics_names))
                     dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names))
                     
-                    try:
-                        dict_append.update(dict((f'{metric}_mean_holdout',best[f'{metric}_mean_holdout']) for metric in metrics_names))
-                        dict_append.update(dict((f'{metric}_ic_holdout',best[f'{metric}_ic_holdout']) for metric in metrics_names))
-                    except:
-                        pass
+                    for metric in metrics_names:
+                        try:
+                            dict_append[f'{metric}_mean_holdout'] = best[f'{metric}_mean_holdout']
+                            dict_append[f'{metric}_ic_holdout'] = best[f'{metric}_ic_holdout']
+                        except:
+                            pass
                     best_models.loc[len(best_models),:] = dict_append
 
     filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_no_hyp_opt_feature_selection_shuffled.csv'
@@ -171,5 +184,6 @@ for scoring in [scoring_metrics]:
     if not shuffle_labels:
         filename_to_save = filename_to_save.replace('_shuffled','')
 
+    best_models = best_models.dropna(axis=1,how='all')
     #best_models.dropna(subset=['model_index'],inplace=True)
     best_models.to_csv(Path(results_dir,filename_to_save),index=False)

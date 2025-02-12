@@ -1,0 +1,54 @@
+{
+    "project_name": "ad_mci_hc",
+    "all_stats": true,
+    "shuffle_labels": false,
+    "shuffle_all": false,
+    "stratify": true,
+    "n_folds": 5.0,
+    "n_iter": 50.0,
+    "n_iter_features": 50.0,
+    "feature_sample_ratio": 0.5,
+    "n_seeds_train": 10.0,
+    "n_seeds_shuffle": 0.0,
+    "scaler_name": "StandardScaler",
+    "id_col": "id",
+    "n_models": 0.0,
+    "n_boot": 200.0,
+    "bayesian": false,
+    "filter_outliers": false,
+    "early_fusion": true,
+    "test_size": 0.15,
+    "n_seeds_test": 1.0,
+    "data_file": "data_matched_group.csv",
+    "tasks": [
+        "fugu"
+    ],
+    "single_dimensions": [
+        "pitch",
+        "talking-intervals",
+        "voice-quality"
+    ],
+    "scoring_metrics": "norm_cross_entropy",
+    "problem_type": "clf",
+    "y_labels": [
+        "group"
+    ],
+    "avoid_stats": [],
+    "stat_folder": "",
+    "random_seeds_train": [
+        3.0,
+        9.0,
+        27.0,
+        81.0,
+        243.0,
+        729.0,
+        2187.0,
+        6561.0,
+        19683.0,
+        59049.0
+    ],
+    "random_seeds_shuffle": [
+        ""
+    ],
+    "kfold_folder": "5_folds"
+}

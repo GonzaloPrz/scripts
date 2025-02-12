@@ -335,12 +335,15 @@ for y_label, task in itertools.product(y_labels, tasks):
                     assert set(ID_train_).isdisjoint(set(ID_test_)), "Data leakage detected between train and test sets!"
                     
                     # Save configuration.
-                    with open(results_dir/"config.json", "w") as f:
+                    with open(Path(__file__).parent/"config.json", "w") as f:
                         json.dump(config, f, indent=4)
                     
                     if Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
-                        print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
-                        continue
+                        all_models = pd.read_csv(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv"))
+                        all_models = all_models.drop_duplicates(features)
+                        if all_models.shape[0] != 1:    
+                            print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
+                            continue
                         
                     print(f"Training model: {model_key}")
 
@@ -361,6 +364,8 @@ for y_label, task in itertools.product(y_labels, tasks):
                         parallel=parallel,
                         problem_type=problem_type
                     )
+                    all_models = all_models.drop_duplicates()
+
                     if rss == 0:
                         X_dev = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_train"]),X_train_.shape[0],X_train_.shape[1]))
                         y_dev = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_train"]),y_train_.shape[0]))
@@ -399,6 +404,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                 for fname, obj in result_files.items():
                     with open(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", fname), "wb") as f:
                         pickle.dump(obj, f)
+                
+                with open(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", "config.json"), "w") as f:
+                    json.dump(config, f, indent=4)
                 logging.info(f"Results saved to {path_to_save}")
 
 ##----------------------------------------------------------------------------##

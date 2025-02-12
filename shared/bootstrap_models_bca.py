@@ -15,8 +15,7 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 import utils
 
-project_name = 'arequipa'
-parallel = False 
+parallel = True 
 cmatrix = None
 bayesian = False
 
@@ -48,14 +47,9 @@ def get_metrics_bootstrap(samples, targets, metrics_names, n_boot=2000,cmatrix=N
         
     return all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-home = Path(os.environ.get("HOME", Path.home()))
-if "Users/gp" in str(home):
-    results_dir = home / 'results' / project_name
-else:
-    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-config = json.load(Path(results_dir,'config.json').open())
-
+project_name = config["project_name"]
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
@@ -67,6 +61,12 @@ filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
+
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
+else:
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
@@ -80,6 +80,7 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
+
 ##---------------------------------PARAMETERS---------------------------------##
 for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scoring_metrics]):    
     dimensions = list()
@@ -104,14 +105,17 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            
+            '''
             if config['n_models'] == 0:
 
                 if Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv').exists():
+                    print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
                     continue
+
             elif Path(path,random_seed,'bayesian' if bayesian else '',f'best_models_{model}_dev_bca_{scoring}.csv').exists():
+                    print(f"Bootstrapping already done")
                     continue 
-            
+            '''
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             
@@ -125,6 +129,9 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
 
             y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb'))
             
+            metrics_names = main_config["metrics_names"][problem_type]
+            metrics_names = metrics_names if len(np.unique(y_dev)) == 2 else list(set(metrics_names) - set(['roc_auc','f1','recall']))
+
             scorings = np.empty(outputs.shape[0])
             
             if config['n_models'] == 0:

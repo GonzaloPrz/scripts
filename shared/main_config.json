@@ -320,7 +320,7 @@
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
         "arequipa": "roc_auc",
-        "ad_mci_hc": "norm_expected_cost",
+        "ad_mci_hc": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",
         "GERO_Ivo": "mean_absolute_error",
         "MPLS": "r2_score",

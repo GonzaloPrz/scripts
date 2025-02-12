@@ -102,19 +102,16 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     
     return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'arequipa'
+parallel = True 
+cmatrix = None
+
 bayesian = False
 boot_test = 200
 boot_train = 0
 
-home = Path(os.environ.get("HOME", Path.home()))
-if "Users/gp" in str(home):
-    results_dir = home / 'results' / project_name
-else:
-    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-config = json.load(Path(results_dir,'config.json').open())
-
+project_name = config["project_name"]
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
@@ -127,8 +124,11 @@ n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 
-parallel = True 
-cmatrix = None
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
+else:
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
@@ -140,7 +140,6 @@ data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = [main_config['scoring_metrics'][project_name]]
 problem_type = main_config['problem_type'][project_name]
-metrics_names = main_config['metrics_names'][problem_type]
 
 ##---------------------------------PARAMETERS---------------------------------##
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -204,7 +203,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 filename_to_save = 'all_models'
                 if len(files) == 0:
                     files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if 'best_models_' in file.stem and 'dev' in file.stem and scoring in file.stem]
-                    filename_to_save = f'best_models_{scoring[project_name]}'
+                    filename_to_save = f'best_models_{scoring}'
                 if len(files) == 0:
                     continue
 
@@ -221,6 +220,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     print(model_name)
                     
                     #if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
+                    #    print(f"Testing already done")
                     #    continue
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
@@ -241,6 +241,8 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     if len(all_features) == 0:
                         continue
                     
+                    metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_test)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
+
                     results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
                                                                                 X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,
                                                                                 boot_test,problem_type,threshold=results_dev.loc[r,'threshold']) 
