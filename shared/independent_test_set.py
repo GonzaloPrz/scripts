@@ -5,13 +5,12 @@ import numpy as np
 
 early_fusion = True
 project_name = "arequipa"
-avoid_stats = ['median','min','max','kurtosis','skewness']
-stat_folder = '_'.join(sorted(list(set(['mean','std','median','min','max','kurtosis','skewness']) - set(avoid_stats))))
+avoid_stats = []
+stat_folder = '_'.join(sorted(list(set(['mean','std','median','min','max','kurtosis','skewness']) - set(avoid_stats)))) if len(avoid_stats) > 0 else ''
 scaler_name = 'StandardScaler'
 hyp_opt = True
 feature_selection = True
 n_folds = 5
-early_fusion = False
 
 if n_folds == 0:
     kfold_folder = 'l2ocv'
@@ -41,7 +40,7 @@ for y_label, task in itertools.product(y_labels, tasks):
     if isinstance(single_dims, list) and early_fusion:
         for ndim in range(1, len(single_dims)+1):
             for dimension in itertools.combinations(single_dims, ndim):
-                dimensions.append("__".join(dimension))
+                dimensions.append("__".join(sorted(dimension)))
     else:
         dimensions = single_dims
     
@@ -64,6 +63,8 @@ for y_label, task in itertools.product(y_labels, tasks):
         y = data.pop(y_label)
 
         path_to_save = Path(results_dir, task, dimension, scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '')
+        
+        path_to_save.mkdir(parents=True, exist_ok=True)
 
         with open(Path(path_to_save, 'X_test.pkl'), 'wb') as f:
             pickle.dump(data,f)

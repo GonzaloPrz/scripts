@@ -38,13 +38,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train models with hyperparameter optimization and feature selection"
     )
-    parser.add_argument("--project_name", type=str, default="ad_mci_hc", help="Project name")
+    parser.add_argument("--project_name", type=str, default="arequipa", help="Project name")
     parser.add_argument("--all_stats", type=int, default=1, help="All stats flag (1 or 0)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
     parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
-    parser.add_argument("--n_iter", type=int, default=50, help="Number of hyperparameter iterations")
-    parser.add_argument("--n_iter_features", type=int, default=50, help="Number of feature sets to try and select from")
+    parser.add_argument("--n_iter", type=int, default=20, help="Number of hyperparameter iterations")
+    parser.add_argument("--n_iter_features", type=int, default=20, help="Number of feature sets to try and select from")
     parser.add_argument("--feature_sample_ratio", type=float, default=0.5, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
     parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for cross-validation training")
     parser.add_argument("--n_seeds_shuffle",type=int,default=10,help="Number of seeds for shuffling")
@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument("--bayesian",type=int,default=0,help="Whether to calculate bayesian credible intervals or bootstrap confidence intervals")
     parser.add_argument("--shuffle_all",type=int,default=0,help="Whether to shuffle all models or only the best ones")
     parser.add_argument("--filter_outliers",type=int,default=0,help="Whether to filter outliers in regression problems")
-    parser.add_argument("--early_fusion",type=int,default=1,help="Whether to perform early fusion")
+    parser.add_argument("--early_fusion",type=int,default=0,help="Whether to perform early fusion")
 
     return parser.parse_args()
 
@@ -339,12 +339,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                         json.dump(config, f, indent=4)
                     
                     if Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
-                        all_models = pd.read_csv(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv"))
-                        all_models = all_models.drop_duplicates(features)
-                        if all_models.shape[0] != 1:    
-                            print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
-                            continue
-                        
+                        print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
+                        continue
+                    
                     print(f"Training model: {model_key}")
 
                     # Call CVT from utils to perform cross-validation training and tuning.
@@ -364,7 +361,6 @@ for y_label, task in itertools.product(y_labels, tasks):
                         parallel=parallel,
                         problem_type=problem_type
                     )
-                    all_models = all_models.drop_duplicates()
 
                     if rss == 0:
                         X_dev = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_train"]),X_train_.shape[0],X_train_.shape[1]))

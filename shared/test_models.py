@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import itertools, sys, pickle, tqdm, warnings
+import itertools, pickle, sys, warnings, json, os
 from joblib import Parallel, delayed
-import logging, sys, json, os
 
 warnings.filterwarnings('ignore')
 
@@ -29,6 +28,10 @@ from psrcal import *
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 import utils
+
+parallel = True 
+cmatrix = None
+late_fusion = False
 
 def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False):
     results_r = row.dropna().to_dict()
@@ -57,9 +60,10 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
             pass
     if 'random_state' in params.keys():
         params['random_state'] = int(params['random_state'])
-    
+    outputs = np.empty((np.max((1,boot_train)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
     for b_train in range(np.max((1,boot_train))):
         boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
+        outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev, X_test[features], problem_type=problem_type)
 
         for b_test in range(np.max((1,boot_test))):
             if bayesian:
@@ -69,16 +73,14 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
 
             boot_index = resample(X_test.index, n_samples=X_test.shape[0], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
 
-            outputs = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev[boot_index_train], X_test.loc[boot_index,features], problem_type=problem_type)
-
-            outputs_bootstrap[b_train,b_test,:] = outputs
+            outputs_bootstrap[b_train,b_test,:] = outputs[b_train,boot_index,:]
 
             if problem_type == 'clf':
-                metrics_test, y_pred = utils.get_metrics_clf(outputs, y_test[boot_index], metrics_names, cmatrix, priors,threshold,weights)
+                metrics_test, y_pred = utils.get_metrics_clf(outputs[b_train,boot_index,:], y_test[boot_index], metrics_names, cmatrix, priors,threshold,weights)
                 y_pred_bootstrap[b_train,b_test,:] = y_pred
             else:
-                metrics_test = utils.get_metrics_reg(outputs, y_test[boot_index], metrics_names)
-                y_pred_bootstrap[b_train,b_test,:] = outputs
+                metrics_test = utils.get_metrics_reg(outputs[b_train,boot_index,:], y_test[boot_index], metrics_names)
+                y_pred_bootstrap[b_train,b_test,:] = outputs[b_train,boot_index,:]
                 
             y_true_bootstrap[b_train,b_test,:] = y_test[boot_index]
             IDs_test_bootstrap[b_train,b_test,:] = IDs_test.squeeze()[boot_index]
@@ -100,13 +102,8 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
         result_append[f'mean_{metric}_dev'] = np.round(results_r[f'{metric}_mean'],5)
         result_append[f'sup_{metric}_dev'] = np.round(results_r[f'{metric}_sup'],5)
     
-    return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
+    return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap,outputs
 ##---------------------------------PARAMETERS---------------------------------##
-parallel = True 
-cmatrix = None
-
-bayesian = False
-boot_test = 200
 boot_train = 0
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
@@ -123,6 +120,7 @@ filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
+bayesian = bool(config["bayesian"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -171,23 +169,13 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
-    dimensions = list()
-
-    if early_fusion:
-        for ndim in range(1,len(single_dimensions)+1):
-            for dimension in itertools.combinations(single_dimensions,ndim):
-                dimensions.append('__'.join(dimension))
-        if len(dimensions) == 0:
-            dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-
-    else:
-        dimensions = single_dimensions
+    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
     for dimension in dimensions:
         print(task,dimension)
         for y_label in y_labels:
             print(y_label)
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '','late_fusion' if late_fusion else '')
 
             if not path_to_results.exists():
                 continue
@@ -219,10 +207,6 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
 
                     print(model_name)
                     
-                    #if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
-                    #    print(f"Testing already done")
-                    #    continue
-                    
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     
                     if f'{extremo}_{scoring}' in results_dev.columns:
@@ -243,9 +227,13 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_test)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
+                    if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
+                        print(f"Testing already done")
+                        continue
+
                     results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
                                                                                 X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,
-                                                                                boot_test,problem_type,threshold=results_dev.loc[r,'threshold']) 
+                                                                                n_boot,problem_type,threshold=results_dev.loc[r,'threshold']) 
                                                                                 for r in results_dev.index)
                     
                     results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
@@ -255,15 +243,8 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
                     y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
                     IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
+                    outputs_test = np.stack([result[5] for result in results],axis=0)
 
                     results_test.to_csv(Path(file.parent,f'{filename_to_save}_{model_name}_test.csv'))
-
-                    if not Path(file.parent,f'all_models_{model_name}_test.csv').exists():
-                        with open(Path(file.parent,'y_test_bootstrap.pkl'),'wb') as f:
-                            pickle.dump(y_true_bootstrap,f)
-                        with open(Path(file.parent,f'IDs_test_bootstrap.pkl'),'wb') as f:   
-                            pickle.dump(IDs_test_bootstrap,f)
-            
-                    with open(Path(file.parent,f'y_pred_bootstrap_{model_name}_{scoring}.pkl'),'wb') as f:
-                        pickle.dump(y_pred_bootstrap,f)
-                
+                    with open(Path(file.parent,f'outputs_test_{model_name}.pkl'),'wb') as f:
+                        pickle.dump(outputs_test,f)

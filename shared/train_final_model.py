@@ -1,7 +1,6 @@
-import sys
+import sys, itertools, json, os
 from pathlib import Path
 import pandas as pd
-import itertools
 import numpy as np
 
 from sklearn.linear_model import LogisticRegression
@@ -15,41 +14,61 @@ import pickle
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-from utils import *
+import utils
 
-project_name = 'arequipa'
-scaler_name = 'StandardScaler'
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-scoring = 'roc_auc'
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+hyp_opt = True if config['n_iter'] > 0 else False
+feature_selection = True if config['n_iter_features'] > 0 else False
+filter_outliers = config['filter_outliers']
+n_models = int(config["n_models"])
+n_boot = int(config["n_boot"])
+early_fusion = bool(config["early_fusion"])
 
-extremo = 'sup' if 'norm' in scoring else 'inf'
-ascending = True if 'norm' in scoring else False
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
+else:
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
-feature_selection_list = [True]
-shuffle_labels_list = [False]
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
-kfold_folder = '5_folds'
-n_seeds_train = 10
-n_seeds_test = 1
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+test_size = main_config['test_size'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config['data_file'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = [main_config['scoring_metrics'][project_name]]
+problem_type = main_config['problem_type'][project_name]
 
 models_dict = {'lr':LogisticRegression,'knn':KNeighborsClassifier,'svc':SVC,'xgb':XGBClassifier,'knnc':KNeighborsClassifier}
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
-for shuffle_labels in shuffle_labels_list:
-    best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection_shuffled.csv'))  if shuffle_labels else pd.read_csv(Path(results_dir,f'best_models_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv')) 
+for scoring in scoring_metrics:
+    extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
+    ascending = True if extremo == 'sup' else False
+
+    best_models = pd.read_csv(Path(str(results_dir,f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled.csv')).replace('__',''))
 
     tasks = best_models['task'].unique()
     y_labels = best_models['y_label'].unique()
     id_col = 'id'
 
-    for task,y_label,feature_selection in itertools.product(tasks,y_labels,feature_selection_list):
+    for task,y_label in itertools.product(tasks,y_labels):
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
             print(task,dimension)
             path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','feature_selection','shuffle')
             if not feature_selection:
-                path = str(path).replace('feature_selection','')
+                path = str(path).replace('feature_selection_','')
             if not shuffle_labels:
                 path = str(path).replace('shuffle','')
             
@@ -89,51 +108,45 @@ for shuffle_labels in shuffle_labels_list:
                 params_dict['random_state'] = int(params_dict['random_state'])
             
             try:
-                model = Model(models_dict[best_model](**params_dict),StandardScaler,KNNImputer)
+                model = utils.Model(models_dict[best_model](**params_dict),StandardScaler,KNNImputer)
             except:
                 params = list(set(params) - set([x for x in params if any(x in params for x in ['Unnamed: 0'])]))
                 params_dict = {param:best_classifier.loc[0,param] for param in params if str(best_classifier.loc[0,param]) != 'nan'}
-                model = Model(models_dict[best_model](**params_dict),StandardScaler,KNNImputer)
+                model = utils.Model(models_dict[best_model](**params_dict),StandardScaler,KNNImputer)
             
-            try:
-                X_dev = pickle.load(open(Path(path_to_data,'X_dev.pkl'),'rb'))
-                #y_dev = pickle.load(open(Path(path_to_data,'y_dev.pkl'),'rb'))
-                y_dev = pd.read_csv(Path('D:','CNC_Audio','gonza','data',project_name,'data_matched_group.csv'))[y_label]
-                if not isinstance(X_dev,pd.DataFrame):
-                    X_dev = pd.DataFrame(X_dev.squeeze(axis=0),columns=all_features)
-                model.train(X_dev[features],y_dev.squeeze(axis=0))
+            X_dev = pickle.load(open(Path(path_to_data,'X_dev.pkl'),'rb'))
+            #y_dev = pickle.load(open(Path(path_to_data,'y_dev.pkl'),'rb'))
+            y_dev = pd.read_csv(Path('D:','CNC_Audio','gonza','data',project_name,'data_matched_group.csv'))[y_label]
+            if not isinstance(X_dev,pd.DataFrame):
+                X_dev = pd.DataFrame(X_dev.squeeze(axis=0),columns=all_features)
+            model.train(X_dev[features],y_dev.squeeze(axis=0))
 
-                trained_model = model.model
-                scaler = model.scaler
-                imputer = model.imputer
+            trained_model = model.model
+            scaler = model.scaler
+            imputer = model.imputer
 
-                Path(path_to_data,f'final_model_{scoring}').mkdir(parents=True,exist_ok=True)
-                
-                pickle.dump(trained_model,open(Path(path_to_data,f'final_model_{scoring}',f'final_model_{task}_{dimension}.pkl'),'wb'))
-                pickle.dump(scaler,open(Path(path_to_data,f'final_model_{scoring}',f'scaler_{task}_{dimension}.pkl'),'wb'))
-                pickle.dump(imputer,open(Path(path_to_data,f'final_model_{scoring}',f'imputer_{task}_{dimension}.pkl'),'wb'))
+            Path(path_to_data,f'final_model_{scoring}').mkdir(parents=True,exist_ok=True)
+            
+            pickle.dump(trained_model,open(Path(path_to_data,f'final_model_{scoring}',f'final_model_{task}_{dimension}.pkl'),'wb'))
+            pickle.dump(scaler,open(Path(path_to_data,f'final_model_{scoring}',f'scaler_{task}_{dimension}.pkl'),'wb'))
+            pickle.dump(imputer,open(Path(path_to_data,f'final_model_{scoring}',f'imputer_{task}_{dimension}.pkl'),'wb'))
 
-                if best_model == 'svc':
-                    model.model.kernel = 'linear'
+            if best_model == 'svc':
+                model.model.kernel = 'linear'
+        
+            model.train(X_dev[features],y_dev.squeeze(axis=0))
 
-                if task == 'Animales__P' and dimension == 'properties':
-                    print('.')                
-                model.train(X_dev[features],y_dev.squeeze(axis=0))
+            if hasattr(model.model,'feature_importance'):
+                feature_importance = model.model.feature_importance
+                feature_importance = pd.DataFrame({'feature':features,'importance':feature_importance}).sort_values('importance',ascending=False)
+                feature_importance.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
+            elif hasattr(model.model,'coef_'):
+                feature_importance = np.abs(model.model.coef_[0])
+                coef = pd.DataFrame({'feature':features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
+                coef.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
+            elif hasattr(model.model,'get_booster'):
 
-                if hasattr(model.model,'feature_importance'):
-                    feature_importance = model.model.feature_importance
-                    feature_importance = pd.DataFrame({'feature':features,'importance':feature_importance}).sort_values('importance',ascending=False)
-                    feature_importance.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
-                elif hasattr(model.model,'coef_'):
-                    feature_importance = np.abs(model.model.coef_[0])
-                    coef = pd.DataFrame({'feature':features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
-                    coef.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
-                elif hasattr(model.model,'get_booster'):
-
-                    feature_importance = pd.DataFrame({'feature':features,'importance':model.model.feature_importances_}).sort_values('importance',ascending=False)
-                    feature_importance.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
-                else:
-                    print(task,dimension,f'No feature importance available for {best_model}')
-            except:
-                print(f'Error with {task} - {dimension}')
-                pass
+                feature_importance = pd.DataFrame({'feature':features,'importance':model.model.feature_importances_}).sort_values('importance',ascending=False)
+                feature_importance.to_csv(Path(path_to_data,f'final_model_{scoring}',f'feature_importance_{task}_{dimension}.csv'),index=False)
+            else:
+                print(task,dimension,f'No feature importance available for {best_model}')

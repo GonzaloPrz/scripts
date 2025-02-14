@@ -17,7 +17,7 @@ import utils
 
 parallel = True 
 cmatrix = None
-bayesian = False
+late_fusion = False
 
 def compute_metrics(j, model_index, r,outputs, y_dev, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None,bayesian=False):
     # Calculate the metrics using the bootstrap method
@@ -83,29 +83,24 @@ metrics_names = main_config["metrics_names"][problem_type]
 
 ##---------------------------------PARAMETERS---------------------------------##
 for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scoring_metrics]):    
-    dimensions = list()
-    if early_fusion:
-        for ndim in range(1,len(single_dimensions)+1):
-            for dimension in itertools.combinations(single_dimensions,ndim):
-                dimensions.append('__'.join(dimension))
-        if len(dimensions) == 0:
-            dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-
-    else:
-        dimensions = single_dimensions
+    
+    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
     for dimension in dimensions:
-        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '','late_fusion' if late_fusion else '')
         
         if not path.exists():  
             continue
 
         random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name]
         if len(random_seeds) == 0:
+            random_seeds = [folder.name for folder in path.parent.iterdir() if folder.is_dir() and 'random_seed' in folder.name]
+       
+        if len(random_seeds) == 0:
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            '''
+            
             if config['n_models'] == 0:
 
                 if Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv').exists():
@@ -115,7 +110,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             elif Path(path,random_seed,'bayesian' if bayesian else '',f'best_models_{model}_dev_bca_{scoring}.csv').exists():
                     print(f"Bootstrapping already done")
                     continue 
-            '''
+            
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             
@@ -162,14 +157,22 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
                 outputs = outputs[best_models]
             
             metrics = dict((metric,np.empty((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
-            
-            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'],bayesian=True) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
+            if outputs.ndim == 4 and problem_type == 'clf':
+                outputs = np.expand_dims(outputs,axis=2)
 
+            try:
+                all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'],bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
+            except:
+                print(f"Error in {task} - {dimension} - {y_label} - {model} - {random_seed}")
+                all_results = []
+                continue
             # Update the metrics array with the computed results
             for j,model_index,r, metrics_result in tqdm.tqdm(all_results):
                 for metric in metrics_names:
                     metrics[metric][j,model_index,r,:] = metrics_result[metric]
 
+            if len(all_results) == 0:
+                continue
             # Update the summary statistics in all_models
             for model_index in tqdm.tqdm(range(outputs.shape[1])):
                 for metric in metrics_names:

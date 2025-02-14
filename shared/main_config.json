@@ -205,15 +205,13 @@
             "talking-intervals"
         ],
         "arequipa": [
-            "freeling__mlu__universal_dependencies__word_properties",
             "freeling",
             "mlu",
-            "universal_dependencies",
-            "word_properties",
-            "pitch__talking_intervals__voice_quality",
             "pitch",
             "talking_intervals",
-            "voice_quality"
+            "universal_dependencies",
+            "voice_quality",
+            "word_properties"
         ],
         "ad_mci_hc": [
             "pitch",

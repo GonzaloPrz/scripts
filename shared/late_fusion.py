@@ -1,218 +1,176 @@
+import pickle, sys, json, os, itertools
+from pathlib import Path
 import pandas as pd
 import numpy as np
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from matplotlib import pyplot as plt
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.linear_model import LogisticRegression as LR
-from sklearn.svm import SVC
-from xgboost import XGBClassifier as XGB
+from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier as KNN
-from sklearn.preprocessing import StandardScaler,MinMaxScaler
-from sklearn.model_selection import LeavePOut as LPO
-from sklearn.model_selection import LeaveOneOut as LOO
-from sklearn.metrics import roc_auc_score,accuracy_score,precision_score,recall_score,f1_score,confusion_matrix
-import pickle
-from sklearn.utils import resample
+from sklearn.impute import KNNImputer
 
-from pathlib import Path
-import itertools,sys,pickle
+sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-sys.path.append(str(Path(Path.home(),'scripts_generales')))
+import utils
 
-from utils import *
+parallel = True 
+cmatrix = None
 
-def get_conf_int(x,metrics_names):
-    conf_int = dict()
-    for metric in metrics_names:
-        inf = np.nanpercentile(x[metric],2.5).round(2)
-        mean = np.nanmean(x[metric]).round(2)
-        sup = np.nanpercentile(x[metric],97.5).round(2)
-        conf_int[f'inf_{metric}'] = inf
-        conf_int[f'mean_{metric}'] = mean
-        conf_int[f'sup_{metric}'] = sup
-    return pd.Series(conf_int)
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-l2ocv = False
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+hyp_opt = True if config['n_iter'] > 0 else False
+feature_selection = True if config['n_iter_features'] > 0 else False
+filter_outliers = config['filter_outliers']
+n_models = int(config["n_models"])
+n_boot = int(config["n_boot"])
+early_fusion = bool(config["early_fusion"])
+id_col = config['id_col']
+bayesian = config['bayesian']
+random_seeds_train = config['random_seeds_train']
+random_seeds_shuffle = config["random_seeds_shuffle"]
 
-if l2ocv:
-    kfold_folder = 'l2ocv'
+stratify = config['stratify']
+n_splits = int(config['n_folds'])
+
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
 else:
-    n_folds = 10
-    kfold_folder = f'{n_folds}_folds'
+    results_dir = Path(r"D:/",r"CNC_Audio/gonza/results", project_name)
 
-n_seeds_train = 10
-n_seeds_test = 1
-y_label = 'target'
-hyp_opt = True
-n_boot = 100
-project_name = 'MCI_classifier'
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+test_size = main_config['test_size'][project_name]
+dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config['data_file'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = [main_config['scoring_metrics'][project_name]]
+problem_type = main_config['problem_type'][project_name]
+random_seeds_test = [""] if test_size == 0 else range(int(config["n_seeds_test"]))
+
+##---------------------------------PARAMETERS---------------------------------##
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
-best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{kfold_folder}_hyp_opt.csv' if hyp_opt else f'best_classifiers_{kfold_folder}_no_hyp_opt.csv'))
+combinations = []
 
-dimensions = best_classifiers.dimension.unique()
-single_dimensions = list()
+for ndim in range(2,len(dimensions)+1): 
 
-for dimension in dimensions:
-    single_dimensions += dimension.split('__')
+    for combination in itertools.combinations(dimensions,ndim):
+        combinations.append(list(combination))
+    
+for task, y_label in itertools.product(tasks,y_labels):    
+    for random_seed in random_seeds_test:
 
-single_dimensions = np.unique(single_dimensions)
+        if not isinstance(random_seed,str):
+            random_seed = f'random_seed_{int(random_seed)}'
 
-tasks = best_classifiers.task.unique()
-hyp_opt_list = [True]
-bootstrap_list = [True]
-feature_selection_list = [True]
-scaler_name = 'StandardScaler'
-metrics_names = ['roc_auc','accuracy','f1','recall','norm_cross_entropy']
+        for scoring,combination in itertools.product(scoring_metrics,combinations):
+            combination_label = '__'.join([comb for comb in combination])
+            path_to_save = Path(results_dir,task,combination_label,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '',random_seed,'shuffle' if shuffle_labels else '','late_fusion')
+            path_to_save.mkdir(parents=True,exist_ok=True)
 
-scaler = StandardScaler() if scaler_name == 'StandardScaler' else MinMaxScaler()
+            best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffle.csv'.replace('__','_')
+            if not feature_selection:
+                    best_models_file = best_models_file.replace('feature_selection_','')
+            if not shuffle_labels:
+                best_models_file = best_models_file.replace('_shuffle','')
+            if not hyp_opt:
+                best_models_file = best_models_file.replace('hyp_opt','no_hyp_opt')
 
-models_dict = {'lr':LR,'svc':SVC,'xgb':XGB,'knn':KNN}
+            best_models = pd.read_csv(Path(results_dir,best_models_file))
 
-best_models = dict((f'{dimension}_{task}',dict()) for dimension,task in itertools.product(single_dimensions,tasks))
+            for rss, random_seed_shuffle in enumerate(random_seeds_shuffle):
+                for r, random_seed_train in enumerate(random_seeds_train):
+                    iterator = StratifiedKFold(n_splits=n_splits,shuffle=True) if problem_type == 'clf' and stratify else KFold(n_splits=n_splits,shuffle=True)
 
-loocv = LOO()
+                    late_fusion_dev = pd.DataFrame()
+                    late_fusion_test = pd.DataFrame()
 
-all_results = pd.DataFrame(columns=['task','combination','roc_auc','accuracy','precision','recall','f1'])
+                    for dimension in combination:                        
+                        #if Path(path_to_save,'all_models.csv').exists():
+                        #    print(f"Late fusion already done for {task} - {combination_label} - {y_label}. Skipping...")
+                        #    continue
 
-scoring = 'roc_auc'
-extremo = 'sup' if 'norm' in scoring else 'inf'
-ascending = True if 'norm' in scoring else False
+                        best_model = best_models[(best_models['task'] == task) & (best_models['y_label'] == y_label) & (best_models['dimension'] == dimension)]
 
-id_col = 'id'
+                        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','shuffle')
+                        if not feature_selection:
+                            path = str(path).replace('feature_selection_','')
+                        if not shuffle_labels:
+                            path = str(path).replace('shuffle','')
+                                                
+                            try:
+                                model_name = best_model['model_type'].values[0]
+                                model_index = best_model['model_index'].values[0]
+                            except:
+                                continue
+                            with open(Path(path,random_seed,'bayesian' if bayesian else '','y_dev.pkl'),'rb') as f:
+                                y_dev = pickle.load(f)
+                            with open(Path(path,random_seed,'bayesian' if bayesian else '',f'outputs_{model_name}.pkl'),'rb') as f:
+                                outputs_dev = pickle.load(f)
+                            with open(Path(path,random_seed,'bayesian' if bayesian else '','IDs_dev.pkl'),'rb') as f:
+                                IDs_dev = pickle.load(f)
+                            try:
+                                with open(Path(path,random_seed,'bayesian' if bayesian else '','y_test.pkl'),'rb') as f:
+                                    y_test = pickle.load(f)
+                                with open(Path(path,random_seed,'bayesian' if bayesian else '','IDs_test.pkl'),'rb') as f:
+                                    IDs_test = pickle.load(f)
+                                with open(Path(path,random_seed,'bayesian' if bayesian else '',f'outputs_test_{model_name}.pkl'),'rb') as f:
+                                    outputs_test = pickle.load(f)
+                            except:
+                                pass
+                        
+                        for ndim in range(outputs_dev.shape[-1]-1):
+                            late_fusion_test = pd.concat((late_fusion_test,pd.DataFrame({f'outputs_{dimension}_{ndim}':outputs_test[model_index,...,ndim].squeeze()})),axis=1)
+                            late_fusion_dev = pd.concat((late_fusion_dev,pd.DataFrame({f'outputs_{dimension}_{ndim}':outputs_dev[rss,model_index,r,...,ndim].squeeze()})),axis=1)
+                    #if Path(path_to_save,'all_models.csv').exists():
+                    #    print(f"Late fusion already done for {task} - {combination_label} - {y_label}. Skipping...")
+                    #    continue
 
-for task in tasks:
-    print(task)
-    for hyp_opt,feature_selection,bootstrap in itertools.product(hyp_opt_list,feature_selection_list,bootstrap_list):
-        path_to_save = Path(results_dir,'late_fusion',task,y_label,'feature_selection','bootstrap')
-        if not feature_selection:
-            path_to_save = Path(str(path_to_save).replace('feature_selection',''))
-        if not bootstrap:
-            path_to_save = Path(str(path_to_save).replace('bootstrap',''))
+                    model_params, outputs, y_dev_ , IDs_dev_ = utils.CV(LR,{'C':1,'random_state':42}, StandardScaler, KNNImputer, late_fusion_dev, pd.DataFrame(y_dev[rss,r,:]), late_fusion_dev.columns, None, iterator, [int(random_seed_train)], IDs_dev[rss,r,:], cmatrix=None, priors=None, problem_type='clf',parallel=False)
 
-        path_to_save.mkdir(parents=True,exist_ok=True)
-        for dimension in single_dimensions:     
-            best_model_type = best_classifiers.loc[(best_classifiers.dimension == dimension) & (best_classifiers.task == task)].model_type.values[0]
+                    if rss == 0 and r == 0:
+                        outputs_late_fusion = np.empty((len(random_seeds_shuffle),1,len(random_seeds_train),y_dev.shape[2],outputs.shape[-1]))
+                        y_dev_late_fusion = np.empty((len(random_seeds_shuffle),len(random_seeds_train),y_dev.shape[2]))
+                        IDs_dev_late_fusion = np.empty((len(random_seeds_shuffle),len(random_seeds_train),y_dev.shape[2]),dtype='object')
+                        all_late_fusion = np.empty((len(random_seeds_shuffle),1,len(random_seeds_train),y_dev.shape[2],(outputs.shape[-1]-1)*len(combination)))
+
+                    outputs_late_fusion[rss,:,r,:,:] = outputs
+                    y_dev_late_fusion[rss,r,:] = y_dev_[0,:].ravel()
+                    IDs_dev_late_fusion[rss,r,:] = IDs_dev_[0,:]
+                    try:
+                        all_late_fusion[rss,0,r,...] = late_fusion_dev.values
+                    except:
+                        print('.')
+            #if Path(path_to_save,'all_models_lr.csv').exists():
+            #    print(f"Late fusion already done for {task} - {combination_label} - {y_label}. Skipping...")
+            #   continue
             
-            path = Path(results_dir,task,dimension,'StandardScaler',kfold_folder,f'{n_seeds_train}_seeds_train',f'{n_seeds_test}_seeds_test',y_label,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection','bootstrap')
-            path = Path(str(path).replace('feature_selection','')) if not feature_selection else path
-            path = Path(str(path).replace('bootstrap','')) if not bootstrap else path
-            
-            random_seeds_test = [random_seed_folder.name for random_seed_folder in path.iterdir() if random_seed_folder.is_dir()]
+            pd.DataFrame(model_params).to_csv(Path(path_to_save,'all_models_lr.csv'))
 
-            for random_seed_test in random_seeds_test:
-                X_dev = pickle.load(open((Path(path,random_seed_test,'X_dev.pkl')),'rb'))
-                y_dev = pickle.load(open((Path(path,random_seed_test,'y_dev.pkl')),'rb'))
-                IDs_dev = pickle.load(open((Path(path,random_seed_test,'IDs_dev.pkl')),'rb'))
-
-                IDs_test = pickle.load(open((Path(path,random_seed_test,'IDs_test.pkl')),'rb'))
-                X_test = pickle.load(open((Path(path,random_seed_test,'X_test.pkl')),'rb'))
-                y_test = pickle.load(open((Path(path,random_seed_test,'y_test.pkl')),'rb'))
-                
-                X_dev.drop(id_col,axis=1,inplace=True)
-                X_test.drop(id_col,axis=1,inplace=True)
-
-                all_features = X_test.columns 
-
-                X_dev = X_dev[[col for col in X_dev.columns if dimension in col]]
-                X_test = X_test[[col for col in X_test.columns if dimension in col]]
-
-                best_model = pd.read_csv(Path(path,random_seed_test,f'all_performances_{best_model_type}.csv').resolve()).sort_values(f'{extremo}_{scoring}_bootstrap',ascending=ascending)
-
-                params = best_model.loc[0,[col for col in best_model.columns if all(x not in col for x in ['inf','sup','mean']) and col not in all_features and col != id_col]].to_dict()
-
-                features = [col for col in all_features if best_model.loc[0,col] ==1]
-
-                feature_index = [i for i,col in enumerate(X_dev.columns) if col in features]
-
-                X_dev = X_dev[features]
-                X_test = pd.DataFrame(columns=features,data=X_test[features])
-
-                if best_model_type == 'knn':
-                    params['n_neighbors'] = int(params['n_neighbors'])
-
-                params = pd.DataFrame(params,index=[0]).dropna(axis=1).loc[0,:].to_dict()
-                model = Model(models_dict[best_model_type](**params),scaler)
-
-                best_models[f'{dimension}_{task}'] = dict((random_seed_test,dict()) for random_seed_test in random_seeds_test)
-                
-                model.train(X_dev,y_dev)
-
-                #best_models[f'{dimension}_{task}'][random_seed_test]['trained_model'] = model.train(X_train,y_train)
-                best_models[f'{dimension}_{task}'][random_seed_test]['X_train'] = X_test
-                best_models[f'{dimension}_{task}'][random_seed_test]['y_true'] = y_test
-                best_models[f'{dimension}_{task}'][random_seed_test]['y_score'] = model.eval(X_test)[:,1]
-        
-        for ndim in range(2,len(single_dimensions)+1):
-            if ndim == 2:
-                late_fusion_models = dict(('_'.join(dimensions),dict()) for dimensions in itertools.combinations(single_dimensions,ndim))
-                X_dev_late_fusion = dict(('_'.join(dimensions),dict()) for dimensions in itertools.combinations(single_dimensions,ndim))
-                y_dev_late_fusion = dict(('_'.join(dimensions),dict()) for dimensions in itertools.combinations(single_dimensions,ndim))
-            else:
-                late_fusion_models.update(dict(('_'.join(dimensions),dict()) for dimensions in itertools.combinations(single_dimensions,ndim)))
-                X_dev_late_fusion.update(dict(('_'.join(dimensions),dict()) for dimensions in itertools.combinations(single_dimensions,ndim)))
-                y_dev_late_fusion.update(dict(('_'.join(dimensions),dict()) for dimensions in itertools.combinations(single_dimensions,ndim)))
-            
-            for dimensions in itertools.combinations(single_dimensions,ndim):
-                all_scores = pd.DataFrame(columns=['y_scores_' + '_'.join(dimensions),'y_true','y_pred' + '_'.join(dimensions)])
-
-                late_fusion_models['_'.join(dimensions)] = dict((f'{random_seed_test}',dict()) for random_seed_test in random_seeds_test)
-                X_dev_late_fusion['_'.join(dimensions)] = dict((f'{random_seed_test}',dict()) for random_seed_test in random_seeds_test)
-                y_dev_late_fusion['_'.join(dimensions)] = dict((f'{random_seed_test}',dict()) for random_seed_test in random_seeds_test)
-                                    
-                y_scores_val = np.empty((0,2))
-                y_true_val = np.empty((0,1))
-                
-                for random_seed_test in random_seeds_test:
-                    late_fusion_models['_'.join(dimensions)][random_seed_test] = dict()
-                    X_dev_late_fusion['_'.join(dimensions)][random_seed_test] = pd.DataFrame(columns=[f'y_score_{dimension}' for dimension in dimensions])
-                    for dimension in dimensions:
-                        X_dev_late_fusion['_'.join(dimensions)][random_seed_test][f'y_score_{dimension}'] = best_models[f'{dimension}_{task}'][random_seed_test]['y_score']
-                    y_dev_late_fusion['_'.join(dimensions)][random_seed_test] = best_models[f'{dimensions[0]}_{task}'][random_seed_test]['y_true']
-
-                    for train_index, test_index in loocv.split(X_dev_late_fusion['_'.join(dimensions)][random_seed_test]):
-                        X_train = X_dev_late_fusion['_'.join(dimensions)][random_seed_test].loc[train_index]
-                        y_train = y_dev_late_fusion['_'.join(dimensions)][random_seed_test].loc[train_index]
-                        X_test = X_dev_late_fusion['_'.join(dimensions)][random_seed_test].loc[test_index]
-                        y_test = y_dev_late_fusion['_'.join(dimensions)][random_seed_test].loc[test_index]
-
-                        m = LR(random_state=42).fit(X_train,y_train)
-                        if y_scores_val.shape[0] == 0:
-                            y_scores_val = m.predict_proba(X_test)
-                            y_true_val = y_test
-                        else:
-                            y_scores_val = np.vstack((y_scores_val,m.predict_proba(X_test)))
-                            y_true_val = np.hstack((y_true_val,y_test))
-
-                late_fusion_models['_'.join(dimensions)]['y_scores'] = y_scores_val
-                late_fusion_models['_'.join(dimensions)]['y_true'] = y_true_val
-                
-                for b in range(np.max((1,n_boot))):
-                    scores = pd.DataFrame(columns=['y_scores_' + '_'.join(dimensions),'y_true','y_pred' + '_'.join(dimensions)])
-
-                    boot_index = resample(np.arange(y_scores_val.shape[0]),replace=True,n_samples=y_scores_val.shape[0],random_state=b)
-                    metrics, y_pred = get_metrics_clf(y_scores_val[boot_index,:],y_true_val[boot_index],metrics_names)
-                    for metric in metrics_names:
-                            late_fusion_models['_'.join(dimensions)][metric] = metrics[metric]
-                    
-                    scores['y_scores_' + '_'.join(dimensions)] = y_scores_val[:,1]
-                    scores['y_true'] = y_true_val
-                    scores['y_pred' + '_'.join(dimensions)] = y_pred
-
-                    all_scores = pd.concat((all_scores,scores),axis=0)
-
-                    df_append = {'task':task,'combination':'_'.join(dimensions),'bootstrap':b}
-                    df_append.update(dict((metric,late_fusion_models['_'.join(dimensions)][metric]) for metric in metrics_names))
-
-                    if all_results.empty:
-                        all_results = pd.DataFrame(df_append,index=[0])
-                    else:
-                        all_results = pd.concat((all_results,pd.DataFrame(df_append,index=[0])),axis=0)
-                all_scores.to_csv(Path(path_to_save,'_'.join(dimensions) + '_all_scores.csv'),index=False)
-                
-    with open(Path(path_to_save,'late_fusion_models.pkl'),'wb') as file:
-        pickle.dump(late_fusion_models,file)
-
-conf_int_results = all_results.groupby(['task','combination']).apply(lambda x: get_conf_int(x,metrics_names))
-
-all_results.to_csv(Path(results_dir,'late_fusion','all_results.csv'),index=False,encoding='utf-8',)
-
-conf_int_results.to_csv(Path(results_dir,'late_fusion','conf_int_results.csv'),encoding='utf-8',)
+            with open(Path(path_to_save,'y_dev.pkl'),'wb') as f:
+                pickle.dump(y_dev_late_fusion,f)
+            with open(Path(path_to_save,f'outputs_lr.pkl'),'wb') as f:
+                pickle.dump(outputs_late_fusion,f)
+            with open(Path(path_to_save,'IDs_dev.pkl'),'wb') as f:
+                pickle.dump(IDs_dev_late_fusion,f) 
+            with open(Path(path_to_save,'X_dev.pkl'),'wb') as f:
+                pickle.dump(all_late_fusion,f)
+            try:
+                with open(Path(path_to_save,'y_test.pkl'),'wb') as f:
+                    pickle.dump(y_test,f)
+                with open(Path(path_to_save,'IDs_test.pkl'),'wb') as f:
+                    pickle.dump(IDs_test,f)
+                with open(Path(path_to_save,'X_test.pkl'),'wb') as f:
+                    pickle.dump(late_fusion_test,f)
+            except:
+                pass    
