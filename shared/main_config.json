@@ -205,6 +205,8 @@
             "talking-intervals"
         ],
         "arequipa": [
+            "graph_content",
+            "verbosity",
             "freeling",
             "mlu",
             "pitch",
@@ -212,7 +214,7 @@
             "universal_dependencies",
             "voice_quality",
             "word_properties"
-        ],
+            ],
         "ad_mci_hc": [
             "pitch",
             "talking-intervals",
@@ -317,7 +319,7 @@
         "tell_classifier": "norm_cross_entropy",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
-        "arequipa": "roc_auc",
+        "arequipa": "norm_cross_entropy",
         "ad_mci_hc": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",
         "GERO_Ivo": "mean_absolute_error",

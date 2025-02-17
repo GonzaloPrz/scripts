@@ -32,7 +32,7 @@ sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str
 import utils
 
 cmatrix = None
-parallel = True
+parallel = False
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -205,11 +205,13 @@ for y_label, task in itertools.product(y_labels, tasks):
             # For regression: Excel if available; default to CSV.
             data = pd.read_excel(data_path) if data_path.suffix in [".xlsx", ".xls"] else pd.read_csv(data_path)
         
+        data.dropna(axis=1,how='all',inplace=True)
+
         # Identify feature columns (avoid stats and other unwanted columns)
         features = [col for col in data.columns if any(f"{x}__{y}__" in col 
                     for x,y in itertools.product(task.split("__"), dimension.split("__"))) 
                     and not isinstance(data.iloc[0][col], str) 
-                    and all(f"_{x}" not in col for x in config["avoid_stats"] + ["query", "timestamp"])]
+                    and all(x not in col for x in config["avoid_stats"] + ["query", "timestamp"])]
         # Select only the desired features along with the target and id
         data = data[features + [y_label, config["id_col"]]]
         data = data.dropna(subset=[y_label])

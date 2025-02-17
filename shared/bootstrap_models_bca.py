@@ -21,6 +21,7 @@ late_fusion = False
 
 def compute_metrics(j, model_index, r,outputs, y_dev, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None,bayesian=False):
     # Calculate the metrics using the bootstrap method
+
     results = get_metrics_bootstrap(outputs[j,model_index,r], y_dev[j, r], metrics_names, n_boot=n_boot, cmatrix=cmatrix,priors=priors,threshold=threshold,problem_type=problem_type,bayesian=bayesian)
 
     metrics_result = {}
@@ -30,7 +31,7 @@ def compute_metrics(j, model_index, r,outputs, y_dev, metrics_names, n_boot, pro
 
 def get_metrics_bootstrap(samples, targets, metrics_names, n_boot=2000,cmatrix=None,priors=None,threshold=None,problem_type='clf',bayesian=False):
     all_metrics = dict((metric,np.empty(n_boot)) for metric in metrics_names)
-    
+ 
     for metric in metrics_names:
         if bayesian:
             weights = np.random.dirichlet(np.ones(samples.shape[0]))
@@ -39,6 +40,8 @@ def get_metrics_bootstrap(samples, targets, metrics_names, n_boot=2000,cmatrix=N
 
         for b in range(n_boot):
             indices = np.random.choice(targets.shape[0], targets.shape[0], replace=True)
+            while len(np.unique(targets[indices])) == 1:
+                indices = np.random.choice(targets.shape[0], targets.shape[0], replace=True)
             if problem_type == 'clf':
                 metric_value, y_pred = utils.get_metrics_clf(samples[indices], targets[indices], [metric], cmatrix,priors,threshold,weights)
             else:
@@ -61,6 +64,7 @@ filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
+bayesian = bool(config["bayesian"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -156,16 +160,13 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
                 all_models['idx'] = best_models
                 outputs = outputs[best_models]
             
-            metrics = dict((metric,np.empty((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
             if outputs.ndim == 4 and problem_type == 'clf':
                 outputs = np.expand_dims(outputs,axis=2)
-
-            try:
-                all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'],bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
-            except:
-                print(f"Error in {task} - {dimension} - {y_label} - {model} - {random_seed}")
-                all_results = []
-                continue
+            
+            metrics = dict((metric,np.empty((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
+                
+            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'],bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
+            
             # Update the metrics array with the computed results
             for j,model_index,r, metrics_result in tqdm.tqdm(all_results):
                 for metric in metrics_names:

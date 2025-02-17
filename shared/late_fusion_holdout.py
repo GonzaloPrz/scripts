@@ -130,20 +130,17 @@ for task, y_label in itertools.product(tasks,y_labels):
             #if Path(path_to_save,'all_models.csv').exists():
             #    print(f"Late fusion already done for {task} - {combination_label} - {y_label}. Skipping...")
             #    continue
-            try:
-                model_params, outputs, y_dev_ , IDs_dev_ = utils.CV(LR,{'C':1,'random_state':42}, StandardScaler, KNNImputer, late_fusion_dev, pd.DataFrame(y_dev), late_fusion_dev.columns, None, LOO(), [None], IDs_dev, cmatrix=None, priors=None, problem_type='clf',parallel=False)
+            model_params, outputs, y_dev_ , IDs_dev_ = utils.CV(LR,{'C':1,'random_state':42}, StandardScaler, KNNImputer, late_fusion_dev, pd.DataFrame(y_dev), late_fusion_dev.columns, None, LOO(), [None], IDs_dev, cmatrix=None, priors=None, problem_type='clf',parallel=False)
                 
-                #if Path(path_to_save,'all_models_lr.csv').exists():
-                #    print(f"Late fusion already done for {task} - {combination_label} - {y_label}. Skipping...")
-                #   continue
-                
-                pd.DataFrame(model_params).to_csv(Path(path_to_save,'all_models_lr.csv'))
-
-                with open(Path(path_to_save,'y_dev.pkl'),'wb') as f:
-                    pickle.dump(np.expand_dims(y_dev_,0),f)
-                with open(Path(path_to_save,f'outputs_lr.pkl'),'wb') as f:
-                    pickle.dump(np.expand_dims(outputs,0),f)
-                with open(Path(path_to_save,'IDs_dev.pkl'),'wb') as f:
-                    pickle.dump(np.expand_dims(IDs_dev_,0),f)
-            except:
-                pass
+            #if Path(path_to_save,'all_models_lr.csv').exists():
+            #    print(f"Late fusion already done for {task} - {combination_label} - {y_label}. Skipping...")
+            #   continue
+            
+            pd.DataFrame(model_params).to_csv(Path(path_to_save,'all_models_lr.csv'))
+            
+            with open(Path(path_to_save,'y_dev.pkl'),'wb') as f:
+                pickle.dump(np.expand_dims(y_dev_,0),f)
+            with open(Path(path_to_save,f'outputs_lr.pkl'),'wb') as f:
+                pickle.dump(np.expand_dims(outputs,0),f)
+            with open(Path(path_to_save,'IDs_dev.pkl'),'wb') as f:
+                pickle.dump(np.expand_dims(IDs_dev_,0),f)

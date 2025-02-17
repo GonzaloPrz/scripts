@@ -36,14 +36,14 @@ for y_label, task in itertools.product(y_labels, tasks):
     print(task)
     # Determine feature dimensions. For projects with a dictionary, pick based on the task.
     dimensions = []
-    single_dims = single_dimensions
+    single_dims = [dim for dim in single_dimensions if '__' not in dim]
     if isinstance(single_dims, list) and early_fusion:
         for ndim in range(1, len(single_dims)+1):
             for dimension in itertools.combinations(single_dims, ndim):
                 dimensions.append("__".join(sorted(dimension)))
     else:
         dimensions = single_dims
-    
+        
     for dimension in dimensions:
         print(dimension)
         # Load dataset. Use CSV or Excel based on file extension.
