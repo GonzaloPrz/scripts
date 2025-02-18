@@ -112,13 +112,13 @@
             "grandmean"
         ],
         "MPLS": [
-            "Estado General",
-            "Estado General 2",
-            "Consulta sobre soledad 1",
-            "Consulta sobre soledad 2",
-            "Recuerdo feliz",
-            "Animales",
-            "Palabras con F"
+            "estado_general",
+            "estado_general_2",
+            "consulta_sobre_soledad_1",
+            "consulta_sobre_soledad_2",
+            "recuerdo_agradable",
+            "animales",
+            "palabras_con_f"
         ],
         "AKU_outliers_as_nan": [
             "picture_description",
@@ -226,9 +226,10 @@
             "speech-timing"
         ],
         "MPLS": [
-            "pitch-analysis",
-            "talking-intervals",
-            "sentiment-analysis"
+            "psycholinguistic_objective",
+            "pitch_analysis",
+            "sentiment_analysis",
+            "talking_intervals"
         ],
         "AKU_outliers_as_nan": [
             "pitch",
