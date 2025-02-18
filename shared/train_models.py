@@ -32,18 +32,18 @@ sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str
 import utils
 
 cmatrix = None
-parallel = False
+parallel = True
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Train models with hyperparameter optimization and feature selection"
     )
-    parser.add_argument("--project_name", type=str, default="arequipa", help="Project name")
+    parser.add_argument("--project_name", type=str, default="MPLS", help="Project name")
     parser.add_argument("--all_stats", type=int, default=0, help="All stats flag (1 or 0)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
-    parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
-    parser.add_argument("--n_iter", type=int, default=0, help="Number of hyperparameter iterations")
+    parser.add_argument("--n_folds", type=int, default=-1, help="Number of folds for cross validation")
+    parser.add_argument("--n_iter", type=int, default=20, help="Number of hyperparameter iterations")
     parser.add_argument("--n_iter_features", type=int, default=20, help="Number of feature sets to try and select from")
     parser.add_argument("--feature_sample_ratio", type=float, default=0.5, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
     parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for cross-validation training")
@@ -126,7 +126,7 @@ config["avoid_stats"] = ["min","max","median","skewness","kurtosis"] if not conf
 config["stat_folder"] = "_".join(sorted(list(set(["mean","std","min","max","median","kurtosis","skewness"]) - set(config["avoid_stats"])))) if not config["all_stats"] else ""
 
 config["random_seeds_train"] = [float(3**x) for x in np.arange(1, config["n_seeds_train"]+1)]
-config["random_seeds_shuffle"] = config["random_seeds_train"][:int(config["n_seeds_shuffle"])] if config["shuffle_labels"] else [""]
+config["random_seeds_shuffle"] = [float(3**x) for x in np.arange(1, config["n_seeds_shuffle"]+1)] if config["shuffle_labels"] else [""]
 
 if config["n_folds"] == 0:
     config["kfold_folder"] = "l2ocv"
@@ -210,8 +210,8 @@ for y_label, task in itertools.product(y_labels, tasks):
         # Identify feature columns (avoid stats and other unwanted columns)
         features = [col for col in data.columns if any(f"{x}__{y}__" in col 
                     for x,y in itertools.product(task.split("__"), dimension.split("__"))) 
-                    and not isinstance(data.iloc[0][col], str) 
-                    and all(f'_{x}' not in col for x in config["avoid_stats"] + ["query", "timestamp"])]
+                    and all(not isinstance(data.loc[i,col], str) for i in data.index) 
+                    and all(f'_{x}' not in col for x in config["avoid_stats"] + ["query", "timestamp","list_data","error"])]
         # Select only the desired features along with the target and id
         data = data[features + [y_label, config["id_col"]]]
         data = data.dropna(subset=[y_label])
