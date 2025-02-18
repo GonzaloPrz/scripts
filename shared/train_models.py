@@ -39,11 +39,11 @@ def parse_args():
         description="Train models with hyperparameter optimization and feature selection"
     )
     parser.add_argument("--project_name", type=str, default="arequipa", help="Project name")
-    parser.add_argument("--all_stats", type=int, default=1, help="All stats flag (1 or 0)")
+    parser.add_argument("--all_stats", type=int, default=0, help="All stats flag (1 or 0)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
     parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
-    parser.add_argument("--n_iter", type=int, default=20, help="Number of hyperparameter iterations")
+    parser.add_argument("--n_iter", type=int, default=0, help="Number of hyperparameter iterations")
     parser.add_argument("--n_iter_features", type=int, default=20, help="Number of feature sets to try and select from")
     parser.add_argument("--feature_sample_ratio", type=float, default=0.5, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
     parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for cross-validation training")
@@ -211,7 +211,7 @@ for y_label, task in itertools.product(y_labels, tasks):
         features = [col for col in data.columns if any(f"{x}__{y}__" in col 
                     for x,y in itertools.product(task.split("__"), dimension.split("__"))) 
                     and not isinstance(data.iloc[0][col], str) 
-                    and all(x not in col for x in config["avoid_stats"] + ["query", "timestamp"])]
+                    and all(f'_{x}' not in col for x in config["avoid_stats"] + ["query", "timestamp"])]
         # Select only the desired features along with the target and id
         data = data[features + [y_label, config["id_col"]]]
         data = data.dropna(subset=[y_label])

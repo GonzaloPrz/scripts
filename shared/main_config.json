@@ -93,9 +93,9 @@
             "agradable"
         ],
         "arequipa": [
-            "dia_tipico",
             "lamina2",
-            "fugu"
+            "fugu",
+            "dia_tipico"
         ],
         "ad_mci_hc": [
             "fugu"
@@ -125,9 +125,9 @@
             "video_retelling"
         ],
         "arequipa_reg": [
-            "dia_tipico",
             "lamina2",
-            "fugu"
+            "fugu",
+            "dia_tipico"
         ],
         "arequipa_reg_mci": [
             "dia_tipico",
