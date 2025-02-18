@@ -5,7 +5,7 @@
     "shuffle_all": false,
     "stratify": true,
     "n_folds": 5.0,
-    "n_iter": 0.0,
+    "n_iter": 20.0,
     "n_iter_features": 20.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
@@ -16,25 +16,20 @@
     "n_boot": 200.0,
     "bayesian": false,
     "filter_outliers": false,
-    "early_fusion": false,
+    "early_fusion": true,
     "test_size": 0.0,
     "n_seeds_test": 0.0,
     "data_file": "data_matched_group.csv",
     "tasks": [
         "lamina2",
         "fugu",
-        "dia_tipico"
+        "dia_tipico",
+        "craft",
+        "recuerdo_agradable"
     ],
     "single_dimensions": [
-        "graph_content",
-        "verbosity",
-        "freeling",
-        "mlu",
-        "pitch",
-        "talking_intervals",
-        "universal_dependencies",
-        "voice_quality",
-        "word_properties"
+        "freeling__mlu__universal_dependencies__verbosity__word_properties",
+        "pitch__talking_intervals__voice_quality"
     ],
     "scoring_metrics": "norm_cross_entropy",
     "problem_type": "clf",

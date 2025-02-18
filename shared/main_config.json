@@ -95,7 +95,9 @@
         "arequipa": [
             "lamina2",
             "fugu",
-            "dia_tipico"
+            "dia_tipico",
+            "craft",
+            "recuerdo_agradable"
         ],
         "ad_mci_hc": [
             "fugu"
@@ -205,15 +207,8 @@
             "talking-intervals"
         ],
         "arequipa": [
-            "graph_content",
-            "verbosity",
-            "freeling",
-            "mlu",
-            "pitch",
-            "talking_intervals",
-            "universal_dependencies",
-            "voice_quality",
-            "word_properties"
+            "freeling__mlu__universal_dependencies__verbosity__word_properties",
+            "pitch__talking_intervals__voice_quality"
             ],
         "ad_mci_hc": [
             "pitch",
