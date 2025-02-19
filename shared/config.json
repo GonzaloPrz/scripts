@@ -1,52 +1,67 @@
 {
-    "project_name": "MPLS",
-    "all_stats": true,
-    "shuffle_labels": false,
-    "shuffle_all": false,
+    "project_name": "arequipa",
+    "all_stats": false,
+    "shuffle_labels": true,
+    "shuffle_all": true,
     "stratify": true,
-    "n_folds": -1.0,
+    "n_folds": 5.0,
     "n_iter": 20.0,
     "n_iter_features": 20.0,
     "feature_sample_ratio": 0.5,
-    "n_seeds_train": 1.0,
-    "n_seeds_shuffle": 0.0,
+    "n_seeds_train": 10.0,
+    "n_seeds_shuffle": 5.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
     "n_models": 0.0,
     "n_boot": 200.0,
     "bayesian": false,
     "filter_outliers": false,
-    "early_fusion": false,
+    "early_fusion": true,
     "test_size": 0.0,
     "n_seeds_test": 0.0,
-    "data_file": "all_data.csv",
+    "data_file": "data_matched_group.csv",
     "tasks": [
-        "estado_general",
-        "estado_general_2",
-        "consulta_sobre_soledad_1",
-        "consulta_sobre_soledad_2",
-        "recuerdo_agradable",
-        "animales",
-        "palabras_con_f"
+        "lamina2",
+        "fugu",
+        "dia_tipico",
+        "craft",
+        "recuerdo_agradable"
     ],
     "single_dimensions": [
-        "sentiment_analysis",
-        "psycholinguistic_objective",
-        "pitch_analysis",
-        "talking_intervals"
+        "freeling__mlu__universal_dependencies__verbosity__word_properties",
+        "pitch__talking_intervals__voice_quality"
     ],
-    "scoring_metrics": "r2_score",
-    "problem_type": "reg",
+    "scoring_metrics": "norm_cross_entropy",
+    "problem_type": "clf",
     "y_labels": [
-        "Minimental"
+        "group"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "min",
+        "max",
+        "median",
+        "skewness",
+        "kurtosis"
+    ],
+    "stat_folder": "mean_std",
     "random_seeds_train": [
-        3.0
+        3.0,
+        9.0,
+        27.0,
+        81.0,
+        243.0,
+        729.0,
+        2187.0,
+        6561.0,
+        19683.0,
+        59049.0
     ],
     "random_seeds_shuffle": [
-        ""
+        3.0,
+        9.0,
+        27.0,
+        81.0,
+        243.0
     ],
-    "kfold_folder": "loocv"
+    "kfold_folder": "5_folds"
 }
