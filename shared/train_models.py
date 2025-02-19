@@ -344,9 +344,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                     with open(Path(__file__).parent/"config.json", "w") as f:
                         json.dump(config, f, indent=4)
                     
-                    #if Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
-                    #    print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
-                    #    continue
+                    if Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
+                        print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
+                        continue
                     
                     print(f"Training model: {model_key}")
 

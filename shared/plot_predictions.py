@@ -1,138 +1,74 @@
 import pandas as pd
 from pathlib import Path
 import numpy as np
-import itertools,pickle
+import itertools,pickle,json
 import seaborn as sns
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.model_selection import KFold
 from scipy.stats import pearsonr
 
-random_seeds_train = [3**x for x in np.arange(1,11)]
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-stat_folder = ''
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+hyp_opt = True if config['n_iter'] > 0 else False
+feature_selection = True if config['n_iter_features'] > 0 else False
+filter_outliers = config['filter_outliers']
+n_models = int(config["n_models"])
+n_boot = int(config["n_boot"])
+early_fusion = bool(config["early_fusion"])
+bayes = bool(config["bayesian"])
+random_seeds_train = config["random_seeds_train"]
 
-project_name = 'AKU_outliers_as_nan'
-n_folds = 5
+hyp_opt = True if config["n_iter"] > 0 else False
+feature_selection = True if config["n_iter_features"] > 0 else False
 
-cmatrix = None
-shuffle_labels = False
-bayes_list = [False]
-feature_selection_list = [True]
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
-id_col = 'id'
-scaler_name = 'StandardScaler'
-
-models = {'MCI_classifier':['lr','svc','knnc'],
-          'tell_classifier':['lr','svc','knnc'],
-          'Proyecto_Ivo':['lr','svc','knnc','xgb'],
-          'GeroApathy':['lr','svc','knnc',],
-          'GeroAopathy_reg':['lasso','ridge','elastic','svr'],
-          'GERO_Ivo':['lasso','ridge','elastic','svr'],
-          'MPLS':['lasso','ridge','elastic','svr'],
-          'AKU_outliers_as_nan':['lasso','ridge','elastic',
-             'svr',
-             'xgb'
-            ]
-        }
-
-tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean' ],
-         'Proyecto_Ivo':['cog',
-                         'Animales__P',
-                         'brain',
-                         'Animales','P',
-                         'connectivity'
-                         ],
-         'GeroApathy':['agradable'],
-         'GeroApathy_reg':['agradable'],
-         'GERO_Ivo':['animales','fas','grandmean','fas__animales'],
-         'MPLS':['Estado General','Estado General 2',
-                 #'Consulta sobre soledad 1','Consulta sobre soledad 2',
-                #'Recuerdo feliz','Animales','Palabras con F'
-                ],
-         'AKU_outliers_as_nan':['picture_description',
-                                'pleasant_memory',
-                                'routine',
-                                'video_retelling'
-                ]}
-
-single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
-                     'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':[],
-                     'GeroApathy':[],
-                     'GeroApathy_reg':[],
-                     'GERO_Ivo':[],
-                     'MPLS':[],
-                     'AKU_outliers_as_nan':[]}
-
-metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                 'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'MPLS':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'AKU':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'AKU_outliers_as_nan':['r2_score','mean_squared_error','mean_absolute_error']
-                    }
-
-y_labels = {'MCI_classifier':['target'],
-            'tell_classifier':['target'],
-            'Proyecto_Ivo':['target'],
-            'GeroApathy':['DASS_21_Depression_V_label','Depression_Total_Score_label','AES_Total_Score_label',
-                         'MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'
-                         ],
-            'GeroApath_reg':['DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
-                         'MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'
-                         ],
-            'GERO_Ivo':['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD',
-                        'MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3',
-                        'GM','WM','vol_bilateral_HIP','vol_mask_AD'                        
-                        ],
-            'MPLS':['Minimental'],
-            'AKU_outliers_as_nan':  ['sdi0001_age',
-                    'cerad_learn_total_corr',
-                    'cerad_dr_correct',
-                    'braveman_dr_total',
-                    'stick_dr_total',
-                    'bird_total',
-                    'fab_total',
-                    'setshift_total',
-                    'an_correct',
-                    'mint_total'
-                    ]}
-
-if n_folds == 0:
-    kfold_folder = 'l2ocv'
-else:
-    kfold_folder = f'{n_folds}_folds'
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+test_size = main_config['test_size'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config['data_file'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+problem_type = main_config['problem_type'][project_name]
+models = main_config["models"][project_name]
+metrics_names = main_config["metrics_names"][problem_type] 
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
 best_best_models = pd.DataFrame()
 
-for scoring in metrics_names[project_name]:
+for scoring in [scoring_metrics]:
     Path(results_dir,'plots',scoring).mkdir(exist_ok=True,parents=True)
 
     extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
-    if not Path(results_dir,f'best_models_{scoring}_{kfold_folder}_StandardScaler_{stat_folder}_hyp_opt_feature_selection.csv').exists():
+    filename = f'best_models_{scoring}_{kfold_folder}_StandardScaler_{stat_folder}_hyp_opt_feature_selection.csv'.replace('__','_')
+
+    if not Path(results_dir,filename).exists():
         continue
 
-    best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring}_{kfold_folder}_StandardScaler_{stat_folder}_hyp_opt_feature_selection.csv'))
+    best_models = pd.read_csv(Path(results_dir,filename))
 
     dimensions = list()
 
     pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
 
-    if len(y_labels[project_name]) == 0:
-        y_labels[project_name] = best_models['y_label'].unique()
+    if len(y_labels) == 0:
+        y_labels = best_models['y_label'].unique()
 
-    for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],bayes_list,feature_selection_list):
+    for y_label in y_labels:
         
         best_models_y_label = best_models[(best_models['y_label'] == y_label)].sort_values(by=f'{scoring}_mean_dev',ascending=ascending).reset_index(drop=True)
-        best_models_y_label = best_models_y_label[best_models_y_label['model_type'].isin(models[project_name])].reset_index(drop=True)
+        best_models_y_label = best_models_y_label[best_models_y_label['model_type'].isin(models)].reset_index(drop=True)
         if best_best_models.empty:
             best_best_models = best_models_y_label.loc[0,:]
         else:
@@ -145,8 +81,8 @@ for scoring in metrics_names[project_name]:
         if np.isnan(random_seed_test):
             random_seed_test = ''
 
-        for ndim in range(1,len(single_dimensions[project_name])+1):
-            for dimension in itertools.combinations(single_dimensions[project_name],ndim):
+        for ndim in range(1,len(single_dimensions)+1):
+            for dimension in itertools.combinations(single_dimensions,ndim):
                 dimensions.append('__'.join(dimension))
 
         if len(dimensions) == 0:
@@ -158,16 +94,16 @@ for scoring in metrics_names[project_name]:
         print(f'{y_label}_{task}___{dim}___{model_name}')
         
         #Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','plots').mkdir(exist_ok=True)
-        IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,'IDs_dev.pkl'),'rb'))
-        y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,f'outputs_{model_name}.pkl'),'rb'))[model_index,]
-        y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,'y_true_dev.pkl'),'rb'))
+        IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,'IDs_dev.pkl'),'rb'))[0,:]
+        y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,f'outputs_{model_name}.pkl'),'rb'))[0,model_index]
+        y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,'y_dev.pkl'),'rb'))[0]
         
         if IDs_.ndim == 1:
             
             IDs = np.empty((10,len(IDs_)),dtype=object)
 
             for i,seed in enumerate(random_seeds_train):
-                kf = KFold(n_splits=5,shuffle=True,random_state=seed)
+                kf = KFold(n_splits=5,shuffle=True,random_state=int(seed))
                 for j,(train_index,test_index) in enumerate(kf.split(IDs_)):
                     IDs[i,test_index] = IDs_[test_index]
         
@@ -185,7 +121,9 @@ for scoring in metrics_names[project_name]:
         plt.xlabel('True vaue')
         plt.ylabel('Predicted value')
         plt.title(f'{model_name} - {y_label} - {dim} - {task}')
-
+        plt.xlim(np.min((data['y_true'].min(),data['y_pred'].min())),np.max((data['y_true'].max(),data['y_pred'].max())))
+        plt.ylim(np.min((data['y_true'].min(),data['y_pred'].min())),np.max((data['y_true'].max(),data['y_pred'].max())))
+        plt.grid(True)
         # Add the regression line
         a, b = np.polyfit(data['y_true'], data['y_pred'], 1)
         plt.plot(data['y_true'], a * data['y_true'] + b, color='red')
