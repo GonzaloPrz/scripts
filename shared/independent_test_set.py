@@ -3,13 +3,14 @@ import json,itertools,pickle
 from pathlib import Path
 import numpy as np
 
-early_fusion = True
-project_name = "arequipa"
-avoid_stats = []
-stat_folder = '_'.join(sorted(list(set(['mean','std','median','min','max','kurtosis','skewness']) - set(avoid_stats)))) if len(avoid_stats) > 0 else ''
+early_fusion = False
+hyp_opt = False
+feature_selection = False
+
+project_name = "arequipa_reg_mci"
+avoid_stats = ['median','std','stddev','min','max','kurtosis','skewness']
+stat_folder = '_'.join(sorted(list(set(['mean','std','stddev','median','min','max','kurtosis','skewness']) - set(avoid_stats)))) if len(avoid_stats) > 0 else ''
 scaler_name = 'StandardScaler'
-hyp_opt = True
-feature_selection = True
 n_folds = 5
 
 if n_folds == 0:
@@ -19,7 +20,7 @@ elif n_folds == -1:
 else:
     kfold_folder = f'{n_folds}_folds'
 
-main_config = json.load(open('main_config.json'))
+main_config = json.load(open(Path(Path(__file__).parent,'main_config.json')))
 
 data_file_test = main_config["data_file_test"][project_name]
 single_dimensions = main_config["single_dimensions"][project_name]
@@ -36,13 +37,12 @@ for y_label, task in itertools.product(y_labels, tasks):
     print(task)
     # Determine feature dimensions. For projects with a dictionary, pick based on the task.
     dimensions = []
-    single_dims = [dim for dim in single_dimensions if '__' not in dim]
-    if isinstance(single_dims, list) and early_fusion:
-        for ndim in range(1, len(single_dims)+1):
-            for dimension in itertools.combinations(single_dims, ndim):
+    if isinstance(single_dimensions, list) and early_fusion:
+        for ndim in range(1, len(single_dimensions)+1):
+            for dimension in itertools.combinations(single_dimensions, ndim):
                 dimensions.append("__".join(sorted(dimension)))
     else:
-        dimensions = single_dims
+        dimensions = single_dimensions
         
     for dimension in dimensions:
         print(dimension)

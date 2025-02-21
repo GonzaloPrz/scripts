@@ -37,21 +37,24 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     results_r = row.dropna().to_dict()
 
     outputs_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
+    if problem_type == 'reg':
+        outputs_bootstrap = outputs_bootstrap.squeeze(axis=-1)
+
     y_true_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
     y_pred_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
     IDs_test_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)), dtype=object)
     metrics_test_bootstrap = {metric: np.empty((np.max((1,boot_train)),np.max((1,boot_test)))) for metric in metrics_names}
+
+    params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold','idx']))
+
+    features = [col for col in all_features if col in results_r.keys() and results_r[col] == 1]
+    features_dict = {col:results_r[col] for col in all_features if col in results_r.keys()}
 
     if not isinstance(X_dev,pd.DataFrame):
         X_dev = pd.DataFrame(X_dev.squeeze(),columns=all_features)
 
     if not isinstance(X_test,pd.DataFrame):
         X_test = pd.DataFrame(X_test.squeeze(),columns=all_features)
-
-    params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold','idx']))
-
-    features = [col for col in all_features if col in results_r.keys() and results_r[col] == 1]
-    features_dict = {col:results_r[col] for col in all_features if col in results_r.keys()}
 
     if 'gamma' in params.keys():
         try: 
@@ -61,6 +64,10 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     if 'random_state' in params.keys():
         params['random_state'] = int(params['random_state'])
     outputs = np.empty((np.max((1,boot_train)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
+    
+    if problem_type == 'reg':
+        outputs = outputs.squeeze(axis=-1)
+
     for b_train in range(np.max((1,boot_train))):
         boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
         outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev, X_test[features], problem_type=problem_type)
@@ -71,19 +78,19 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
             else:
                 weights = None
 
-            boot_index = resample(X_test.index, n_samples=X_test.shape[0], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
+            boot_index = resample(range(outputs.shape[1]), n_samples=outputs.shape[1], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
 
-            outputs_bootstrap[b_train,b_test,:] = outputs[b_train,boot_index,:]
+            outputs_bootstrap[b_train,b_test] = outputs[b_train,boot_index]
 
             if problem_type == 'clf':
-                metrics_test, y_pred = utils.get_metrics_clf(outputs[b_train,boot_index,:], y_test[boot_index], metrics_names, cmatrix, priors,threshold,weights)
+                metrics_test, y_pred = utils.get_metrics_clf(outputs[b_train,boot_index], y_test[boot_index], metrics_names, cmatrix, priors,threshold,weights)
                 y_pred_bootstrap[b_train,b_test,:] = y_pred
             else:
-                metrics_test = utils.get_metrics_reg(outputs[b_train,boot_index,:], y_test[boot_index], metrics_names)
-                y_pred_bootstrap[b_train,b_test,:] = outputs[b_train,boot_index,:]
+                metrics_test = utils.get_metrics_reg(outputs[b_train,boot_index], y_test[boot_index], metrics_names)
+                y_pred_bootstrap[b_train,b_test] = outputs[b_train,boot_index]
                 
-            y_true_bootstrap[b_train,b_test,:] = y_test[boot_index]
-            IDs_test_bootstrap[b_train,b_test,:] = IDs_test.squeeze()[boot_index]
+            y_true_bootstrap[b_train,b_test] = y_test[boot_index]
+            IDs_test_bootstrap[b_train,b_test] = IDs_test.squeeze()[boot_index]
 
             for metric in metrics_names:
                 metrics_test_bootstrap[metric][b_train,b_test] = metrics_test[metric]
@@ -136,7 +143,10 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = [main_config['scoring_metrics'][project_name]]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+if isinstance(scoring_metrics,str):
+    scoring_metrics = [scoring_metrics]
+
 problem_type = main_config['problem_type'][project_name]
 
 ##---------------------------------PARAMETERS---------------------------------##
@@ -169,7 +179,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
-    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+    dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
 
     for dimension in dimensions:
         print(task,dimension)
@@ -180,7 +190,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
             if not path_to_results.exists():
                 continue
             
-            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir()]
+            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if folder.name not in ['feature_selection','hyp_opt','shuffle']]
 
             if len(random_seeds_test) == 0:
                 random_seeds_test = ['']
@@ -195,9 +205,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 if len(files) == 0:
                     continue
 
-                X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb')).squeeze()[0]
-                y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb')).squeeze()[0]
-                IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb')).squeeze()[0]
+                X_dev = pickle.load(open(Path(path_to_results,random_seed_test,'X_dev.pkl'),'rb'))[0,0]
+                y_dev = pickle.load(open(Path(path_to_results,random_seed_test,'y_dev.pkl'),'rb'))[0,0]
+                IDs_dev = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_dev.pkl'),'rb'))[0,0]
                 X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))   
                 y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
                 IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
@@ -227,9 +237,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_test)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
-                    if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
-                        print(f"Testing already done")
-                        continue
+                    #if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
+                    #    print(f"Testing already done")
+                    #    continue
 
                     results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
                                                                                 X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,

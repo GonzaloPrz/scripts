@@ -39,19 +39,22 @@ single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
+if isinstance(scoring_metrics,str):
+    scoring_metrics = [scoring_metrics]
+
 problem_type = main_config['problem_type'][project_name]
 models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type] 
 
-best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test','fusion'] + [f'{metric}_mean_dev' for metric in metrics_names] 
+pd.options.mode.copy_on_write = True 
+
+results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
+for scoring in scoring_metrics:
+    best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test','fusion'] + [f'{metric}_mean_dev' for metric in metrics_names] 
                            + [f'{metric}_ic_dev' for metric in metrics_names] 
                            + [f'{metric}_mean_holdout' for metric in metrics_names]
                            + [f'{metric}_ic_holdout' for metric in metrics_names])
 
-pd.options.mode.copy_on_write = True 
-
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
-for scoring in [scoring_metrics]:
     for task in tasks:
 
         extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'

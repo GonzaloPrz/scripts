@@ -21,7 +21,7 @@ from tqdm import tqdm
 import itertools,pickle,sys, json
 from scipy.stats import loguniform, uniform, randint
 from random import randint as randint_random 
-import warnings,argparse,os
+import warnings,argparse,os,multiprocessing
 
 warnings.filterwarnings("ignore")
 
@@ -38,16 +38,16 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train models with hyperparameter optimization and feature selection"
     )
-    parser.add_argument("--project_name", type=str,help="Project name")
-    parser.add_argument("--all_stats", type=int, default=1, help="All stats flag (1 or 0)")
+    parser.add_argument("--project_name", default="arequipa",type=str,help="Project name")
+    parser.add_argument("--all_stats", type=int, default=0, help="All stats flag (1 or 0)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
     parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
     parser.add_argument("--n_iter", type=int, default=0, help="Number of hyperparameter iterations")
-    parser.add_argument("--n_iter_features", type=int, default=0, help="Number of feature sets to try and select from")
+    parser.add_argument("--n_iter_features", type=int, default=20, help="Number of feature sets to try and select from")
     parser.add_argument("--feature_sample_ratio", type=float, default=0.5, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
     parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for cross-validation training")
-    parser.add_argument("--n_seeds_shuffle",type=int,default=10,help="Number of seeds for shuffling")
+    parser.add_argument("--n_seeds_shuffle",type=int,default=5,help="Number of seeds for shuffling")
     parser.add_argument("--scaler_name", type=str, default="StandardScaler", help="Scaler name")
     parser.add_argument("--id_col", type=str, default="id", help="ID column name")
     parser.add_argument("--n_models",type=float,default=0,help="Number of hyperparameter combinatios to try and select from  to train")
@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument("--bayesian",type=int,default=0,help="Whether to calculate bayesian credible intervals or bootstrap confidence intervals")
     parser.add_argument("--shuffle_all",type=int,default=1,help="Whether to shuffle all models or only the best ones")
     parser.add_argument("--filter_outliers",type=int,default=0,help="Whether to filter outliers in regression problems")
-    parser.add_argument("--early_fusion",type=int,default=1,help="Whether to perform early fusion")
+    parser.add_argument("--early_fusion",type=int,default=0,help="Whether to perform early fusion")
 
     return parser.parse_args()
 
@@ -92,6 +92,8 @@ logging.info("Configuration loaded. Starting training...")
 logging.info("Training completed.")
 
 ##------------------ Configuration and Parameter Parsing ------------------##
+multiprocessing.set_start_method("spawn", force=True)
+
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
     data_dir = home / "data" / project_name
@@ -122,8 +124,8 @@ config["problem_type"] = problem_type
 config["y_labels"] = y_labels
 
 # Determine which stats to avoid (if not all stats)
-config["avoid_stats"] = ["min","max","median","skewness","kurtosis"] if not config["all_stats"] else []
-config["stat_folder"] = "_".join(sorted(list(set(["mean","std","min","max","median","kurtosis","skewness"]) - set(config["avoid_stats"])))) if not config["all_stats"] else ""
+config["avoid_stats"] = ["min","max","median","skewness","kurtosis","std","stddev"] if not config["all_stats"] else []
+config["stat_folder"] = "_".join(sorted(list(set(["mean","std","stddev","min","max","median","kurtosis","skewness"]) - set(config["avoid_stats"])))) if not config["all_stats"] else ""
 
 config["random_seeds_train"] = [float(3**x) for x in np.arange(1, config["n_seeds_train"]+1)]
 config["random_seeds_shuffle"] = config["random_seeds_train"][:int(config["n_seeds_shuffle"])] if config["shuffle_labels"] else [""]
@@ -351,45 +353,48 @@ for y_label, task in itertools.product(y_labels, tasks):
                     print(f"Training model: {model_key}")
 
                     # Call CVT from utils to perform cross-validation training and tuning.
-                    all_models, outputs_, y_dev_, IDs_dev_ = utils.CVT(
-                        model=model_class,
-                        scaler=(StandardScaler if config["scaler_name"] == "StandardScaler" else MinMaxScaler),
-                        imputer=KNNImputer,
-                        X=X_train_,
-                        y=y_train_,
-                        iterator=CV_type,
-                        random_seeds_train=config["random_seeds_train"],
-                        hyperp=hyperp,
-                        feature_sets=feature_sets,
-                        IDs=ID_train_,
-                        thresholds=thresholds,
-                        cmatrix=cmatrix,
-                        parallel=parallel,
-                        problem_type=problem_type
-                    )
-
-                    if rss == 0:
-                        X_dev = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_train"]),X_train_.shape[0],X_train_.shape[1]))
-                        y_dev = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_train"]),y_train_.shape[0]))
-                        IDs_dev = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_train"]),ID_train_.shape[0]),dtype=object)
-                        outputs = np.empty((len(config["random_seeds_shuffle"]),)+ outputs_.shape)
-                        X_test = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_test"]),X_test_.shape[0],X_test_.shape[1]))
-                        y_test = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_test"]),y_test_.shape[0]))
-                        IDs_test = np.empty((len(config["random_seeds_shuffle"]),int(config["n_seeds_test"]),ID_test_.shape[0]),dtype=object)
-
-                    X_dev[rss] = X_train_
-                    y_dev[rss] = y_dev_
-                    IDs_dev[rss] = IDs_dev_
-                    outputs[rss] = outputs_
-                    X_test[rss] = X_test_
-                    y_test[rss] = y_test_
-                    IDs_test[rss] = ID_test_
-
-                    # Save results.
-                all_models.to_csv(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv"),index=False)
+                    try:
+                        all_models, outputs_, X_dev_, y_dev_, IDs_dev_ = utils.CVT(
+                            model=model_class,
+                            scaler=(StandardScaler if config["scaler_name"] == "StandardScaler" else MinMaxScaler),
+                            imputer=KNNImputer,
+                            X=X_train_,
+                            y=y_train_,
+                            iterator=CV_type,
+                            random_seeds_train=config["random_seeds_train"],
+                            hyperp=hyperp,
+                            feature_sets=feature_sets,
+                            IDs=ID_train_,
+                            thresholds=thresholds,
+                            cmatrix=cmatrix,
+                            parallel=parallel,
+                            problem_type=problem_type
+                        )
+                        
+                        if rss == 0:
+                            X_dev = np.expand_dims(X_dev_,axis=0)
+                            y_dev = np.expand_dims(y_dev_,axis=0)
+                            IDs_dev = np.expand_dims(IDs_dev_,axis=0)
+                            outputs = np.expand_dims(outputs_,axis=0)
+                            X_test = np.expand_dims(X_test_,axis=0)
+                            y_test = np.expand_dims(y_test_,axis=0)
+                            IDs_test = np.expand_dims(ID_test_,axis=0)
+                        else:
+                            X_dev = np.concatenate((X_dev,np.expand_dims(X_dev_,axis=0)))
+                            y_dev = np.concatenate((y_dev,np.expand_dims(y_dev_,axis=0)))
+                            IDs_dev = np.concatenate((IDs_dev,np.expand_dims(IDs_dev_,axis=0)))
+                            outputs = np.concatenate((outputs,np.expand_dims(outputs_,axis=0)))
+                            X_test = np.concatenate((X_test,np.expand_dims(X_test_,axis=0)))
+                            y_test = np.concatenate((y_test,np.expand_dims(y_test_,axis=0)))
+                            IDs_test = np.concatenate((IDs_test,np.expand_dims(ID_test_,axis=0)))
+                    except:
+                        continue
 
                 if outputs.shape[0] == 0:
                     continue
+
+                # Save results.
+                all_models.to_csv(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv"),index=False)
 
                 result_files = {
                     "X_dev.pkl": X_dev,

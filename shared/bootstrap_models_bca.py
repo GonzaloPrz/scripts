@@ -165,17 +165,17 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             
             metrics = dict((metric,np.empty((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
                 
-            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'],bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
+            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'] if 'threshold' in all_models.columns else None,bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
             
             # Update the metrics array with the computed results
-            for j,model_index,r, metrics_result in tqdm.tqdm(all_results):
+            for j,model_index,r, metrics_result in all_results:
                 for metric in metrics_names:
                     metrics[metric][j,model_index,r,:] = metrics_result[metric]
 
             if len(all_results) == 0:
                 continue
             # Update the summary statistics in all_models
-            for model_index in tqdm.tqdm(range(outputs.shape[1])):
+            for model_index in range(outputs.shape[1]):
                 for metric in metrics_names:
                     all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][:,model_index,:].flatten()).round(5)
                     all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][:,model_index,:].flatten(), 2.5).round(5)

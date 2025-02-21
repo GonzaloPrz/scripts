@@ -67,9 +67,18 @@
             "TMT_A_TIEMPO",
             "TMT_B_TIEMPO",
             "DIGITOS_DIRECTO",
-            "DIGITOS_INVERSO",
             "HAYLING"
+        ],
+        "arequipa_reg_mci": [
+            "MOCA_TOTAL",
+            "IFS",
+            "TMT_A_LINEAS_COMPLETAS",
+            "TMT_B_LINEAS_COMPLETAS",
+            "TMT_A_TIEMPO",
+            "TMT_B_TIEMPO",
+            "DIGITOS_DIRECTO"
         ]
+        
     },
     "tasks": {
         "tell_classifier": [
@@ -93,10 +102,10 @@
             "agradable"
         ],
         "arequipa": [
+            "craft",
             "lamina2",
             "fugu",
             "dia_tipico",
-            "craft",
             "recuerdo_agradable"
         ],
         "ad_mci_hc": [
@@ -127,14 +136,18 @@
             "video_retelling"
         ],
         "arequipa_reg": [
+            "craft",
             "lamina2",
             "fugu",
-            "dia_tipico"
+            "dia_tipico",
+            "recuerdo_agradable"
         ],
         "arequipa_reg_mci": [
-            "dia_tipico",
+            "craft",
             "lamina2",
-            "fugu"
+            "fugu",
+            "dia_tipico",
+            "recuerdo_agradable"
         ]
     },
     "test_size": {
@@ -207,9 +220,8 @@
             "talking-intervals"
         ],
         "arequipa": [
-            "freeling__mlu__universal_dependencies__verbosity__word_properties",
-            "pitch__talking_intervals__voice_quality"
-            ],
+            "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
+        ],
         "ad_mci_hc": [
             "pitch",
             "talking-intervals",
@@ -245,12 +257,7 @@
             "word_properties"
         ],
         "arequipa_reg_mci": [
-            "freeling",
-            "pitch",
-            "talking_intervals",
-            "universal_dependencies",
-            "voice-quality",
-            "word_properties"
+            "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ]
     },
     "data_file": {
@@ -269,7 +276,8 @@
     },
 
     "data_file_test": {
-        "arequipa" : "data_unmatched_group.csv"
+        "arequipa" : "data_unmatched_group.csv",
+        "arequipa_reg_mci":"all_data_unmatched.csv"
     },
 
     "thresholds": {
@@ -315,14 +323,14 @@
         "tell_classifier": "norm_cross_entropy",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
-        "arequipa": "norm_cross_entropy",
+        "arequipa": "roc_auc",
         "ad_mci_hc": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",
         "GERO_Ivo": "mean_absolute_error",
         "MPLS": "r2_score",
         "AKU_outliers_as_nan": "r2_score",
         "arequipa_reg": "mean_absolute_error",
-        "arequipa_reg_mci": "mean_absolute_error"
+        "arequipa_reg_mci": "r2_score"
     },
     "problem_type": {
         "tell_classifier": "clf",
@@ -354,7 +362,7 @@
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
         "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
-        "arequipa_reg_mci": ["lasso","ridge","elastic","svr","knnr","xgb"]
+        "arequipa_reg_mci": ["lasso","ridge","elastic","svr","xgb"]
     },
     "id_col":{
         "tell_classifier": "id",
