@@ -1,12 +1,12 @@
 {
-    "project_name": "arequipa_reg_mci",
+    "project_name": "arequipa",
     "all_stats": false,
     "shuffle_labels": false,
     "shuffle_all": false,
     "stratify": true,
     "n_folds": 5.0,
     "n_iter": 0.0,
-    "n_iter_features": 20.0,
+    "n_iter_features": 0.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -19,7 +19,7 @@
     "early_fusion": false,
     "test_size": 0.0,
     "n_seeds_test": 0.0,
-    "data_file": "all_data.csv",
+    "data_file": "data_matched_group.csv",
     "tasks": [
         "craft",
         "lamina2",
@@ -30,16 +30,10 @@
     "single_dimensions": [
         "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
     ],
-    "scoring_metrics": "r2_score",
-    "problem_type": "reg",
+    "scoring_metrics": "roc_auc",
+    "problem_type": "clf",
     "y_labels": [
-        "MOCA_TOTAL",
-        "IFS",
-        "TMT_A_LINEAS_COMPLETAS",
-        "TMT_B_LINEAS_COMPLETAS",
-        "TMT_A_TIEMPO",
-        "TMT_B_TIEMPO",
-        "DIGITOS_DIRECTO"
+        "group"
     ],
     "avoid_stats": [
         "min",

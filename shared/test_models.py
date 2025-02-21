@@ -237,9 +237,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_test)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
-                    #if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
-                    #    print(f"Testing already done")
-                    #    continue
+                    if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
+                        print(f"Testing already done")
+                        continue
 
                     results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
                                                                                 X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,
