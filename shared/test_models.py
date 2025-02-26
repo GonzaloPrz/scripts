@@ -12,6 +12,7 @@ from sklearn.impute import KNNImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
+from sklearn.naive_bayes import GaussianNB
 from xgboost import XGBClassifier
 
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
@@ -125,9 +126,10 @@ hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
-n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
+n_boot_test = int(config["n_boot_test"])
+n_boot_train = int(config["n_boot_train"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -164,7 +166,8 @@ imputer = KNNImputer
 models_dict = {'clf':{'lr': LogisticRegression,
                     'svc': SVC, 
                     'xgb': XGBClassifier,
-                    'knnc': KNNC},
+                    'knnc': KNNC,
+                    'nb': GaussianNB},
                 
                 'reg':{'lasso':Lasso,
                         'ridge':Ridge,
@@ -190,7 +193,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
             if not path_to_results.exists():
                 continue
             
-            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if folder.name not in ['feature_selection','hyp_opt','shuffle']]
+            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
 
             if len(random_seeds_test) == 0:
                 random_seeds_test = ['']
@@ -242,8 +245,8 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                         continue
 
                     results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
-                                                                                X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,
-                                                                                n_boot,problem_type,threshold=results_dev.loc[r,'threshold']) 
+                                                                                X_test,y_test,all_features,y_labels,metrics_names,IDs_test,n_boot_train,
+                                                                                n_boot_test,problem_type,threshold=results_dev.loc[r,'threshold']) 
                                                                                 for r in results_dev.index)
                     
                     results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])

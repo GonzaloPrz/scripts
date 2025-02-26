@@ -105,6 +105,8 @@ for scoring in scoring_metrics:
                         
                         best = None
                         for file in files:
+                            if 'knn' in file.stem:
+                                continue
                             
                             df = pd.read_csv(file)
                             

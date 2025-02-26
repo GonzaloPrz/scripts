@@ -4,8 +4,8 @@ from pathlib import Path
 import numpy as np
 
 early_fusion = False
-hyp_opt = False
-feature_selection = False
+hyp_opt = True
+feature_selection = True
 
 project_name = "arequipa_reg_mci"
 avoid_stats = ['median','std','stddev','min','max','kurtosis','skewness']

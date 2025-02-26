@@ -38,13 +38,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train models with hyperparameter optimization and feature selection"
     )
-    parser.add_argument("--project_name", default="arequipa",type=str,help="Project name")
-    parser.add_argument("--all_stats", type=int, default=0, help="All stats flag (1 or 0)")
+    parser.add_argument("--project_name", default="tell_classifier",type=str,help="Project name")
+    parser.add_argument("--stats", type=str, default="", help="Stats to be considered (default = all)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
     parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
-    parser.add_argument("--n_iter", type=int, default=0, help="Number of hyperparameter iterations")
-    parser.add_argument("--n_iter_features", type=int, default=20, help="Number of feature sets to try and select from")
+    parser.add_argument("--n_iter", type=int, default=50, help="Number of hyperparameter iterations")
+    parser.add_argument("--n_iter_features", type=int, default=50, help="Number of feature sets to try and select from")
     parser.add_argument("--feature_sample_ratio", type=float, default=0.5, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
     parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for cross-validation training")
     parser.add_argument("--n_seeds_shuffle",type=int,default=5,help="Number of seeds for shuffling")
@@ -55,15 +55,16 @@ def parse_args():
     parser.add_argument("--bayesian",type=int,default=0,help="Whether to calculate bayesian credible intervals or bootstrap confidence intervals")
     parser.add_argument("--shuffle_all",type=int,default=1,help="Whether to shuffle all models or only the best ones")
     parser.add_argument("--filter_outliers",type=int,default=0,help="Whether to filter outliers in regression problems")
-    parser.add_argument("--early_fusion",type=int,default=0,help="Whether to perform early fusion")
-
+    parser.add_argument("--early_fusion",type=int,default=1,help="Whether to perform early fusion")
+    parser.add_argument("--n_boot_test",type=int,default=200,help="Number of bootstrap samples for holdout")
+    parser.add_argument("--n_boot_train",type=int,default=0,help="Number of bootstrap samples of training samples while performing model testing")
     return parser.parse_args()
 
 def load_configuration(args):
     # Global configuration dictionaries
     config = dict(
         project_name = args.project_name,
-        all_stats = bool(args.all_stats),
+        stats = str(args.stats),
         shuffle_labels = bool(args.shuffle_labels),
         shuffle_all = bool(args.shuffle_all),
         stratify = bool(args.stratify),
@@ -79,7 +80,9 @@ def load_configuration(args):
         n_boot = float(args.n_boot),
         bayesian = bool(args.bayesian),
         filter_outliers = bool(args.filter_outliers),
-        early_fusion = bool(args.early_fusion)
+        early_fusion = bool(args.early_fusion),
+        n_boot_test = float(args.n_boot_test),
+        n_boot_train = float(args.n_boot_train)
     )
 
     return config
@@ -122,10 +125,9 @@ config["scoring_metrics"] = scoring_metrics
 config["problem_type"] = problem_type
 # Model dictionaries. Note: KNNR and other regressors can be added as needed.    
 config["y_labels"] = y_labels
-
 # Determine which stats to avoid (if not all stats)
-config["avoid_stats"] = ["min","max","median","skewness","kurtosis","std","stddev"] if not config["all_stats"] else []
-config["stat_folder"] = "_".join(sorted(list(set(["mean","std","stddev","min","max","median","kurtosis","skewness"]) - set(config["avoid_stats"])))) if not config["all_stats"] else ""
+config["avoid_stats"] = list(set(["min","max","median","skewness","kurtosis","std","mean"]) - set(config["stats"].split("_"))) if config["stats"] != "" else []
+config["stat_folder"] = "_".join(sorted(config["stats"].split("_")))
 
 config["random_seeds_train"] = [float(3**x) for x in np.arange(1, config["n_seeds_train"]+1)]
 config["random_seeds_shuffle"] = config["random_seeds_train"][:int(config["n_seeds_shuffle"])] if config["shuffle_labels"] else [""]
@@ -143,14 +145,14 @@ models_dict = {
             "svc": SVC,
             "knnc": KNNC,
             "xgb": xgboost,
-            #"nb":GaussianNB
+            "nb":GaussianNB
         },
         "reg": {
             "lasso": Lasso,
             "ridge": Ridge,
             "elastic": ElasticNet,
             "svr": SVR,
-            "xgb": xgboostr
+            #"xgb": xgboostr
         }
     }
 
@@ -181,6 +183,9 @@ hp_ranges = {
         "svr": {"C": [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], "kernel": ["rbf", "linear", "poly", "sigmoid"], "gamma": ["scale", "auto"]}
 }
 ##------------------ Main Model Training Loop ------------------##
+
+with open(Path(__file__).parent/"config.json", "w") as f:
+    json.dump(config, f, indent=4)
 
 for y_label, task in itertools.product(y_labels, tasks):
     print(y_label)
@@ -342,10 +347,6 @@ for y_label, task in itertools.product(y_labels, tasks):
                     # Check for data leakage.
                     assert set(ID_train_).isdisjoint(set(ID_test_)), "Data leakage detected between train and test sets!"
                     
-                    # Save configuration.
-                    with open(Path(__file__).parent/"config.json", "w") as f:
-                        json.dump(config, f, indent=4)
-                    
                     if Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
                         print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
                         continue
@@ -353,42 +354,39 @@ for y_label, task in itertools.product(y_labels, tasks):
                     print(f"Training model: {model_key}")
 
                     # Call CVT from utils to perform cross-validation training and tuning.
-                    try:
-                        all_models, outputs_, X_dev_, y_dev_, IDs_dev_ = utils.CVT(
-                            model=model_class,
-                            scaler=(StandardScaler if config["scaler_name"] == "StandardScaler" else MinMaxScaler),
-                            imputer=KNNImputer,
-                            X=X_train_,
-                            y=y_train_,
-                            iterator=CV_type,
-                            random_seeds_train=config["random_seeds_train"],
-                            hyperp=hyperp,
-                            feature_sets=feature_sets,
-                            IDs=ID_train_,
-                            thresholds=thresholds,
-                            cmatrix=cmatrix,
-                            parallel=parallel,
-                            problem_type=problem_type
-                        )
-                        
-                        if rss == 0:
-                            X_dev = np.expand_dims(X_dev_,axis=0)
-                            y_dev = np.expand_dims(y_dev_,axis=0)
-                            IDs_dev = np.expand_dims(IDs_dev_,axis=0)
-                            outputs = np.expand_dims(outputs_,axis=0)
-                            X_test = np.expand_dims(X_test_,axis=0)
-                            y_test = np.expand_dims(y_test_,axis=0)
-                            IDs_test = np.expand_dims(ID_test_,axis=0)
-                        else:
-                            X_dev = np.concatenate((X_dev,np.expand_dims(X_dev_,axis=0)))
-                            y_dev = np.concatenate((y_dev,np.expand_dims(y_dev_,axis=0)))
-                            IDs_dev = np.concatenate((IDs_dev,np.expand_dims(IDs_dev_,axis=0)))
-                            outputs = np.concatenate((outputs,np.expand_dims(outputs_,axis=0)))
-                            X_test = np.concatenate((X_test,np.expand_dims(X_test_,axis=0)))
-                            y_test = np.concatenate((y_test,np.expand_dims(y_test_,axis=0)))
-                            IDs_test = np.concatenate((IDs_test,np.expand_dims(ID_test_,axis=0)))
-                    except:
-                        continue
+                    all_models, outputs_, X_dev_, y_dev_, IDs_dev_ = utils.CVT(
+                        model=model_class,
+                        scaler=(StandardScaler if config["scaler_name"] == "StandardScaler" else MinMaxScaler),
+                        imputer=KNNImputer,
+                        X=X_train_,
+                        y=y_train_,
+                        iterator=CV_type,
+                        random_seeds_train=config["random_seeds_train"],
+                        hyperp=hyperp,
+                        feature_sets=feature_sets,
+                        IDs=ID_train_,
+                        thresholds=thresholds,
+                        cmatrix=cmatrix,
+                        parallel=parallel,
+                        problem_type=problem_type
+                    )
+                    
+                    if rss == 0:
+                        X_dev = np.expand_dims(X_dev_,axis=0)
+                        y_dev = np.expand_dims(y_dev_,axis=0)
+                        IDs_dev = np.expand_dims(IDs_dev_,axis=0)
+                        outputs = np.expand_dims(outputs_,axis=0)
+                        X_test = np.expand_dims(X_test_,axis=0)
+                        y_test = np.expand_dims(y_test_,axis=0)
+                        IDs_test = np.expand_dims(ID_test_,axis=0)
+                    else:
+                        X_dev = np.concatenate((X_dev,np.expand_dims(X_dev_,axis=0)))
+                        y_dev = np.concatenate((y_dev,np.expand_dims(y_dev_,axis=0)))
+                        IDs_dev = np.concatenate((IDs_dev,np.expand_dims(IDs_dev_,axis=0)))
+                        outputs = np.concatenate((outputs,np.expand_dims(outputs_,axis=0)))
+                        X_test = np.concatenate((X_test,np.expand_dims(X_test_,axis=0)))
+                        y_test = np.concatenate((y_test,np.expand_dims(y_test_,axis=0)))
+                        IDs_test = np.concatenate((IDs_test,np.expand_dims(ID_test_,axis=0)))
 
                 if outputs.shape[0] == 0:
                     continue

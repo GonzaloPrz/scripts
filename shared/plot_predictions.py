@@ -57,22 +57,21 @@ for scoring in [scoring_metrics]:
         continue
 
     best_models = pd.read_csv(Path(results_dir,filename))
-
-    dimensions = list()
+    best_models[f'{scoring}_{extremo}_dev'] = best_models[f'{scoring}_ic_dev'].map(lambda x: x.replace('[','').replace(']','').split(',')[0 if extremo == 'inf' else 1]).astype(float)
+    tasks = best_models['task'].unique()
+    y_labels = best_models['y_label'].unique()
+    dimensions = best_models['dimension'].unique()
 
     pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
 
-    if len(y_labels) == 0:
-        y_labels = best_models['y_label'].unique()
-
     for y_label in y_labels:
         
-        best_models_y_label = best_models[(best_models['y_label'] == y_label)].sort_values(by=f'{scoring}_mean_dev',ascending=ascending).reset_index(drop=True)
+        best_models_y_label = best_models[(best_models['y_label'] == y_label)].sort_values(by=f'{scoring}_{extremo}_dev',ascending=ascending).reset_index(drop=True)
         best_models_y_label = best_models_y_label[best_models_y_label['model_type'].isin(models)].reset_index(drop=True)
         if best_best_models.empty:
-            best_best_models = best_models_y_label.loc[0,:]
+            best_best_models = pd.DataFrame(best_models_y_label.loc[0,:])
         else:
-            best_best_models = pd.concat([best_best_models,best_models_y_label]).loc[0,:]
+            best_best_models = pd.concat([best_best_models,best_models_y_label.loc[0,:]],axis=1)
         
         task = best_models_y_label['task'].values[0]
         dim = best_models_y_label['dimension'].values[0]
@@ -81,26 +80,19 @@ for scoring in [scoring_metrics]:
         if np.isnan(random_seed_test):
             random_seed_test = ''
 
-        for ndim in range(1,len(single_dimensions)+1):
-            for dimension in itertools.combinations(single_dimensions,ndim):
-                dimensions.append('__'.join(dimension))
-
-        if len(dimensions) == 0:
-            #dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-            dimensions = [best_models_y_label['dimension'].values[0]]
         model_name = best_models[(best_models['task'] == task)  & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_type'].values[0]
         
         model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) &  (best_models['y_label'] == y_label)]['model_index'].values[0]
         print(f'{y_label}_{task}___{dim}___{model_name}')
         
         #Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','plots').mkdir(exist_ok=True)
-        IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,'IDs_dev.pkl'),'rb'))[0,:]
-        y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,f'outputs_{model_name}.pkl'),'rb'))[0,model_index]
-        y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,'y_dev.pkl'),'rb'))[0]
+        IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'mo_hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,'IDs_dev.pkl'),'rb'))[0,:]
+        y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,f'outputs_{model_name}.pkl'),'rb'))[0,model_index]
+        y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',random_seed_test,'y_dev.pkl'),'rb'))[0,:]
         
         if IDs_.ndim == 1:
             
-            IDs = np.empty((10,len(IDs_)),dtype=object)
+            IDs = np.empty((len(random_seeds_train),len(IDs_)),dtype=object)
 
             for i,seed in enumerate(random_seeds_train):
                 kf = KFold(n_splits=5,shuffle=True,random_state=int(seed))
@@ -137,6 +129,6 @@ for scoring in [scoring_metrics]:
         plt.savefig(Path(results_dir, 'plots',scoring, f'{y_label}_{kfold_folder}_{model_name}_{scoring}.png'))
         plt.close()
     
-    best_best_models.to_csv(Path(results_dir, f'best_best_models_{scoring}.csv'), index=False)
+    best_best_models.T.to_csv(Path(results_dir, f'best_best_models_{scoring}.csv'), index=False)
     pearsons_results.to_csv(Path(results_dir,f'pearons_results_{scoring}.csv'),index=False)
         

@@ -5,126 +5,75 @@ import pickle, itertools
 import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import LabelEncoder
+import json,os
+from statsmodels.stats.multitest import multipletests
 
-covars = ['sdi0001_age','sdi0004_sex','sdi0006_edu','language']
-project_name = 'AKU_outliers_as_nan'
-l2ocv = False
+correction = 'fdr_bh'
 
-cmatrix = None
-shuffle_labels = False
-bayes_list = [False]
-feature_selection_list = [True]
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-id_col = 'id'
-scaler_name = 'StandardScaler'
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+hyp_opt = True if config['n_iter'] > 0 else False
+feature_selection = True if config['n_iter_features'] > 0 else False
+filter_outliers = config['filter_outliers']
+n_models = int(config["n_models"])
+n_boot = int(config["n_boot"])
+early_fusion = bool(config["early_fusion"])
+problem_type = config["problem_type"]
 
-n_folds = 5
-
-models = {'MCI_classifier':['lr','svc','knnc','xgb'],
-          'tell_classifier':['lr','svc','knnc','xgb'],
-          'Proyecto_Ivo':['lr','svc','knnr','xgb'],
-          'GeroApathy':['elastic','lasso','ridge','knnr','svr','xgb'],
-            'GERO_Ivo':['elastic','lasso','ridge','svr','xgboost'],
-            'AKU_outliers_as_nan':['elastic','lasso','ridge','svr','xgboost']
-            }
-
-scoring = {'MCI_classifier':'roc_auc',
-           'tell_classifier':'roc_auc',
-           'Proyecto_Ivo':'roc_auc',
-           'GeroApathy':'mean_absolute_error',
-           'GERO_Ivo':'r2_score',
-           'AKU_outliers_as_nan':'r2_score'
-           }
-
-ascending = {'MCI_classifier':True,
-                'tell_classifier':True,
-                'Proyecto_Ivo':True,
-                'GeroApathy':False,
-                'GERO_Ivo':False,
-                'AKU_outliers_as_nan':False
-                }
-
-tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['DiaTipico'],
-         'GERO_Ivo':['animales','grandmean','fas__animales','fas'],
-         'AKU_outliers_as_nan':['picture_description','video_retelling','routine','pleasant_memory']
-         }
-
-single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
-                     'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':[],
-                     'GERO_Ivo':[],
-                     'GeroApathy':[],
-                     'AKU_outliers_as_nan':[]}
-
-metrics_names = {'MCI_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                 'tell_classifier':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'Proyecto_Ivo':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                    'GeroApathy':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'GERO_Ivo':['r2_score','mean_squared_error','mean_absolute_error'],
-                    'AKU_outliers_as_nan':['r2_score','mean_squared_error','mean_absolute_error']}
-
-y_labels = {'MCI_classifier':['target'],
-            'tell_classifier':['target'],
-            'Proyecto_Ivo':['target'],
-            'GERO_Ivo':[],
-            'GeroApathy':['DASS_21_Depression','DASS_21_Anxiety','DASS_21_Stress','AES_Total_Score','MiniSea_MiniSea_Total_FauxPas','Depression_Total_Score','MiniSea_emf_total','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
-            'AKU_outliers_as_nan':[
-                    #'cerad_learn_total_corr',
-                    'cerad_dr_correct',
-                    'braveman_dr_total',
-                    'stick_dr_total',
-                    'bird_total',
-                    'fab_total',
-                    'setshift_total',
-                    'an_correct',
-                    'mint_total',
-                    ]
-            }
-
-if n_folds == 0:
-    kfold_folder = 'l2ocv'
-elif n_folds == -1:
-    kfold_folder = 'loocv'
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
 else:
-    kfold_folder = f'{n_folds}_folds'
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
-demographic_data = pd.read_csv(Path('D:','CNC_Audio','gonza','data',project_name,'all_data_HC_outliers_as_nan.csv')) 
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+test_size = main_config['test_size'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config['data_file'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+problem_type = main_config['problem_type'][project_name]
+covars = main_config["covars"][project_name]
+id_col = main_config["id_col"][project_name]
 
-try:
-    best_models = pd.read_csv(Path(results_dir,f'best_best_models_{scoring[project_name]}.csv'))
-except:
-    best_models = pd.read_csv(Path(results_dir,f'best_models_{scoring[project_name]}_{n_folds}_folds_StandardScaler_hyp_opt_feature_selection.csv'))
+if isinstance(scoring_metrics,str):
+    scoring_metrics = [scoring_metrics]
 
-dimensions = list()
-
+covar_data = pd.read_csv(Path(str(results_dir).replace('results','data'),data_file))[[id_col]+covars]
 pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value','covars'])
 
-if y_labels[project_name] == []:
-    y_labels = {project_name:best_models['y_label'].unique()}
+for y_label,scoring in itertools.product(y_labels,scoring_metrics):
+    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection.csv'.replace('__','_')
+    if not hyp_opt:
+        best_models_file = best_models_file.replace('_hyp_opt','_no_hyp_opt')
+    if not feature_selection:
+        best_models_file = best_models_file.replace('_feature_selection','')
+    
+    best_models = pd.read_csv(Path(results_dir,best_models_file))   
+    
+    extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
+    ascending = True if extremo == 'sup' else False
 
-for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],bayes_list,feature_selection_list):
-    best_models_y_label = best_models[best_models['y_label'] == y_label].sort_values(by=f'{scoring[project_name]}_mean_dev',ascending=ascending[project_name]).reset_index(drop=True)
-    task = best_models_y_label['task'].values[0]
+    best_models_y_label = best_models[best_models['y_label'] == y_label].sort_values(by=f'{scoring}_mean_dev',ascending=ascending).reset_index(drop=True)
+    tasks = best_models_y_label['task'].unique()
+    dimensions = best_models_y_label['dimension'].unique()
 
-    for ndim in range(1,len(single_dimensions[project_name])+1):
-        for dimension in itertools.combinations(single_dimensions[project_name],ndim):
-            dimensions.append('__'.join(dimension))
-
-    if len(dimensions) == 0:
-        #dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-        dimensions = [best_models_y_label['dimension'].values[0]]
-    for dim in dimensions:
-        model_name = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_type'].values[0]
-        model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dim) & (best_models['y_label'] == y_label)]['model_index'].values[0]
-        print(f'{y_label}_{task}___{dim}___{model_name}')
+    for task,dimension in itertools.product(tasks,dimensions):
+        model_name = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
+        model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
+        print(f'{y_label}__{task}__{dimension}__{model_name}')
         
         #Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','plots').mkdir(exist_ok=True)
-        IDs_ = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','IDs_dev.pkl'),'rb'))
+        IDs_ = pickle.load(open(Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','IDs_dev.pkl'),'rb'))
         if IDs_.ndim == 1:
             IDs = np.empty((10,len(IDs_)),dtype=object)
             for r,random_seed in enumerate([3**x for x in np.arange(1,11)]):
@@ -134,14 +83,14 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         else:
             IDs = IDs_.copy()
 
-        y_pred = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '',f'outputs_{model_name}.pkl'),'rb'))[model_index,]
-        y_true = pickle.load(open(Path(results_dir,task,dim,scaler_name,kfold_folder,y_label,'hyp_opt','bayes' if bayes else '','feature_selection' if feature_selection else '','y_true_dev.pkl'),'rb'))
+        y_pred = pickle.load(open(Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '',f'outputs_{model_name}.pkl'),'rb'))[0,model_index,]
+        y_true = pickle.load(open(Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','y_dev.pkl'),'rb'))[0]
 
-        data = pd.DataFrame({'id':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_true.flatten()})
-        data = data.drop_duplicates('id')
+        data = pd.DataFrame({id_col:IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_true.flatten()})
+        
+        data = pd.merge(data,covar_data,on=id_col)
+        data = data.drop_duplicates(id_col)
 
-        data = pd.merge(data,demographic_data,on='id',how='outer')
-        data['sdi0006_edu'] = data['sdi0006_edu'].astype(float)
         for covar in covars:
             if isinstance(data.loc[0,covar],str):
                 data[covar] = LabelEncoder().fit_transform(data[covar])
@@ -151,7 +100,11 @@ for y_label,bayes,feature_selection in itertools.product(y_labels[project_name],
         
         stats = partial_corr(data=data,x='y_pred',y='y_true',covar=covars,method='pearson')
 
-        pearsons_results.loc[len(pearsons_results.index),:] = {'task':task,'dimension':dim,'y_label':y_label,'model_type':model_name,'r':stats['r'].values[0],'p_value':stats['p-val'].values[0],'covars':str(covars)}
+        pearsons_results.loc[len(pearsons_results.index),:] = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':model_name,'r':stats['r'].values[0],'p_value':stats['p-val'].values[0],'covars':str(covars)}
 
-pearsons_results.to_csv(Path(results_dir,f'partial_pearsons_results_{scoring[project_name]}_{n_folds}_folds.csv'),index=False)
+p_vals = pearsons_results['p_value'].values
+reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
+pearsons_results['p_value_corrected'] = p_vals_corrected
+pearsons_results['correction_method'] = correction
+pearsons_results.to_csv(Path(results_dir,f'partial_pearsons_results_{scoring}_{kfold_folder}s.csv'),index=False)
 
