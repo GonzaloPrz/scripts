@@ -9,25 +9,42 @@ import seaborn as sns
 
 warnings.filterwarnings('ignore')
 
-project_name = 'arequipa'
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-n_folds = 5
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+hyp_opt = True if config['n_iter'] > 0 else False
+feature_selection = True if config['n_iter_features'] > 0 else False
+filter_outliers = config['filter_outliers']
+n_models = int(config["n_models"])
+early_fusion = bool(config["early_fusion"])
+bayesian = bool(config["bayesian"])
+n_boot_test = int(config["n_boot_test"])
+n_boot_train = int(config["n_boot_train"])
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:\\','CNC_Audio','gonza','results',project_name)
-
-scaler_name = 'StandardScaler'
-
-y_labels = ['group']
-
-hyp_tuning_list = [True]
-feature_selection_list = [True]
-
-if n_folds == 0:
-    kfold_folder = 'l2ocv'
-elif n_folds == -1:
-    kfold_folder = 'loocv'
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
 else:
-    kfold_folder = f'{n_folds}_folds'
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
+
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+test_size = main_config['test_size'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config['data_file'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+if isinstance(scoring_metrics,str):
+    scoring_metrics = [scoring_metrics]
+
+problem_type = main_config['problem_type'][project_name]
 
 scoring = 'roc_auc'
 extremo = 'sup' if 'norm' in scoring else 'inf'
@@ -41,7 +58,7 @@ y_labels = best_models.y_label.unique()
 
 for r,row in best_models.iterrows():
     print(row['task'],row['dimension'])
-    for y_label,hyp_opt,feature_selection in itertools.product(y_labels,hyp_tuning_list,feature_selection_list):
+    for y_label in y_labels:
         path_to_results = results_dir / row.task / row.dimension / scaler_name / kfold_folder / y_label / 'no_hyp_opt' / 'feature_selection'
         
         path_to_results = Path(str(path_to_results).replace('no_hyp_opt', 'hyp_opt')) if hyp_opt else path_to_results

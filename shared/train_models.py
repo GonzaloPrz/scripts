@@ -259,7 +259,7 @@ for y_label, task in itertools.product(y_labels, tasks):
             subfolders = [
                 task, dimension, config["scaler_name"],
                 config["kfold_folder"], y_label, config["stat_folder"],
-                "hyp_opt" if config["n_iter"] > 0 else "no_hyp_opt",
+                "hyp_opt" if config["n_iter"] > 0 else "",
                 "feature_selection" if config["n_iter_features"] > 0 else "",
                 "filter_outliers" if config["filter_outliers"] and problem_type == "reg" else "",
                 "shuffle" if config["shuffle_labels"] else ""

@@ -96,7 +96,7 @@ for scoring in scoring_metrics:
 
     for task,y_label,dimension in itertools.product(tasks,y_labels,dimensions):
         print(task,y_label,dimension)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         
         if not Path(path).exists():
             continue

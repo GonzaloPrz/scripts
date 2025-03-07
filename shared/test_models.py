@@ -112,8 +112,6 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
     
     return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap,outputs
 ##---------------------------------PARAMETERS---------------------------------##
-boot_train = 0
-
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
 project_name = config["project_name"]
@@ -188,7 +186,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
         print(task,dimension)
         for y_label in y_labels:
             print(y_label)
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '','late_fusion' if late_fusion else '')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '','late_fusion' if late_fusion else '')
 
             if not path_to_results.exists():
                 continue
