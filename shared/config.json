@@ -1,13 +1,13 @@
 {
-    "project_name": "arequipa_reg_mci_hc",
-    "stats": "mean",
+    "project_name": "Proyecto_Ivo",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
-    "n_folds": 5.0,
-    "n_iter": 20.0,
-    "n_iter_features": 20.0,
-    "feature_sample_ratio": 0.5,
+    "n_folds": 3.0,
+    "n_iter": 50.0,
+    "n_iter_features": 50.0,
+    "feature_sample_ratio": 0.8,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
@@ -21,32 +21,52 @@
     "n_boot_train": 0.0,
     "test_size": 0.0,
     "n_seeds_test": 0.0,
-    "data_file": "all_data_matched.csv",
+    "data_file": "all_data.csv",
     "tasks": [
-        "craft",
-        "lamina2",
-        "fugu",
-        "dia_tipico",
-        "recuerdo_agradable"
+        "cog",
+        "Animales__P",
+        "brain",
+        "connectivity"
     ],
-    "single_dimensions": [
-        "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
-    ],
-    "scoring_metrics": "r2_score",
-    "problem_type": "reg",
+    "single_dimensions": {
+        "Animales": [
+            "properties",
+            "timing",
+            "properties__timing"
+        ],
+        "P": [
+            "properties",
+            "timing",
+            "properties__timing"
+        ],
+        "Animales__P": [
+            "properties",
+            "timing",
+            "properties__timing"
+        ],
+        "cog": [
+            "neuropsico_digits__neuropsico_tmt",
+            "neuropsico_tmt",
+            "neuropsico_digits"
+        ],
+        "brain": [
+            "norm_brain_lit"
+        ],
+        "AAL": [
+            "norm_AAL"
+        ],
+        "connectivity": [
+            "networks",
+            "selected_areas"
+        ]
+    },
+    "scoring_metrics": "roc_auc",
+    "problem_type": "clf",
     "y_labels": [
-        "MOCA_TOTAL",
-        "IFS"
+        "target"
     ],
-    "avoid_stats": [
-        "kurtosis",
-        "median",
-        "min",
-        "skewness",
-        "max",
-        "std"
-    ],
-    "stat_folder": "mean",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
         3.0,
         9.0,
@@ -62,5 +82,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "5_folds"
+    "kfold_folder": "3_folds"
 }

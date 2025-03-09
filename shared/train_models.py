@@ -38,14 +38,14 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train models with hyperparameter optimization and feature selection"
     )
-    parser.add_argument("--project_name", default="tell_classifier",type=str,help="Project name")
+    parser.add_argument("--project_name", default="Proyecto_Ivo",type=str,help="Project name")
     parser.add_argument("--stats", type=str, default="", help="Stats to be considered (default = all)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
-    parser.add_argument("--n_folds", type=int, default=5, help="Number of folds for cross validation")
+    parser.add_argument("--n_folds", type=int, default=3, help="Number of folds for cross validation")
     parser.add_argument("--n_iter", type=int, default=50, help="Number of hyperparameter iterations")
-    parser.add_argument("--n_iter_features", type=int, default=50, help="Number of feature sets to try and select from")
-    parser.add_argument("--feature_sample_ratio", type=float, default=0.5, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
+    parser.add_argument("--n_iter_features", type=int, default=100, help="Number of feature sets to try and select from")
+    parser.add_argument("--feature_sample_ratio", type=float, default=0.8, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
     parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for cross-validation training")
     parser.add_argument("--n_seeds_shuffle",type=int,default=5,help="Number of seeds for shuffling")
     parser.add_argument("--scaler_name", type=str, default="StandardScaler", help="Scaler name")
@@ -192,7 +192,11 @@ for y_label, task in itertools.product(y_labels, tasks):
     print(task)
     # Determine feature dimensions. For projects with a dictionary, pick based on the task.
     dimensions = []
-    single_dims = single_dimensions
+    if isinstance(single_dimensions,dict):
+        single_dims = single_dimensions[task]
+    else:
+        single_dims = single_dimensions
+    
     if isinstance(single_dims, list) and config["early_fusion"]:
         for ndim in range(1, len(single_dims)+1):
             for dimension in itertools.combinations(single_dims, ndim):
@@ -211,7 +215,7 @@ for y_label, task in itertools.product(y_labels, tasks):
         else:
             # For regression: Excel if available; default to CSV.
             data = pd.read_excel(data_path) if data_path.suffix in [".xlsx", ".xls"] else pd.read_csv(data_path)
-        
+
         data.dropna(axis=1,how='all',inplace=True)
 
         # Identify feature columns (avoid stats and other unwanted columns)
@@ -219,6 +223,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                     for x,y in itertools.product(task.split("__"), dimension.split("__"))) 
                     and not isinstance(data.iloc[0][col], str) 
                     and all(f'_{x}' not in col for x in config["avoid_stats"] + ["query", "timestamp"])]
+        
         # Select only the desired features along with the target and id
         data = data[features + [y_label, config["id_col"]]]
         data = data.dropna(subset=[y_label])

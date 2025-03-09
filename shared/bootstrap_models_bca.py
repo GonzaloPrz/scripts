@@ -1,7 +1,7 @@
 import pandas as pd
+import numpy as np
 import pickle
 from pathlib import Path
-from expected_cost.utils import *
 import itertools
 from joblib import Parallel, delayed
 import sys,tqdm
@@ -13,42 +13,12 @@ import argparse
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-import utils
+from utils import *
 
 parallel = True 
 cmatrix = None
 late_fusion = False
 
-def compute_metrics(j, model_index, r,outputs, y_dev, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None,bayesian=False):
-    # Calculate the metrics using the bootstrap method
-
-    results = get_metrics_bootstrap(outputs[j,model_index,r], y_dev[j, r], metrics_names, n_boot=n_boot, cmatrix=cmatrix,priors=priors,threshold=threshold,problem_type=problem_type,bayesian=bayesian)
-
-    metrics_result = {}
-    for metric in metrics_names:
-        metrics_result[metric] = results[metric]
-    return j,model_index,r, metrics_result
-
-def get_metrics_bootstrap(samples, targets, metrics_names, n_boot=2000,cmatrix=None,priors=None,threshold=None,problem_type='clf',bayesian=False):
-    all_metrics = dict((metric,np.empty(n_boot)) for metric in metrics_names)
- 
-    for metric in metrics_names:
-        if bayesian:
-            weights = np.random.dirichlet(np.ones(samples.shape[0]))
-        else:
-            weights = None
-
-        for b in range(n_boot):
-            indices = np.random.choice(targets.shape[0], targets.shape[0], replace=True)
-            while len(np.unique(targets[indices])) == 1:
-                indices = np.random.choice(targets.shape[0], targets.shape[0], replace=True)
-            if problem_type == 'clf':
-                metric_value, y_pred = utils.get_metrics_clf(samples[indices], targets[indices], [metric], cmatrix,priors,threshold,weights)
-            else:
-                metric_value = utils.get_metrics_reg(samples[indices], targets[indices], [metric])
-            all_metrics[metric][b] = metric_value[metric]
-        
-    return all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
@@ -104,7 +74,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            '''
+            
             if config['n_models'] == 0:
 
                 if Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv').exists():
@@ -114,7 +84,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             elif Path(path,random_seed,'bayesian' if bayesian else '',f'best_models_{model}_dev_bca_{scoring}.csv').exists():
                     print(f"Bootstrapping already done")
                     continue 
-            '''
+            
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             
