@@ -1,50 +1,55 @@
 from pathlib import Path
-import sys,tqdm,itertools
+import sys,tqdm,itertools,json
 import pandas as pd
 from warnings import filterwarnings
 
 filterwarnings('ignore')
 
-dimensions = ['pitch','talking-intervals']
-tasks = ['agradable']
-project_name = 'GeroApathy'
-subsets = ['pos','neg','neu','notneu']
+subsets = ['nlp','audio']
 
-all_data = pd.DataFrame()
+dimensions = {'nlp':['sentiment_analysis'],
+              'audio':['talking_intervals','pitch_analysis']
+        }
 
-for dimension,task,subset in itertools.product(dimensions,tasks,subsets):
-    sys.path.append(str(Path(Path.home(),'local_feature_extraction','audio_features',f'{dimension}_analysis')))
+file_extentions = {'audio':'.mp3','nlp':'.txt'}
 
-    from app import *
+project_name = 'sj'
 
-    data_dir = Path(Path.home(),'data',project_name,f'{task}_audios','denoised')
+for subset in subsets:
+    for dimension in dimensions[subset]:
+        sys.path.append(str(Path(Path.home(),'tell','local_feature_extraction',f'{subset}_features',dimension)))
 
-    extracted_features = pd.DataFrame(columns=['id'])
-    for file in tqdm.tqdm(Path(data_dir,subset) .glob(f'*_{subset}.wav')):
-        features_dict = main(str(file))
-        
-        try:
-            features = features_dict['data'].copy()
-        except:
-            print(f'Error extracting features from {file.stem}')
-            continue
-        features.update(features_dict['scores'])
+        from app import main
 
-        features['id'] = file.stem.split('__')[0].replace('T1_','')
+        data_dir = Path(Path.home(),'data',project_name,'AUDIOS PROCESADOS')
 
-        if extracted_features.empty:
-            extracted_features = pd.DataFrame(features, index=[0])
-        else:
-            extracted_features.loc[len(extracted_features)] = features
+        extracted_features = pd.DataFrame(columns=['id'])
+        files = [file for file in data_dir.iterdir() if file.suffix == file_extentions[subset]]
 
-    extracted_features.columns = [f'{task}_{dimension}__{col}_{subset}' for col in extracted_features.columns if col != 'id' ] + ['id']
+        for file in tqdm.tqdm(files[:10]):
+            try:
+                features_dict = main(str(file))
+                if 'data' in features_dict.keys():
+                    features = features_dict['data'].copy()
+                else:
+                    features_dict = json.loads(features_dict['body']).copy()
+                    features = features_dict['data'].copy()
+            except:
+                print(f'Error extracting features from {file.stem}')
+                continue
+            features.update(features_dict['scores'])
 
-    if all_data.empty:
-        all_data = extracted_features
-    else:
-        all_data = pd.merge(all_data,extracted_features,on='id',how='outer')
+            features['id'] = '_'.join(file.stem.split('_')[:2])
+            features['task'] = file.stem.split('_')[2]
 
-    extracted_features.to_csv(Path(Path.home(),'data',project_name,f'{dimension}_features_{subset}.csv'),index=False)
+            if extracted_features.empty:
+                extracted_features = pd.DataFrame(features, index=[0])
+            else:
+                extracted_features.loc[len(extracted_features)] = features
+            
+        #Remove app from sys.path
+        sys.path.remove(str(Path(Path.home(),'tell','local_feature_extraction',f'{subset}_features',dimension)))
 
-all_data.to_csv(Path(Path.home(),'data',project_name,f'all_features_pos_neg_neu_notneu.csv'),index=False)
+        extracted_features['task'] = extracted_features['task'].apply(lambda x: x.replace('Preg','Pre').replace('pre','Pre').replace('post','Post').replace('2Pos1','2Post1').replace('2Pos2','2Post2'))
 
+        extracted_features.to_csv(Path(Path.home(),'data',project_name,f'{dimension}_features.csv'),index=False)
