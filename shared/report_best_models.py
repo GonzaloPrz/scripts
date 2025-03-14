@@ -18,14 +18,10 @@ project_name = config["project_name"]
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
-avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
-n_models = int(config["n_models"])
-n_boot = int(config["n_boot"])
-early_fusion = bool(config["early_fusion"])
 
 hyp_opt = True if config["n_iter"] > 0 else False
 feature_selection = True if config["n_iter_features"] > 0 else False
@@ -34,10 +30,6 @@ main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
 tasks = main_config['tasks'][project_name]
-test_size = main_config['test_size'][project_name]
-single_dimensions = main_config['single_dimensions'][project_name]
-data_file = main_config['data_file'][project_name]
-thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
 if isinstance(scoring_metrics,str):
     scoring_metrics = [scoring_metrics]

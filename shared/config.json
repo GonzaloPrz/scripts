@@ -6,7 +6,7 @@
     "stratify": true,
     "n_folds": 3.0,
     "n_iter": 50.0,
-    "n_iter_features": 50.0,
+    "n_iter_features": 100.0,
     "feature_sample_ratio": 0.8,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -25,6 +25,8 @@
     "tasks": [
         "cog",
         "Animales__P",
+        "Animales",
+        "P",
         "brain",
         "connectivity"
     ],

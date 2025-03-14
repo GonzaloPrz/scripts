@@ -40,6 +40,8 @@ thresholds = main_config["thresholds"][project_name]
 scoring_metrics = main_config["scoring_metrics"][project_name]
 metrics_names = main_config["metrics_names"][main_config["problem_type"][project_name]]
 
+diff_ci = pd.DataFrame(columns=["task", "dimension", "y_label", "metric", "mean", "ci_low", "ci_high"])
+
 if isinstance(scoring_metrics,str):
     scoring_metrics = [scoring_metrics]
 
@@ -67,10 +69,12 @@ plt.rcParams.update({
     "figure.titlesize": 16
 })
 
+diff_ci = pd.DataFrame()
+
 for r, row in best_models.iterrows():
     print(row["task"], row["dimension"])
     for y_label, scoring_metric in itertools.product(y_labels, scoring_metrics):
-        path_to_results = Path(results_dir, row.task, row.dimension, scaler_name, kfold_folder, y_label, "hyp_opt" if hyp_opt else "no_hyp_opt", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '', 'shuffle' if shuffle_labels else '')
+        path_to_results = Path(results_dir, row.task, row.dimension, scaler_name, kfold_folder, y_label, "hyp_opt" if hyp_opt else "no_hyp_opt", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
 
         model_name = row.model_type
         if np.isnan(row.random_seed_test):
@@ -85,34 +89,61 @@ for r, row in best_models.iterrows():
             model_index = pd.read_csv(Path(path_to_results, random_seed, f"best_models_{scoring}_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
             threshold = pd.read_csv(Path(path_to_results, random_seed, f"best_models_{scoring}_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
 
-        outputs_ = pickle.load(open(Path(path_to_results, random_seed, f"outputs_{model_name}.pkl"), "rb"))[model_index,0]
+        if Path(path_to_results, 'shuffle', random_seed, f"all_models_{model_name}_dev_bca.csv").exists():
+
+            model_index_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f"all_models_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
+            threshold = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f"all_models_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
+        elif Path(path_to_results, 'shuffle', random_seed, f"best_models_{model_name}_dev_bca.csv").exists():
+            model_index_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f"best_models_{scoring}_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
+            threshold = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f"best_models_{scoring}_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
+        else:
+            continue
+        
+        outputs_ = pickle.load(open(Path(path_to_results, random_seed, f"outputs_{model_name}.pkl"), "rb"))[:,model_index]
+
         #Add missing dimensions: model_index, j
-        outputs_ =outputs_[np.newaxis,np.newaxis, ...]
+        outputs_ =outputs_[:,np.newaxis, ...]
 
-        outputs_shuffle = pickle.load(open(Path(path_to_results, 'shuffle', random_seed, f"outputs_{model_name}.pkl"), "rb"))[:,model_index, :, :, :]
-        outputs_shuffe = outputs_shuffle[:,np.newaxis,...]
-        y_true_ = pickle.load(open(Path(path_to_results, random_seed, f"y_dev.pkl"), "rb"))[0]
-        y_true_ = y_true_[np.newaxis,...]
-        y_true_shuffle = pickle.load(open(Path(path_to_results, 'shuffle', random_seed, f"y_dev.pkl"), "rb"))[0]
+        outputs_shuffle = pickle.load(open(Path(path_to_results,'shuffle',random_seed, f"outputs_{model_name}.pkl"), "rb"))[:,model_index_shuffle, :, :, :]
+        #Expand dimensions to match outputs_
+        outputs_shuffle = outputs_shuffle[:,np.newaxis, ...]
+        
+        y_true_ = pickle.load(open(Path(path_to_results,random_seed, f"y_dev.pkl"), "rb"))
+        IDs_ = pickle.load(open(Path(path_to_results,random_seed, f"IDs_dev.pkl"), "rb"))
 
-        results = Parallel(n_jobs=1)(delayed(utils.compute_metrics)(0,0, r, outputs_, y_true_, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=threshold) for r in range(outputs_.shape[0]))
+        y_true_shuffle = pickle.load(open(Path(path_to_results, 'shuffle',random_seed, f"y_dev.pkl"), "rb"))
+        IDs_shuffle = pickle.load(open(Path(path_to_results, 'shuffle',random_seed, f"IDs_dev.pkl"), "rb"))
 
-        results_shuffle = Parallel(n_jobs=-1)(delayed(utils.compute_metrics)(j, 0, r, outputs_shuffle, y_true_shuffle, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=threshold) for j, r in itertools.product(range(outputs_shuffle.shape[0],outputs_shuffle.shape[2]), range(outputs_.shape[1]), range(outputs_.shape[2])))
+        results = Parallel(n_jobs=1)(delayed(utils.compute_metrics)(j,model_index, r, outputs_, y_true_,IDs_,metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=threshold) for j,model_index, r in itertools.product(range(outputs_.shape[0]),range(outputs_.shape[1]),range(outputs_.shape[2])))
+
+        results_shuffle = Parallel(n_jobs=1)(delayed(utils.compute_metrics)(j,model_index, r, outputs_shuffle, y_true_shuffle,IDs_shuffle,metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=threshold) for j,model_index, r in itertools.product(range(outputs_shuffle.shape[0]),range(outputs_shuffle.shape[1]),range(outputs_shuffle.shape[2])))
 
         metrics = dict((metric, np.empty((outputs_.shape[0], outputs_.shape[1], outputs_.shape[2], n_boot))) for metric in metrics_names)
-        metrics_shuffle = dict((metric, np.empty((outputs_.shape[0], outputs_.shape[1], outputs_.shape[2], n_boot))) for metric in metrics_names)
+        metrics_shuffle = dict((metric, np.empty((outputs_shuffle.shape[0], outputs_shuffle.shape[1], outputs_shuffle.shape[2], n_boot))) for metric in metrics_names)
+        metrics_diff = dict((metric, np.empty((outputs_.shape[0], outputs_.shape[1], outputs_.shape[2], n_boot))) for metric in metrics_names)
 
         for metric in metrics_names:
             for j, model_index, r, metrics_result in results:
-                metrics[metric][j, 0, r, :] = metrics_result[metric]
+                metrics[metric][j, model_index, r, :] = metrics_result[metric]
             for j, model_index, r, metrics_result in results_shuffle:
-                metrics_shuffle[metric][j, 0, r, :] = metrics_result[metric]
+                metrics_shuffle[metric][j, model_index, r, :] = metrics_result[metric]
 
             metrics[metric] = metrics[metric].flatten()
             metrics_shuffle[metric] = metrics_shuffle[metric].flatten()
+            #Concatenate metrics as many times as necessary to match the length of metrics_shuffle
+            if len(metrics[metric]) < len(metrics_shuffle[metric]):
+                metrics[metric] = np.concatenate([metrics[metric] for _ in range(len(metrics_shuffle[metric]) // len(metrics[metric]))])
 
-        y_true = np.concatenate([y_true_[r, :] for r in range(y_true_.shape[0])])
-        outputs = np.concatenate([outputs_[r, :] for r in range(outputs_.shape[0])])
+            metrics_diff[metric] = metrics[metric] - metrics_shuffle[metric]
+            if diff_ci.empty:
+                diff_ci = pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])
+            else:
+                diff_ci = pd.concat((diff_ci,pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])))
+        
+        y_true = np.concatenate([y_true_[0,r,:] for r in range(y_true_.shape[1])])
+        outputs = np.concatenate([outputs_[0,0,r,:,1] for r in range(outputs_.shape[2])]).flatten()
+        
+        Path(path_to_results,random_seed,"plots").mkdir(parents=True, exist_ok=True)
 
         plt.figure()
 
@@ -130,8 +161,8 @@ for r, row in best_models.iterrows():
         plt.tight_layout()
         plt.legend()
         plt.grid(True)
-        plt.savefig(Path(path_to_results, random_seed, f"best_{model_name}_log_odds.png"))
-
+        plt.savefig(Path(path_to_results, random_seed,"plots", f"best_{model_name}_log_odds.png"))
+        
         for metric in metrics_names:
             plt.figure()
             sns.violinplot(data=[metrics[metric], metrics_shuffle[metric]], inner=None, palette="muted")
@@ -141,6 +172,9 @@ for r, row in best_models.iterrows():
             plt.tight_layout()
             plt.ylim(0, 1)
             plt.grid(True)
-            plt.savefig(Path(path_to_results, random_seed, f"best_{model_name}_{metric}.png"))
-            plt.savefig(Path(path_to_results, random_seed, f"best_{model_name}_{metric}.svg"))
+            plt.savefig(Path(path_to_results, random_seed,"plots", f"best_{model_name}_{metric}.png"))
+            plt.savefig(Path(path_to_results, random_seed,"plots", f"best_{model_name}_{metric}.svg"))
             plt.close()
+    
+    diff_ci.to_csv(Path(results_dir,f"diff_ci_shuffle_{scoring}.csv"), index=False)
+    print("Done!")

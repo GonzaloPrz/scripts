@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument("--n_iter_features", type=int, default=100, help="Number of feature sets to try and select from")
     parser.add_argument("--feature_sample_ratio", type=float, default=0.8, help="Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set")
     parser.add_argument("--n_seeds_train",type=int,default=10,help="Number of seeds for cross-validation training")
-    parser.add_argument("--n_seeds_shuffle",type=int,default=5,help="Number of seeds for shuffling")
+    parser.add_argument("--n_seeds_shuffle",type=int,default=10,help="Number of seeds for shuffling")
     parser.add_argument("--scaler_name", type=str, default="StandardScaler", help="Scaler name")
     parser.add_argument("--id_col", type=str, default="id", help="ID column name")
     parser.add_argument("--n_models",type=float,default=0,help="Number of hyperparameter combinatios to try and select from  to train")
@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument("--bayesian",type=int,default=0,help="Whether to calculate bayesian credible intervals or bootstrap confidence intervals")
     parser.add_argument("--shuffle_all",type=int,default=1,help="Whether to shuffle all models or only the best ones")
     parser.add_argument("--filter_outliers",type=int,default=0,help="Whether to filter outliers in regression problems")
-    parser.add_argument("--early_fusion",type=int,default=1,help="Whether to perform early fusion")
+    parser.add_argument("--early_fusion",type=int,default=0,help="Whether to perform early fusion")
     parser.add_argument("--n_boot_test",type=int,default=200,help="Number of bootstrap samples for holdout")
     parser.add_argument("--n_boot_train",type=int,default=0,help="Number of bootstrap samples of training samples while performing model testing")
     return parser.parse_args()
@@ -327,13 +327,14 @@ for y_label, task in itertools.product(y_labels, tasks):
                             feature_sets = [list(x) for x in set(tuple(x) for x in feature_sets)]
                             hyperp = hyperp.drop_duplicates()     
                         else:
-                            best_models_file_name = Path(results_dir,f"best_models_{scoring_metrics}_{config['kfold_folder']}_{config['scaler_name']}__hyp_opt_feature_selection.csv")
-                            if config["n_iter"] == 0:
-                                best_models_file_name = Path(str(best_models_file_name).replace("hyp_opt","no_hyp_opt"))
-                            if config["n_iter_features"] == 0:
-                                best_models_file_name = Path(str(best_models_file_name).replace("_feature_selection",""))
+                            best_models_file_name = f"best_models_{scoring_metrics}_{config['kfold_folder']}_{config['scaler_name']}_{config['stat_folder']}_hyp_opt_feature_selection.csv".replace('__','_')
                             
-                            best_models = pd.read_csv(best_models_file_name)
+                            if config["n_iter"] == 0:
+                                best_models_file_name = best_models_file_name.replace("hyp_opt","no_hyp_opt")
+                            if config["n_iter_features"] == 0:
+                                best_models_file_name = best_models_file_name.replace("_feature_selection","")
+                            
+                            best_models = pd.read_csv(Path(results_dir,best_models_file_name))
                             best_models = best_models[best_models["y_label"] == y_label]
                             best_models = best_models[best_models["task"] == task]
                             best_models = best_models[best_models["dimension"] == dimension]

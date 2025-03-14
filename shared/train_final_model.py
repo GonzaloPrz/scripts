@@ -54,6 +54,7 @@ data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = [main_config['scoring_metrics'][project_name]]
 problem_type = main_config['problem_type'][project_name]
+id_col = main_config['id_col'][project_name]
 
 models_dict = {
         "clf": {
@@ -92,7 +93,6 @@ for scoring in scoring_metrics:
     tasks = best_models['task'].unique()
     y_labels = best_models['y_label'].unique()
     dimensions = best_models['dimension'].unique()
-    id_col = 'id'
 
     for task,y_label,dimension in itertools.product(tasks,y_labels,dimensions):
         print(task,y_label,dimension)

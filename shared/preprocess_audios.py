@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys,tqdm
 
-sys.path.append(str(Path(Path.home(),'tell','local_feature_extraction','audio_features','preprocessing')))
+sys.path.append(str(Path(Path.home(),'local_feature_extraction','audio_features','preprocessing')))
 
 project_name = 'sj'
 file_ext = '.mp3'
