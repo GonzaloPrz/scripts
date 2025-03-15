@@ -105,17 +105,17 @@ for scoring in scoring_metrics:
                                             "feature_selection" if feature_selection else "", 
                                             "filter_outliers" if filter_outliers and problem_type == 'reg' else '',f'IDs_dev.pkl'),"rb"))
             
-            results1 = Parallel(n_jobs=1)(delayed(utils.compute_metrics)(j,model_index, r, outputs1, y_dev1,metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None) for j,model_index, r in itertools.product(range(outputs1.shape[0]),range(outputs1.shape[1]),range(outputs1.shape[2])))
-            results2 = Parallel(n_jobs=-1)(delayed(utils.compute_metrics)(j,model_index, r, outputs2, y_dev2,metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None) for j,model_index, r in itertools.product(range(outputs2.shape[0]),range(outputs2.shape[1]),range(outputs2.shape[2])))
+            results1 = Parallel(n_jobs=-1)(delayed(utils.compute_metrics)(j,model_index, r, outputs1, y_dev1, IDs1, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None) for j,model_index, r in itertools.product(range(outputs1.shape[0]),range(outputs1.shape[1]),range(outputs1.shape[2])))
+            results2 = Parallel(n_jobs=-1)(delayed(utils.compute_metrics)(j,model_index, r, outputs2, y_dev2, IDs2, metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=None) for j,model_index, r in itertools.product(range(outputs2.shape[0]),range(outputs2.shape[1]),range(outputs2.shape[2])))
             
             metrics = dict((metric, np.empty((outputs1.shape[0], outputs1.shape[1], outputs1.shape[2], n_boot))) for metric in metrics_names)
             metrics_shuffle = dict((metric, np.empty((outputs2.shape[0], outputs2.shape[1], outputs2.shape[2], n_boot))) for metric in metrics_names)
             metrics_diff = dict((metric, np.empty((outputs1.shape[0], outputs1.shape[1], outputs1.shape[2], n_boot))) for metric in metrics_names)
 
             for metric in metrics_names:
-                for j, model_index, r, metrics_result in results1:
+                for j, model_index, r, metrics_result, sorted_IDs1 in results1:
                     metrics[metric][j, model_index, r, :] = metrics_result[metric]
-                for j, model_index, r, metrics_result in results2:
+                for j, model_index, r, metrics_result, sorted_IDs2 in results2:
                     metrics_shuffle[metric][j, model_index, r, :] = metrics_result[metric]
 
                 metrics[metric] = metrics[metric].flatten()
@@ -127,7 +127,4 @@ for scoring in scoring_metrics:
                 else:
                     diff_ci = pd.concat((diff_ci,pd.DataFrame({"tasks": f'[{tasks[0]}, {tasks[1]}]', "dimensions": f'[{dimensions[0]}, {dimensions[1]}]', "y_label": y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])))
 
-    diff_ci.to_csv(Path(results_dir,f'ic_diff_{scoring}.csv'),index=False)            
-        
-
-  
+    diff_ci.to_csv(Path(results_dir,f'ic_diff_{scoring}.csv'),index=False)

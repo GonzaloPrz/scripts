@@ -123,9 +123,9 @@ for r, row in best_models.iterrows():
         metrics_diff = dict((metric, np.empty((outputs_.shape[0], outputs_.shape[1], outputs_.shape[2], n_boot))) for metric in metrics_names)
 
         for metric in metrics_names:
-            for j, model_index, r, metrics_result in results:
+            for j, model_index, r, metrics_result, IDs in results:
                 metrics[metric][j, model_index, r, :] = metrics_result[metric]
-            for j, model_index, r, metrics_result in results_shuffle:
+            for j, model_index, r, metrics_result, IDs_shuffle_ in results_shuffle:
                 metrics_shuffle[metric][j, model_index, r, :] = metrics_result[metric]
 
             metrics[metric] = metrics[metric].flatten()
