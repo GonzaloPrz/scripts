@@ -23,6 +23,9 @@ from scipy.stats import loguniform, uniform, randint
 from random import randint as randint_random 
 import warnings,argparse,os,multiprocessing
 
+from expected_cost.ec import *
+from expected_cost.utils import *
+
 warnings.filterwarnings("ignore")
 
 from random import randint as randint_random 
@@ -31,7 +34,8 @@ sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str
 
 import utils
 
-cmatrix = None
+cmatrix = [[0,1,1],[1,1,0]]
+
 parallel = True
 
 def parse_args():
@@ -138,6 +142,8 @@ elif config["n_folds"] == -1:
     config["kfold_folder"] = "loocv"
 else:
     config["kfold_folder"] = f"{int(config['n_folds'])}_folds"
+
+config["cmatrix"] = cmatrix 
 
 models_dict = {
         "clf": {
@@ -372,7 +378,6 @@ for y_label, task in itertools.product(y_labels, tasks):
                         feature_sets=feature_sets,
                         IDs=ID_train_,
                         thresholds=thresholds,
-                        cmatrix=cmatrix,
                         parallel=parallel,
                         problem_type=problem_type
                     )

@@ -4,19 +4,19 @@ import pickle
 from pathlib import Path
 import itertools
 from joblib import Parallel, delayed
-import sys,tqdm
+import sys,tqdm,os
 from pingouin import compute_bootci
 from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, f1_score, r2_score, mean_squared_error, mean_absolute_error
 import logging, sys
 import json
 import argparse 
+from expected_cost.ec import CostMatrix
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-from utils import *
+import utils
 
 parallel = True 
-cmatrix = None
 late_fusion = False
 
 ##---------------------------------PARAMETERS---------------------------------##
@@ -35,6 +35,7 @@ n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
+cmatrix = CostMatrix(np.array(config["cmatrix"]))
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -74,9 +75,9 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            
+            '''
             if config['n_models'] == 0:
-
+                
                 if Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv').exists():
                     print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
                     continue
@@ -84,7 +85,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             elif Path(path,random_seed,'bayesian' if bayesian else '',f'best_models_{model}_dev_bca_{scoring}.csv').exists():
                     print(f"Bootstrapping already done")
                     continue 
-            
+            '''
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             
@@ -98,6 +99,8 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
 
             y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb'))
             
+            IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'))
+
             metrics_names = main_config["metrics_names"][problem_type]
             metrics_names = metrics_names if len(np.unique(y_dev)) == 2 else list(set(metrics_names) - set(['roc_auc','f1','recall']))
 
@@ -135,10 +138,9 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             
             metrics = dict((metric,np.empty((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
                 
-            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(compute_metrics)(j,model_index,r, outputs, y_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=None,priors=None,threshold=all_models.loc[model_index,'threshold'] if 'threshold' in all_models.columns else None,bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
-            
+            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(utils.compute_metrics)(j,model_index,r, outputs, y_dev, IDs_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=cmatrix,priors=None,threshold=all_models.loc[model_index,'threshold'] if 'threshold' in all_models.columns else None,bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
             # Update the metrics array with the computed results
-            for j,model_index,r, metrics_result in all_results:
+            for j,model_index,r, metrics_result,_ in all_results:
                 for metric in metrics_names:
                     metrics[metric][j,model_index,r,:] = metrics_result[metric]
 

@@ -354,7 +354,7 @@
         "arequipa_reg_mci_hc":"reg"
     },
     "metrics_names": {
-        "clf": ["roc_auc","accuracy","f1","recall", "norm_cross_entropy", "norm_expected_cost"],
+        "clf": ["norm_cross_entropy", "norm_expected_cost"],
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "models": {
