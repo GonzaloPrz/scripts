@@ -162,6 +162,7 @@ for scoring in scoring_metrics:
 
             Path(results_dir,f'feature_importance_{scoring}').mkdir(parents=True,exist_ok=True)
             Path(path_to_data,f'final_model_{scoring}').mkdir(parents=True,exist_ok=True)
+
             with open(Path(path_to_data,f'final_model_{scoring}','final_model.pkl'),'wb') as f:
                 pickle.dump(trained_model,f)
             with open(Path(path_to_data,f'final_model_{scoring}',f'scaler.pkl'),'wb') as f:

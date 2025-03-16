@@ -62,7 +62,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
     for dimension in dimensions:
-        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '','late_fusion' if late_fusion else '')
+        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '','late_fusion' if late_fusion else '')
         
         if not path.exists():  
             continue
@@ -75,7 +75,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             random_seeds = ['']
         
         for random_seed in random_seeds:
-            '''
+            
             if config['n_models'] == 0:
                 
                 if Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv').exists():
@@ -85,7 +85,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             elif Path(path,random_seed,'bayesian' if bayesian else '',f'best_models_{model}_dev_bca_{scoring}.csv').exists():
                     print(f"Bootstrapping already done")
                     continue 
-            '''
+            
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             

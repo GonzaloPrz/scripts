@@ -324,7 +324,7 @@
         ]
     },
     "scoring_metrics": {
-        "MCI_classifier": "norm_cross_entropy",
+        "MCI_classifier": "norm_expected_cost",
         "tell_classifier": "norm_cross_entropy",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",

@@ -5,8 +5,8 @@
     "shuffle_all": true,
     "stratify": true,
     "n_folds": 5.0,
-    "n_iter": 50.0,
-    "n_iter_features": 50.0,
+    "n_iter": 0.0,
+    "n_iter_features": 150.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -32,17 +32,17 @@
         "talking-intervals",
         "psycholinguistic"
     ],
-    "scoring_metrics": "norm_cross_entropy",
+    "scoring_metrics": "norm_expected_cost",
     "problem_type": "clf",
     "y_labels": [
         "target"
     ],
     "avoid_stats": [
+        "max",
+        "kurtosis",
         "min",
         "skewness",
-        "median",
-        "max",
-        "kurtosis"
+        "median"
     ],
     "stat_folder": "mean_std",
     "random_seeds_train": [
