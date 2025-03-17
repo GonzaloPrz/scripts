@@ -354,7 +354,7 @@
         "arequipa_reg_mci_hc":"reg"
     },
     "metrics_names": {
-        "clf": ["norm_cross_entropy", "norm_expected_cost"],
+        "clf": ["roc_auc","accuracy","recall","f1","norm_cross_entropy", "norm_expected_cost"],
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "models": {
@@ -391,6 +391,14 @@
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"]
 
+    },
+    "cmatrix":{
+        "MCI_classifier":[[0,1,1],  
+                          [1,1,0]],
+        "tell_classifier":[[0,1,1],  
+                          [1,1,0]],
+        "ad_mci_hc":[[0,1,1],  
+                     [1,0,1],
+                     [1,1,0]]
     }
-
 }

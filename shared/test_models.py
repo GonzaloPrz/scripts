@@ -24,17 +24,19 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.utils import resample 
 
 from expected_cost.ec import *
-from psrcal import *
+
+from expected_cost.calibration import calibration_with_crossval, calibration_train_on_heldout
+from expected_cost.psrcal_wrappers import LogLoss
+from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 import utils
 
 parallel = True 
-cmatrix = None
 late_fusion = False
 
-def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False):
+def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False,calibrate=False):
     results_r = row.dropna().to_dict()
 
     outputs_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
@@ -71,6 +73,12 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
 
     for b_train in range(np.max((1,boot_train))):
         boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
+        if calibrate:
+            model = utils.Model(model_class,params,scaler,imputer)
+            model.train(X_dev.loc[boot_index_train,features], y_dev,problem_type=problem_type)
+            outputs[b_train,:] = model.predict(X_dev.loc[boot_index_train,features])
+            _,cal_params = calibration_train_on_heldout(outputs[b_train,:],y_dev,calmethod=calmethod,calparams=calparams)
+            
         outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev, X_test[features], problem_type=problem_type)
 
         for b_test in range(np.max((1,boot_test))):
@@ -118,6 +126,7 @@ project_name = config["project_name"]
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
+calibrate = config["calibrate"]
 avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
@@ -128,6 +137,14 @@ early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
 n_boot_test = int(config["n_boot_test"])
 n_boot_train = int(config["n_boot_train"])
+cmatrix = CostMatrix(np.array(config["cmatrix"]))
+calibrate = bool(config["calibrate"])
+
+if calibrate:
+    metric = LogLoss 
+    calmethod = AffineCalLogLoss
+    deploy_priors = None
+    calparams = {'bias': True, 'priors': deploy_priors}
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -244,7 +261,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
 
                     results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
                                                                                 X_test,y_test,all_features,y_labels,metrics_names,IDs_test,n_boot_train,
-                                                                                n_boot_test,problem_type,threshold=results_dev.loc[r,'threshold']) 
+                                                                                n_boot_test,problem_type,threshold=results_dev.loc[r,'threshold'],cmatrix=cmatrix,calibrate=calibrate) 
                                                                                 for r in results_dev.index)
                     
                     results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])

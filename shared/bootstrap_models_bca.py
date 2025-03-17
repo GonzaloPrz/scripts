@@ -9,8 +9,10 @@ from pingouin import compute_bootci
 from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, f1_score, r2_score, mean_squared_error, mean_absolute_error
 import logging, sys
 import json
-import argparse 
 from expected_cost.ec import CostMatrix
+from expected_cost.calibration import calibration_with_crossval, calibration_train_on_heldout
+from expected_cost.psrcal_wrappers import LogLoss
+from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -19,6 +21,8 @@ import utils
 parallel = True 
 late_fusion = False
 
+def calibration_with_indices(j,model_index,r,outputs, y_dev, calparams, calmethod):
+    return j,model_index,r, calibration_with_crossval(outputs[j,model_index,r], y_dev[j,r], calparams=calparams, calmethod=calmethod,seed=r)
 ##---------------------------------PARAMETERS---------------------------------##
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
@@ -35,7 +39,13 @@ n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
-cmatrix = CostMatrix(np.array(config["cmatrix"]))
+calibrate = bool(config["calibrate"])
+
+if calibrate:
+    metric = LogLoss 
+    calmethod = AffineCalLogLoss
+    deploy_priors = None
+    calparams = {'bias': True, 'priors': deploy_priors}
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -55,6 +65,7 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
+cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name]))
 
 ##---------------------------------PARAMETERS---------------------------------##
 for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scoring_metrics]):    
@@ -76,19 +87,16 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
         
         for random_seed in random_seeds:
             
-            if config['n_models'] == 0:
-                
-                if Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv').exists():
+            filename_to_save = f'all_models_{model}_dev_bca_calibrated.csv'
+            if not calibrate:
+                filename_to_save = filename_to_save.replace('_calibrated','')
+            if config['n_models'] != 0:
+                filename_to_save = filename_to_save.replace('all_models','best_models').replace('.csv',f'_{scoring}.csv')
+
+            if Path(path,random_seed,'bayesian' if bayesian else '',filename_to_save).exists():
                     print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
                     continue
-
-            elif Path(path,random_seed,'bayesian' if bayesian else '',f'best_models_{model}_dev_bca_{scoring}.csv').exists():
-                    print(f"Bootstrapping already done")
-                    continue 
-            
-            if not Path(path,random_seed,f'all_models_{model}.csv').exists():
-                continue
-            
+              
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
             
@@ -96,9 +104,19 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
 
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
-
-            y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb'))
             
+            y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb')).astype(int)
+            
+            if calibrate:
+                results = Parallel(n_jobs=-1 if parallel else 1)(delayed(calibration_with_indices)(j,model_index,r,outputs, y_dev, 
+                                                    calparams, 
+                                                    calmethod)for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
+                
+                for j,model_index,r,cal_output in results:
+                    outputs[j,model_index,r] = cal_output
+                 
+                pickle.dump(outputs,open(Path(path,random_seed,f'outputs_{model}_calibrated.pkl'),'wb'))
+
             IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'))
 
             metrics_names = main_config["metrics_names"][problem_type]
@@ -112,16 +130,16 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             else:
                 all_models_bool = False
                 if config['n_models'] < 1:
-                    n_models = int(outputs.shape[0]*n_models)
+                    n_models = int(outputs.shape[1]*n_models)
 
-                for i in range(outputs.shape[0]):
-                    scorings_i = np.empty((outputs.shape[1],outputs.shape[2]))
-                    for j,r in itertools.product(range(outputs.shape[1]),range(outputs.shape[2])):
+                for i in range(outputs.shape[1]):
+                    scorings_i = np.empty((outputs.shape[0],outputs.shape[2]))
+                    for j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[2])):
                         if problem_type[project_name] == 'clf':
-                            metrics, _ = get_metrics_clf(outputs[i,j,r], y_dev[j,r], [scoring], cmatrix)
+                            metrics, _ = get_metrics_clf(outputs[j,i,r], y_dev[j,r], [scoring], cmatrix)
                             scorings_i[j,r] = metrics[scoring]
                         else:
-                            metrics = get_metrics_reg(outputs[i,j,r], y_dev[j,r],[scoring])
+                            metrics = get_metrics_reg(outputs[j,i,r], y_dev[j,r],[scoring])
                             scorings_i[j,r] = metrics[scoring]
                     scorings[i] = np.nanmean(scorings_i.flatten())
                 
@@ -129,12 +147,9 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
 
                 best_models = np.argsort(scorings)[:n_models]
             
-                all_models = all_models.iloc[best_models].reset_index(drop=True)
+                all_models = all_models.iloc[:,best_models].reset_index(drop=True)
                 all_models['idx'] = best_models
-                outputs = outputs[best_models]
-            
-            if outputs.ndim == 4 and problem_type == 'clf':
-                outputs = np.expand_dims(outputs,axis=2)
+                outputs = outputs[:,best_models]
             
             metrics = dict((metric,np.empty((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
                 
@@ -155,6 +170,5 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             if bayesian:
                 Path(path,random_seed,'bayesian').mkdir(exist_ok=True)
                 
-            all_models.to_csv(Path(path,random_seed,'bayesian' if bayesian else '',f'best_models_{model}_dev_bca_{scoring}.csv')) if all_models_bool == False else all_models.to_csv(Path(path,random_seed,'bayesian' if bayesian else '',f'all_models_{model}_dev_bca.csv')) 
-    
+            all_models.to_csv(Path(path,random_seed,'bayesian' if bayesian else '',filename_to_save))
 logging.info("Bootstrap completed.")

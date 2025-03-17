@@ -46,6 +46,7 @@ def parse_args():
     parser.add_argument("--stats", type=str, default="", help="Stats to be considered (default = all)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
+    parser.add_argument("--calibrate", type=int, default=1, help="Whether to calibrate models")
     parser.add_argument("--n_folds", type=int, default=3, help="Number of folds for cross validation")
     parser.add_argument("--n_iter", type=int, default=50, help="Number of hyperparameter iterations")
     parser.add_argument("--n_iter_features", type=int, default=100, help="Number of feature sets to try and select from")
@@ -72,6 +73,7 @@ def load_configuration(args):
         shuffle_labels = bool(args.shuffle_labels),
         shuffle_all = bool(args.shuffle_all),
         stratify = bool(args.stratify),
+        calibrate = bool(args.calibrate),
         n_folds = float(args.n_folds),
         n_iter = float(args.n_iter),
         n_iter_features = float(args.n_iter_features),

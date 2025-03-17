@@ -69,10 +69,10 @@ for scoring in scoring_metrics:
 
     for r, row in best_models.iterrows():   
         print(row["task"], row["dimension"])
-        path_to_results = Path(results_dir, row.task, row.dimension, scaler_name, kfold_folder, row.y_label, stat_folder,"hyp_opt" if hyp_opt else "no_hyp_opt", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
+        path_to_results = Path(results_dir, row.task, row.dimension, scaler_name, kfold_folder, row.y_label, stat_folder,"hyp_opt" if hyp_opt else "", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
 
         model_name = row.model_type
-        if row.random_seed_test is np.nan:
+        if str(row.random_seed_test) == "nan":
             random_seed = ""
         else:
             random_seed = row.random_seed_test
@@ -142,17 +142,17 @@ for scoring in scoring_metrics:
         y_true = np.concatenate([y_true_[0,r,:] for r in range(y_true_.shape[1])])
         outputs = np.concatenate([outputs_[0,0,r,:,1] for r in range(outputs_.shape[2])]).flatten()
         
-        Path(path_to_results,random_seed,"plots").mkdir(parents=True, exist_ok=True)
+        Path(results_dir,"plots").mkdir(parents=True, exist_ok=True)
 
         plt.figure()
 
         h, e = np.histogram(np.log(np.exp(outputs[y_true == 0]) / (1 - np.exp(outputs[y_true == 0]))), bins=50, density=True)
         centers = (e[:-1] + e[1:]) / 2
-        plt.plot(centers, h, label="Class 0", color="b")
-
-        h, e = np.histogram(np.log(np.exp(outputs[y_true == 1]) / (1 - np.exp(outputs[y_true == 1]))), bins=50, density=True)
-        centers = (e[:-1] + e[1:]) / 2
-        plt.plot(centers, h, label="Class 1", color="r")
+        plt.plot(centers, h, label="Class 0")
+        for cl in set(np.unique(y_true)) - {0}:
+            h, e = np.histogram(np.log(np.exp(outputs[y_true == cl]) / (1 - np.exp(outputs[y_true == cl]))), bins=50, density=True)
+            centers = (e[:-1] + e[1:]) / 2
+            plt.plot(centers, h, label=f"Class {cl}")
 
         plt.xlabel("Log-odds")
         plt.ylabel("Density")
@@ -160,7 +160,7 @@ for scoring in scoring_metrics:
         plt.tight_layout()
         plt.legend()
         plt.grid(True)
-        plt.savefig(Path(path_to_results, random_seed,"plots", f"best_{model_name}_log_odds.png"))
+        plt.savefig(Path(results_dir,"plots", f"best_{row.task}_{row.dimension}_{model_name}_log_odds.png"))
         
         try:
             for metric in metrics_names:
@@ -172,8 +172,8 @@ for scoring in scoring_metrics:
                 plt.tight_layout()
                 plt.ylim(0, 1)
                 plt.grid(True)
-                plt.savefig(Path(path_to_results, random_seed,"plots", f"best_{model_name}_{metric}.png"))
-                plt.savefig(Path(path_to_results, random_seed,"plots", f"best_{model_name}_{metric}.svg"))
+                plt.savefig(Path(results_dir,"plots", f"best_{row.task}_{row.dimension}_{model_name}_{metric}.png"))
+                plt.savefig(Path(results_dir,"plots", f"best_{row.task}_{row.dimension}_{model_name}_{metric}.svg"))
                 plt.close()
         except:
             pass
