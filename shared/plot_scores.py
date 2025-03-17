@@ -119,23 +119,22 @@ for scoring in scoring_metrics:
 
             results_shuffle = Parallel(n_jobs=1)(delayed(utils.compute_metrics)(j,model_index, r, outputs_shuffle, y_true_shuffle,IDs_shuffle,metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=threshold) for j,model_index, r in itertools.product(range(outputs_shuffle.shape[0]),range(outputs_shuffle.shape[1]),range(outputs_shuffle.shape[2])))
             metrics_shuffle = dict((metric, np.empty((outputs_shuffle.shape[0], outputs_shuffle.shape[1], outputs_shuffle.shape[2], n_boot))) for metric in metrics_names)
+            metrics_diff = dict((metric, np.empty((outputs_.shape[0], outputs_.shape[1], outputs_.shape[2], n_boot))) for metric in metrics_names)
             
             for metric in metrics_names:
                 for j, model_index, r, metrics_result, IDs_shuffle_ in results_shuffle:
                     metrics_shuffle[metric][j, model_index, r, :] = metrics_result[metric]
                 metrics_shuffle[metric] = metrics_shuffle[metric].flatten()
-
-            metrics_diff = dict((metric, np.empty((outputs_.shape[0], outputs_.shape[1], outputs_.shape[2], n_boot))) for metric in metrics_names)
         
                 #Concatenate metrics as many times as necessary to match the length of metrics_shuffle
-            if len(metrics[metric]) < len(metrics_shuffle[metric]):
-                metrics[metric] = np.concatenate([metrics[metric] for _ in range(len(metrics_shuffle[metric]) // len(metrics[metric]))])
+                if len(metrics[metric]) < len(metrics_shuffle[metric]):
+                    metrics[metric] = np.concatenate([metrics[metric] for _ in range(len(metrics_shuffle[metric]) // len(metrics[metric]))])
 
-            metrics_diff[metric] = metrics[metric] - metrics_shuffle[metric]
-            if diff_ci.empty:
-                diff_ci = pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": row.y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])
-            else:
-                diff_ci = pd.concat((diff_ci,pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": row.y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])))
+                metrics_diff[metric] = metrics[metric] - metrics_shuffle[metric]
+                if diff_ci.empty:
+                    diff_ci = pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": row.y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])
+                else:
+                    diff_ci = pd.concat((diff_ci,pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": row.y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])))
         except:
             pass
 

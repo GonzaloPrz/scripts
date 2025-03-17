@@ -37,6 +37,7 @@ parallel = True
 late_fusion = False
 
 def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False,calibrate=False):
+
     results_r = row.dropna().to_dict()
 
     outputs_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
@@ -73,14 +74,15 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
 
     for b_train in range(np.max((1,boot_train))):
         boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
+        outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev, X_test[features], problem_type=problem_type)
+
         if calibrate:
             model = utils.Model(model_class,params,scaler,imputer)
             model.train(X_dev.loc[boot_index_train,features], y_dev,problem_type=problem_type)
-            outputs[b_train,:] = model.predict(X_dev.loc[boot_index_train,features])
-            _,cal_params = calibration_train_on_heldout(outputs[b_train,:],y_dev,calmethod=calmethod,calparams=calparams)
+            outputs_dev = model.predict(X_dev.loc[boot_index_train,features])
             
-        outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev, X_test[features], problem_type=problem_type)
-
+            outputs[b_train,:] = calibration_train_on_heldout(outputs_dev,y_dev,calmethod=calmethod,calparams=calparams,return_model=False)
+            
         for b_test in range(np.max((1,boot_test))):
             if bayesian:
                 weights = np.random.dirichlet(np.ones(y_test.shape[0]))
