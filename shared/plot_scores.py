@@ -72,10 +72,13 @@ for scoring in scoring_metrics:
     
     best_models = pd.read_csv(Path(results_dir,best_models_filename))
 
-    for r, row in best_models.iterrows():   
-        print(row["task"], row["dimension"])
-        path_to_results = Path(results_dir, row.task, row.dimension, scaler_name, kfold_folder, row.y_label, stat_folder,"hyp_opt" if hyp_opt else "", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
-
+    tasks = best_models['task'].unique()
+    dimensions = best_models['dimension'].unique()
+    y_labels = best_models['y_label'].unique()
+    for task,dimension,y_label in itertools.product(tasks, dimensions, y_labels):   
+        print(task, dimension)
+        path_to_results = Path(results_dir, task, dimension, scaler_name, kfold_folder, y_label, stat_folder,"hyp_opt" if hyp_opt else "", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
+        row = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)].iloc[0]
         model_name = row.model_type
 
         filename = f"all_models_{model_name}_dev_bca_calibrated.csv"
@@ -114,7 +117,13 @@ for scoring in scoring_metrics:
                 metrics[metric][j, model_index, r, :] = metrics_result[metric]
             metrics[metric] = metrics[metric].flatten()
 
-        pickle.dump(Path(path_to_results,random_seed,f''))
+        filename_to_save = f'metrics_best_model_{model_name}_calibrated.pkl'
+        if not calibrate:
+            filename_to_save = filename_to_save.replace("_calibrated","")
+
+        with open(Path(path_to_results,random_seed,filename_to_save),'wb') as f:
+            pickle.dump(metrics,f)
+
         try:
             outputs_shuffle = pickle.load(open(Path(path_to_results,'shuffle',random_seed, outputs_filename), "rb"))[:,model_index_shuffle, :, :, :]
             #Expand dimensions to match outputs_
@@ -138,9 +147,16 @@ for scoring in scoring_metrics:
 
                 metrics_diff[metric] = metrics[metric] - metrics_shuffle[metric]
                 if diff_ci.empty:
-                    diff_ci = pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": row.y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])
+                    diff_ci = pd.DataFrame({"task": task, "dimension": dimension, "y_label": y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])
                 else:
-                    diff_ci = pd.concat((diff_ci,pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": row.y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])))
+                    diff_ci = pd.concat((diff_ci,pd.DataFrame({"task": task, "dimension": dimension, "y_label": y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])))
+            
+            filename_to_save = f'metrics_best_model_{model_name}_shuffled_calibrated.pkl'
+            if not calibrate:
+                filename_to_save = filename_to_save.replace("_calibrated","")
+
+            with open(Path(path_to_results,'shuffle',random_seed,filename_to_save),'wb') as f:
+                pickle.dump(metrics,f)
         except:
             pass
         
@@ -148,11 +164,11 @@ for scoring in scoring_metrics:
         scores = np.concatenate([outputs_[0,0,r,:,:] for r in range(outputs_.shape[2])])
         y_true = np.concatenate([y_true_[0,r,:] for r in range(y_true_.shape[1])])
         
-        filename_to_save = f"best_{row.task}_{row.dimension}_{model_name}_calibrated_logpost.png" if calibrate else "" + f"best_{row.task}_{row.dimension}_{model_name}_logpost.png"
+        filename_to_save = f"best_{task}_{dimension}_{model_name}_calibrated_logpost.png" if calibrate else "" + f"best_{task}_{dimension}_{model_name}_logpost.png"
 
         plot_hists(y_true, scores, outfile=Path(results_dir,"plots",filename_to_save), nbins=50, group_by='score', style='-', label_prefix='', axs=None)
                         
-        filename_to_save = f"best_{row.task}_{row.dimension}_{model_name}_calibrated_post.png" if calibrate else "" + f"best_{row.task}_{row.dimension}_{model_name}_post.png"
+        filename_to_save = f"best_{task}_{dimension}_{model_name}_calibrated_post.png" if calibrate else "" + f"best_{task}_{dimension}_{model_name}_post.png"
         
         plot_hists(y_true, np.exp(scores), outfile=Path(results_dir,"plots",filename_to_save), nbins=50, group_by='score', style='-', label_prefix='', axs=None)
 
