@@ -8,9 +8,9 @@ sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str
 
 import utils
 
-tasks_list = [['Animales__P','cog'],
-              ['Animales__P','brain'],
-              ['Animales__P','connectivity']
+tasks_list = [['Animales','cog'],
+              ['Animales','brain'],
+              ['Animales','connectivity']
 ]
 dimensions_list = [['properties','neuropsico_digits__neuropsico_tmt'],
                    ['properties','norm_brain_lit'],

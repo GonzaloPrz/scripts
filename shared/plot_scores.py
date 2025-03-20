@@ -5,6 +5,7 @@ from pathlib import Path
 import itertools, sys, pickle, tqdm, warnings, json, os
 import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
+from expected_cost.utils import plot_hists
 
 sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str(Path.home()) else sys.path.append(str(Path(Path.home(),"gonza","scripts_generales")))
 
@@ -18,6 +19,7 @@ project_name = config["project_name"]
 scaler_name = config["scaler_name"]
 kfold_folder = config["kfold_folder"]
 shuffle_labels = config["shuffle_labels"]
+calibrate = config["calibrate"]
 stat_folder = config["stat_folder"]
 hyp_opt = True if config["n_iter"] > 0 else False
 feature_selection = True if config["n_iter_features"] > 0 else False
@@ -32,11 +34,6 @@ else:
 
 main_config = json.load(Path(Path(__file__).parent,"main_config.json").open())
 
-y_labels = main_config["y_labels"][project_name]
-tasks = main_config["tasks"][project_name]
-test_size = main_config["test_size"][project_name]
-single_dimensions = main_config["single_dimensions"][project_name]
-thresholds = main_config["thresholds"][project_name]
 scoring_metrics = main_config["scoring_metrics"][project_name]
 metrics_names = main_config["metrics_names"][main_config["problem_type"][project_name]]
 
@@ -65,36 +62,44 @@ for scoring in scoring_metrics:
     extremo = "sup" if "norm" in scoring else "inf"
     ascending = True if extremo == "sup" else False
 
-    best_models = pd.read_csv(Path(results_dir,f"best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection.csv".replace("__","_")))
+    best_models_filename = f"best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_calibrated.csv".replace("__","_")
+    if not hyp_opt:
+        best_models_filename = best_models_filename.replace("_hyp_opt","")
+    if not feature_selection:
+        best_models_filename = best_models_filename.replace("_feature_selection","")
+    if not calibrate:
+        best_models_filename = best_models_filename.replace("_calibrated","")
+    
+    best_models = pd.read_csv(Path(results_dir,best_models_filename))
 
     for r, row in best_models.iterrows():   
         print(row["task"], row["dimension"])
         path_to_results = Path(results_dir, row.task, row.dimension, scaler_name, kfold_folder, row.y_label, stat_folder,"hyp_opt" if hyp_opt else "", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
 
         model_name = row.model_type
+
+        filename = f"all_models_{model_name}_dev_bca_calibrated.csv"
+
+        if not calibrate:
+            filename = filename.replace("_calibrated", "")
+        
+        if config["n_models"] != 0:
+            filename = filename.replace("all_models", "best_models").replace(".csv", f"_{scoring}.csv")
+        
         if str(row.random_seed_test) == "nan":
             random_seed = ""
         else:
             random_seed = row.random_seed_test
 
-        try:
-            model_index = pd.read_csv(Path(path_to_results, random_seed, f"all_models_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
-            threshold = pd.read_csv(Path(path_to_results, random_seed, f"all_models_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
-        except:
-            model_index = pd.read_csv(Path(path_to_results, random_seed, f"best_models_{scoring}_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
-            threshold = pd.read_csv(Path(path_to_results, random_seed, f"best_models_{scoring}_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
+        model_index = pd.read_csv(Path(path_to_results, random_seed, filename)).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
+        threshold = pd.read_csv(Path(path_to_results, random_seed, filename)).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
 
-        if Path(path_to_results, 'shuffle', random_seed, f"all_models_{model_name}_dev_bca.csv").exists():
-
+        if Path(path_to_results, 'shuffle', random_seed,filename).exists():
             model_index_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f"all_models_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
             threshold = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f"all_models_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
-        elif Path(path_to_results, 'shuffle', random_seed, f"best_models_{model_name}_dev_bca.csv").exists():
-            model_index_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f"best_models_{scoring}_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
-            threshold = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f"best_models_{scoring}_{model_name}_dev_bca.csv")).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
-        else:
-            pass
         
-        outputs_ = pickle.load(open(Path(path_to_results, random_seed, f"outputs_{model_name}.pkl"), "rb"))[:,model_index]
+        outputs_filename = f"outputs_{model_name}_calibrated.pkl" if calibrate else f"outputs_{model_name}.pkl"
+        outputs_ = pickle.load(open(Path(path_to_results, random_seed, outputs_filename), "rb"))[:,model_index]
 
         #Add missing dimensions: model_index, j
         outputs_ =outputs_[:,np.newaxis, ...]
@@ -109,8 +114,9 @@ for scoring in scoring_metrics:
                 metrics[metric][j, model_index, r, :] = metrics_result[metric]
             metrics[metric] = metrics[metric].flatten()
 
+        pickle.dump(Path(path_to_results,random_seed,f''))
         try:
-            outputs_shuffle = pickle.load(open(Path(path_to_results,'shuffle',random_seed, f"outputs_{model_name}.pkl"), "rb"))[:,model_index_shuffle, :, :, :]
+            outputs_shuffle = pickle.load(open(Path(path_to_results,'shuffle',random_seed, outputs_filename), "rb"))[:,model_index_shuffle, :, :, :]
             #Expand dimensions to match outputs_
 
             outputs_shuffle = outputs_shuffle[:,np.newaxis, ...]
@@ -137,30 +143,19 @@ for scoring in scoring_metrics:
                     diff_ci = pd.concat((diff_ci,pd.DataFrame({"task": row.task, "dimension": row.dimension, "y_label": row.y_label, "metric": metric, "mean": np.nanmean(metrics_diff[metric]), "ci_low": np.nanpercentile(metrics_diff[metric], 2.5), "ci_high": np.nanpercentile(metrics_diff[metric], 97.5)}, index=[0])))
         except:
             pass
-
-        y_true = np.concatenate([y_true_[0,r,:] for r in range(y_true_.shape[1])])
-        outputs = np.concatenate([outputs_[0,0,r,:,1] for r in range(outputs_.shape[2])]).flatten()
         
         Path(results_dir,"plots").mkdir(parents=True, exist_ok=True)
-
-        plt.figure()
-
-        h, e = np.histogram(np.log(np.exp(outputs[y_true == 0]) / (1 - np.exp(outputs[y_true == 0]))), bins=50, density=True)
-        centers = (e[:-1] + e[1:]) / 2
-        plt.plot(centers, h, label="Class 0")
-        for cl in set(np.unique(y_true)) - {0}:
-            h, e = np.histogram(np.log(np.exp(outputs[y_true == cl]) / (1 - np.exp(outputs[y_true == cl]))), bins=50, density=True)
-            centers = (e[:-1] + e[1:]) / 2
-            plt.plot(centers, h, label=f"Class {cl}")
-
-        plt.xlabel("Log-odds")
-        plt.ylabel("Density")
-        plt.title(f"Log-odds Distribution for {model_name}")
-        plt.tight_layout()
-        plt.legend()
-        plt.grid(True)
-        plt.savefig(Path(results_dir,"plots", f"best_{row.task}_{row.dimension}_{model_name}_log_odds.png"))
+        scores = np.concatenate([outputs_[0,0,r,:,:] for r in range(outputs_.shape[2])])
+        y_true = np.concatenate([y_true_[0,r,:] for r in range(y_true_.shape[1])])
         
+        filename_to_save = f"best_{row.task}_{row.dimension}_{model_name}_calibrated_logpost.png" if calibrate else "" + f"best_{row.task}_{row.dimension}_{model_name}_logpost.png"
+
+        plot_hists(y_true, scores, outfile=Path(results_dir,"plots",filename_to_save), nbins=50, group_by='score', style='-', label_prefix='', axs=None)
+                        
+        filename_to_save = f"best_{row.task}_{row.dimension}_{model_name}_calibrated_post.png" if calibrate else "" + f"best_{row.task}_{row.dimension}_{model_name}_post.png"
+        
+        plot_hists(y_true, np.exp(scores), outfile=Path(results_dir,"plots",filename_to_save), nbins=50, group_by='score', style='-', label_prefix='', axs=None)
+
         try:
             for metric in metrics_names:
                 plt.figure()
@@ -171,13 +166,16 @@ for scoring in scoring_metrics:
                 plt.tight_layout()
                 plt.ylim(0, 1)
                 plt.grid(True)
-                plt.savefig(Path(results_dir,"plots", f"best_{row.task}_{row.dimension}_{model_name}_{metric}.png"))
-                plt.savefig(Path(results_dir,"plots", f"best_{row.task}_{row.dimension}_{model_name}_{metric}.svg"))
+                plt.savefig(Path(results_dir,"plots", filename_to_save.replace("log_odds",f"{metric}_violin")))
+                plt.savefig(Path(results_dir,"plots", filename_to_save.replace("log_odds.png",f"{metric}_violin.svg")))
                 plt.close()
         except:
             pass
     try:
-        diff_ci.to_csv(Path(results_dir,f"diff_ci_shuffle_{scoring}.csv"), index=False)
+        filename_to_save = f"diff_ci_shuffle_{scoring}_calibrated.csv"
+        if not calibrate:
+            filename_to_save = filename_to_save.replace("_calibrated", "")
+        diff_ci.to_csv(Path(results_dir,filename_to_save), index=False)
         print("Done!")
     except:
         pass

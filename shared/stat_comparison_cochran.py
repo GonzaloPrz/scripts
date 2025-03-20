@@ -9,32 +9,30 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from utils import *
 
-l2ocv = False
+config = json.load(Path(Path(__file__).parent,"config.json").open())
 
-project_name = 'Proyecto_Ivo'
+project_name = config["project_name"]
+scaler_name = config["scaler_name"]
+kfold_folder = config["kfold_folder"]
+shuffle_labels = config["shuffle_labels"]
+calibrate = config["calibrate"]
+stat_folder = config["stat_folder"]
+hyp_opt = True if config["n_iter"] > 0 else False
+feature_selection = True if config["n_iter_features"] > 0 else False
+filter_outliers = config["filter_outliers"]
+n_boot = int(config["n_boot"])
 
-scaler_name = 'StandardScaler'
-scoring = 'roc_auc'
-
-planned_comparisons = {'Proyecto_Ivo':(('Animales___timing__vr','cog___neuropsico_mmse'),
-                                        ('Animales___timing__vr','cog___neuropsico'),
-                                        ('Animales___timing__vr','brain___norm_brain_lit'),
-                                        ('Animales___timing__vr','AAL___norm_AAL'),
-                                        ('Animales___timing__vr','conn___connectivity'),
-                                        ('Animales___properties__timing','cog___neuropsico_mmse'),
-                                        ('Animales___properties__timing','cog___neuropsico'),
-                                        ('Animales___properties__timing','brain___norm_brain_lit'),
-                                        ('Animales___properties__timing','AAL___norm_AAL'),
-                                        ('Animales___properties__timing','conn___connectivity'))}
-y_labels = {'Proyecto_Ivo':['target']}
-            
-if l2ocv:
-    kfold_folder = 'l2ocv'
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / "results" / project_name
 else:
-    n_folds = 5
-    kfold_folder = f'{n_folds}_folds'
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+main_config = json.load(Path(Path(__file__).parent,"main_config.json").open())
+
+scoring_metrics = main_config["scoring_metrics"][project_name]
+metrics_names = main_config["metrics_names"][main_config["problem_type"][project_name]]
+
 
 best_classifiers = pd.read_csv(Path(results_dir,f'best_classifiers_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv'))
 

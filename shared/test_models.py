@@ -25,8 +25,7 @@ from sklearn.utils import resample
 
 from expected_cost.ec import *
 
-from expected_cost.calibration import calibration_with_crossval, calibration_train_on_heldout
-from expected_cost.psrcal_wrappers import LogLoss
+from expected_cost.calibration import calibration_train_on_heldout
 from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
@@ -77,11 +76,11 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
         outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev, X_test[features], problem_type=problem_type)
 
         if calibrate:
-            model = utils.Model(model_class,params,scaler,imputer)
-            model.train(X_dev.loc[boot_index_train,features], y_dev,problem_type=problem_type)
-            outputs_dev = model.predict(X_dev.loc[boot_index_train,features])
+            model = utils.Model(model_class(**params),scaler,imputer)
+            model.train(X_dev.loc[boot_index_train,features], y_dev)
+            outputs_dev = model.eval(X_dev.loc[boot_index_train,features],problem_type)
             
-            outputs[b_train,:] = calibration_train_on_heldout(outputs_dev,y_dev,calmethod=calmethod,calparams=calparams,return_model=False)
+            outputs[b_train,:] = calibration_train_on_heldout(outputs[b_train,:],outputs_dev,y_dev,calmethod=calmethod,calparams=calparams,return_model=False)
             
         for b_test in range(np.max((1,boot_test))):
             if bayesian:
@@ -139,11 +138,9 @@ early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
 n_boot_test = int(config["n_boot_test"])
 n_boot_train = int(config["n_boot_train"])
-cmatrix = CostMatrix(np.array(config["cmatrix"]))
 calibrate = bool(config["calibrate"])
 
 if calibrate:
-    metric = LogLoss 
     calmethod = AffineCalLogLoss
     deploy_priors = None
     calparams = {'bias': True, 'priors': deploy_priors}
@@ -163,6 +160,8 @@ single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
+cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name]))
+
 if isinstance(scoring_metrics,str):
     scoring_metrics = [scoring_metrics]
 
@@ -216,12 +215,11 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 random_seeds_test = ['']
                 
             for random_seed_test in random_seeds_test:
-
-                files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if 'all_models_' in file.stem and 'dev_bca' in file.stem]
-                filename_to_save = 'all_models'
-                if len(files) == 0:
-                    files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if 'best_models_' in file.stem and 'dev' in file.stem and scoring in file.stem]
-                    filename_to_save = f'best_models_{scoring}'
+                if int(config["n_models"] == 0):
+                    files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev_bca','calibrated'])] if calibrate else [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev_bca']) and 'calibrated' not in file.stem]
+                else:
+                    files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['best_models_','dev_bca','calibrated'])] if calibrate else [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['best_models_','dev_bca']) and 'calibrated' not in file.stem]
+                
                 if len(files) == 0:
                     continue
 
@@ -234,6 +232,12 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 
                 for file in files:
                     model_name = file.stem.split('_')[2]
+
+                    filename_to_save = f'all_models_{model_name}_calibrated'
+                    if config["n_models"] != 0:
+                        filename_to_save = filename_to_save.replace('all_models',f'best_models_{scoring}')
+                    if not calibrate:
+                        filename_to_save = filename_to_save.replace('_calibrated','')
 
                     print(model_name)
                     
@@ -257,7 +261,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_test)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
-                    if Path(file.parent,f'{filename_to_save}_{model_name}_test.csv').exists():
+                    if Path(file.parent,f'{filename_to_save}_test.csv').exists():
                         print(f"Testing already done")
                         continue
 
@@ -275,6 +279,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
                     outputs_test = np.stack([result[5] for result in results],axis=0)
 
-                    results_test.to_csv(Path(file.parent,f'{filename_to_save}_{model_name}_test.csv'))
-                    with open(Path(file.parent,f'outputs_test_{model_name}.pkl'),'wb') as f:
-                        pickle.dump(outputs_test,f)
+                    results_test.to_csv(Path(file.parent,f'{filename_to_save}_test.csv'))
+                    outputs_filename = f'outputs_test_calibrated_{model_name}.pkl' if calibrate else f'outputs_test_{model_name}.pkl'
+                    with open(Path(file.parent,outputs_filename),'wb') as f:
+                        pickle.dump(outputs_bootstrap,f)

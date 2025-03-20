@@ -70,6 +70,15 @@
         "arequipa_reg_mci_hc": [
             "MOCA_TOTAL",
             "IFS"
+        ],
+        "GERO_females":[
+            "DASS_21_Depression_V",
+            "AES_Total_Score",
+            "Depression_Total_Score",
+            "MiniSea_MiniSea_Total_EkmanFaces",
+            "MiniSea_minisea_total",
+            "MoCA_Total_Score",
+            "MMSE_Total_Score"
         ]
         
     },
@@ -89,6 +98,7 @@
             "Animales",
             "P",
             "brain",
+            "AAL",
             "connectivity"
         ],
         "GeroApathy": [
@@ -102,7 +112,8 @@
             "recuerdo_agradable"
         ],
         "ad_mci_hc": [
-            "fugu"
+            "fugu",
+            "demographic"
         ],
         "GeroApathy_reg": [
             "agradable"
@@ -148,6 +159,11 @@
             "fugu",
             "dia_tipico",
             "recuerdo_agradable"
+        ],
+        "GERO_females":[
+            "fugu",
+            "lamina_1",
+            "lamina_2"
         ]
     },
     "test_size": {
@@ -163,7 +179,8 @@
         "GeroApathy_reg": 0.3,
         "arequipa_reg": 0,
         "arequipa_reg_mci": 0,
-        "arequipa_reg_mci_hc": 0
+        "arequipa_reg_mci_hc": 0,
+        "GERO_females":0.3
 
     },
     "single_dimensions": {
@@ -219,11 +236,13 @@
         "arequipa": [
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
-        "ad_mci_hc": [
-            "pitch",
-            "talking-intervals",
-            "voice-quality"
-        ],
+        "ad_mci_hc":{
+            "fugu":[
+                "pitch",
+                "talking-intervals",
+                "voice-quality"],
+            "demographic":["demographic"]
+        },
         "GeroApathy_reg": [
             "mfcc",
             "ratio",
@@ -258,7 +277,11 @@
         ],
         "arequipa_reg_mci_hc": [
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
-        ]
+        ],
+        "GERO_females":
+        ["pitch_analysis",
+         "talking_intervals",
+        "voice_quality"]
     },
     "data_file": {
         "tell_classifier": "data_MOTOR-LIBRE.csv",
@@ -273,7 +296,8 @@
         "AKU_outliers_as_nan": "all_data_HC_outliers_as_nan.csv",
         "arequipa_reg": "all_data.csv",
         "arequipa_reg_mci":"all_data_matched.csv",
-        "arequipa_reg_mci_hc":"all_data_matched.csv"
+        "arequipa_reg_mci_hc":"all_data_matched.csv",
+        "GERO_females":"all_data_GERO_females.csv"
     },
 
     "data_file_test": {
@@ -321,7 +345,8 @@
         ],
         "arequipa_reg_mci_hc": [
             null
-        ]
+        ],
+        "GERO_females":[null]
     },
     "scoring_metrics": {
         "MCI_classifier": "norm_expected_cost",
@@ -336,7 +361,8 @@
         "AKU_outliers_as_nan": "r2_score",
         "arequipa_reg": "mean_absolute_error",
         "arequipa_reg_mci": "r2_score",
-        "arequipa_reg_mci_hc": "r2_score"
+        "arequipa_reg_mci_hc": "r2_score",
+        "GERO_females":"r2_score"
     },
     "problem_type": {
         "tell_classifier": "clf",
@@ -351,26 +377,28 @@
         "AKU_outliers_as_nan": "reg",
         "arequipa_reg":"reg",
         "arequipa_reg_mci":"reg",
-        "arequipa_reg_mci_hc":"reg"
+        "arequipa_reg_mci_hc":"reg",
+        "GERO_females":"reg"
     },
     "metrics_names": {
         "clf": ["roc_auc","accuracy","recall","f1","norm_cross_entropy", "norm_expected_cost"],
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "models": {
-        "tell_classifier": ["lr","svc","knnc","xgb","nb"],
+        "tell_classifier": ["lr","svc","knnc","xgb"],
         "MCI_classifier": ["lr","svc","knnc","xgb","nb"],
         "Proyecto_Ivo": ["lr","svc","knnc","xgb"],
         "GeroApathy": ["lr","svc","knnc","xgb"],
         "arequipa": ["lr","svc","knnc","xgb"],
-        "ad_mci_hc": ["lr","svc","knnc","xgb","nb"],
+        "ad_mci_hc": ["lr","svc","xgb","knnc","nb"],
         "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "GERO_Ivo": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
         "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg_mci": ["lasso","ridge","elastic","svr"],
-        "arequipa_reg_mci_hc": ["lasso","ridge","elastic","svr"]
+        "arequipa_reg_mci_hc": ["lasso","ridge","elastic","svr"],
+        "GERO_females":["lasso","ridge","elastic","svr","xgb"]
     },
     "id_col":{
         "tell_classifier": "id",
@@ -385,11 +413,13 @@
         "AKU_outliers_as_nan": "id",
         "arequipa_reg": "id",
         "arequipa_reg_mci": "id",
-        "arequipa_reg_mci_hc": "id"
+        "arequipa_reg_mci_hc": "id",
+        "GERO_females": "id"
     },
     "covars":{
         "arequipa_reg_mci":["sex","age","education"],
-        "arequipa_reg_mci_hc":["sex","age","education"]
+        "arequipa_reg_mci_hc":["sex","age","education"],
+        "GERO_females":["sex","age","education"]
 
     },
     "cmatrix":{
@@ -399,6 +429,8 @@
                           [1,1,0]],
         "ad_mci_hc":[[0,1,1],  
                      [1,0,1],
-                     [1,1,0]]
+                     [1,1,0]],
+        "Proyecto_Ivo":[[0,1],
+                        [1,0]]
     }
 }

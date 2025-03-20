@@ -1,13 +1,14 @@
 {
-    "project_name": "Proyecto_Ivo",
+    "project_name": "GERO_females",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
-    "n_folds": 3.0,
+    "calibrate": false,
+    "n_folds": 5.0,
     "n_iter": 50.0,
     "n_iter_features": 50.0,
-    "feature_sample_ratio": 0.8,
+    "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
@@ -16,54 +17,32 @@
     "n_boot": 200.0,
     "bayesian": false,
     "filter_outliers": false,
-    "early_fusion": false,
+    "early_fusion": true,
     "n_boot_test": 200.0,
     "n_boot_train": 0.0,
-    "test_size": 0.0,
-    "n_seeds_test": 0.0,
-    "data_file": "all_data.csv",
+    "test_size": 0.3,
+    "n_seeds_test": 1.0,
+    "data_file": "all_data_GERO_females.csv",
     "tasks": [
-        "cog",
-        "Animales__P",
-        "brain",
-        "connectivity"
+        "fugu",
+        "lamina_1",
+        "lamina_2"
     ],
-    "single_dimensions": {
-        "Animales": [
-            "properties",
-            "timing",
-            "properties__timing"
-        ],
-        "P": [
-            "properties",
-            "timing",
-            "properties__timing"
-        ],
-        "Animales__P": [
-            "properties",
-            "timing",
-            "properties__timing"
-        ],
-        "cog": [
-            "neuropsico_digits__neuropsico_tmt",
-            "neuropsico_tmt",
-            "neuropsico_digits"
-        ],
-        "brain": [
-            "norm_brain_lit"
-        ],
-        "AAL": [
-            "norm_AAL"
-        ],
-        "connectivity": [
-            "networks",
-            "selected_areas"
-        ]
-    },
-    "scoring_metrics": "roc_auc",
-    "problem_type": "clf",
+    "single_dimensions": [
+        "pitch_analysis",
+        "talking_intervals",
+        "voice_quality"
+    ],
+    "scoring_metrics": "r2_score",
+    "problem_type": "reg",
     "y_labels": [
-        "target"
+        "DASS_21_Depression_V",
+        "AES_Total_Score",
+        "Depression_Total_Score",
+        "MiniSea_MiniSea_Total_EkmanFaces",
+        "MiniSea_minisea_total",
+        "MoCA_Total_Score",
+        "MMSE_Total_Score"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -82,5 +61,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "3_folds"
+    "kfold_folder": "5_folds"
 }

@@ -18,6 +18,7 @@ project_name = config["project_name"]
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
+calibrate = config['calibrate']
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = True if config['n_iter_features'] > 0 else False
@@ -82,23 +83,28 @@ for scoring in scoring_metrics:
                         else:
                             fusion = 'single dimension'
                         
-                        files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if f'all_models_' in file.stem and 'test' in file.stem] 
-                        if len(files) == 0:
-                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if f'all_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem]
-
-                        if len(files) == 0:
-                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if f'best_models_' in file.stem and 'test' in file.stem and scoring in file.stem] 
-
-                        if len(files) == 0:
-                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if f'best_models_' in file.stem and 'dev' in file.stem and 'bca' in file.stem and scoring in file.stem] 
+                        if calibrate:
+                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','test','calibrated'])] 
+                            if len(files) == 0:
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','dev_bca','calibrated'])]
+                            if len(files) == 0:
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','test','calibrated'])] 
+                            if len(files) == 0:
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','dev_bca','calibrated'])] 
+                        else:
+                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','test']) and 'calibrated' not in file.stem] 
+                            if len(files) == 0:
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','dev_bca']) and 'calibrated' not in file.stem]
+                            if len(files) == 0:
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','test']) and 'calibrated' not in file.stem] 
+                            if len(files) == 0:
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','dev_bca']) and 'calibrated' not in file.stem] 
                         
                         if len(files) == 0:
                             continue
                         
                         best = None
                         for file in files:
-                            if 'knn' in file.stem:
-                                continue
                             
                             df = pd.read_csv(file)
                             
@@ -177,7 +183,7 @@ for scoring in scoring_metrics:
                             
                         best_models.loc[len(best_models),:] = dict_append
 
-    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_no_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_no_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
 
     if hyp_opt:
         filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
@@ -185,6 +191,8 @@ for scoring in scoring_metrics:
         filename_to_save = filename_to_save.replace('_feature_selection','')
     if not shuffle_labels:
         filename_to_save = filename_to_save.replace('_shuffled','')
+    if not calibrate:
+        filename_to_save = filename_to_save.replace('_calibrated','')
 
     best_models = best_models.dropna(axis=1,how='all')
     #best_models.dropna(subset=['model_index'],inplace=True)

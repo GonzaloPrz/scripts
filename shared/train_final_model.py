@@ -13,6 +13,10 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import KNNImputer
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
+from sklearn.naive_bayes import GaussianNB
+
+from expected_cost.calibration import calibration_train_on_test
+from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
 
 import pickle
 
@@ -28,6 +32,7 @@ project_name = config["project_name"]
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
+calibrate = config['calibrate']
 avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
@@ -37,6 +42,11 @@ n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 problem_type = config["problem_type"]
+
+if calibrate:
+    calmethod = AffineCalLogLoss
+    deploy_priors = None
+    calparams = {'bias': True, 'priors': deploy_priors}
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -62,7 +72,7 @@ models_dict = {
             "svc": SVC,
             "knnc": KNeighborsClassifier,
             "xgb": XGBClassifier,
-            #"nb":GaussianNB
+            "nb":GaussianNB
         },
         "reg": {
             "lasso": Lasso,
@@ -74,28 +84,30 @@ models_dict = {
     }
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
-pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value','p_value_corrected','correction_method'])
+pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
 
 for scoring in scoring_metrics:
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
+    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','_no_hyp_opt')
     if not feature_selection:
         best_models_file = best_models_file.replace('_feature_selection','')
     if not shuffle_labels:
         best_models_file = best_models_file.replace('_shuffled','')
-    
+    if not calibrate:
+        best_models_file = best_models_file.replace('_calibrated','')
+        
     best_models = pd.read_csv(Path(results_dir,best_models_file))
     
     tasks = best_models['task'].unique()
     y_labels = best_models['y_label'].unique()
     dimensions = best_models['dimension'].unique()
 
-    for task,y_label,dimension in itertools.product(tasks,y_labels,dimensions):
-        print(task,y_label,dimension)
+    for task,dimension,y_label in itertools.product(tasks,dimensions,y_labels):
+        print(task,dimension,y_label)
         path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         
         if not Path(path).exists():
@@ -109,8 +121,6 @@ for scoring in scoring_metrics:
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
             
-            Path(path_to_data,f'final_model_{scoring}').mkdir(parents=True,exist_ok=True)
-
             model_type = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
             print(model_type)
             model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
@@ -141,39 +151,51 @@ for scoring in scoring_metrics:
                 params_dict = {param:best_model.loc[0,param] for param in params if str(best_model.loc[0,param]) != 'nan'}
                 model = utils.Model(models_dict[problem_type][model_type](**params_dict),StandardScaler,KNNImputer)
             
-            X_dev = pickle.load(open(Path(path_to_data,'X_dev.pkl'),'rb'))[0,0]
-            y_dev = pickle.load(open(Path(path_to_data,'y_dev.pkl'),'rb'))[0,:]
+            X_dev = pickle.load(open(Path(path_to_data,'X_dev.pkl'),'rb'))
+            y_dev = pickle.load(open(Path(path_to_data,'y_dev.pkl'),'rb'))
+            outputs_dev = pickle.load(open(Path(path_to_data,f'outputs_{model_type}.pkl'),'rb'))[:,model_index]
+
+            if calibrate:
+                scores = np.concatenate([outputs_dev[j,r]] for j in range(outputs_dev.shape[0]) for r in range(outputs_dev.shape[1]))
+                targets = np.concatenate([y_dev[j,r] for j in range(y_dev.shape[0]) for r in range(y_dev.shape[1])])
+
+                _,calmodel = calibration_train_on_test(scores,targets,calmethod,calparams,return_model=True)
             if not isinstance(X_dev,pd.DataFrame):
-                X_dev = pd.DataFrame(X_dev,columns=all_features)
-            model.train(X_dev[features],y_dev[0])
+                X_dev = pd.DataFrame(X_dev[0,0],columns=all_features)
+            model.train(X_dev[features],y_dev[0,0])
 
             trained_model = model.model
             scaler = model.scaler
             imputer = model.imputer
 
-            feature_importance_file = f'feature_importance_{task}_{y_label}_{dimension}_{model_type}_hyp_opt_feature_selection_shuffled.csv'
+            feature_importance_file = f'feature_importance_{task}_{dimension}_{y_label}_{stat_folder}_{model_type}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
 
             if not hyp_opt:
-                feature_importance_file = feature_importance_file.replace('_hyp_opt','_no_hyp_opt')
+                feature_importance_file = feature_importance_file.replace('_hyp_opt','')
             if not feature_selection:
                 feature_importance_file = feature_importance_file.replace('_feature_selection','')
             if not shuffle_labels:
                 feature_importance_file = feature_importance_file.replace('_shuffled','')
+            if not calibrate:
+                feature_importance_file = feature_importance_file.replace('_calibrated','')
 
             Path(results_dir,f'feature_importance_{scoring}').mkdir(parents=True,exist_ok=True)
-            Path(path_to_data,f'final_model_{scoring}').mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_')).mkdir(parents=True,exist_ok=True)
 
-            with open(Path(path_to_data,f'final_model_{scoring}','final_model.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),'final_model.pkl'),'wb') as f:
                 pickle.dump(trained_model,f)
-            with open(Path(path_to_data,f'final_model_{scoring}',f'scaler.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),f'scaler.pkl'),'wb') as f:
                 pickle.dump(scaler,f)
-            with open(Path(path_to_data,f'final_model_{scoring}',f'imputer.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),f'imputer.pkl'),'wb') as f:
                 pickle.dump(imputer,f)
+            if calibrate:
+                with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),f'calmodel.pkl'),'wb') as f:
+                    pickle.dump(calmodel,f)
             
             if model_type == 'svc':
                 model.model.kernel = 'linear'
         
-            model.train(X_dev[features],y_dev[0])
+            model.train(X_dev[features],y_dev[0,0])
 
             if hasattr(model.model,'feature_importance'):
                 feature_importance = model.model.feature_importance
@@ -192,31 +214,33 @@ for scoring in scoring_metrics:
             
             if problem_type == 'reg':
                 Path(results_dir,f'plots_{scoring}').mkdir(parents=True,exist_ok=True)
-                outputs = pickle.load(open(Path(path_to_data,f'outputs_{model_type}.pkl'),'rb'))[0,model_index]
-                IDs = pickle.load(open(Path(path_to_data,'IDs_dev.pkl'),'rb'))[0,:]
+                IDs = pickle.load(open(Path(path_to_data,'IDs_dev.pkl'),'rb'))
 
-                data = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs.flatten(),'y_true':y_dev.flatten()})
-                data = data.drop_duplicates('ID')
+                predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
+                predictions = predictions.drop_duplicates('ID')
+
+                with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),f'predictions_dev.pkl'),'wb') as f:
+                    pickle.dump(predictions,f)
 
                 # Calculate Pearson's correlation
-                r, p = pearsonr(data['y_true'], data['y_pred'])
+                r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
 
                 plt.figure()
-                sns.scatterplot(x='y_true',y='y_pred',data=data)
+                sns.scatterplot(x='y_true',y='y_pred',data=predictions)
                 plt.xlabel('True vaue')
                 plt.ylabel('Predicted value')
                 plt.title(f'{model_type} - {y_label} - {dimension} - {task}')
-                plt.xlim(np.min((data['y_true'].min(),data['y_pred'].min())),np.max((data['y_true'].max(),data['y_pred'].max())))
-                plt.ylim(np.min((data['y_true'].min(),data['y_pred'].min())),np.max((data['y_true'].max(),data['y_pred'].max())))
+                plt.xlim(np.min((predictions['y_true'].min(),predictions['y_pred'].min())),np.max((predictions['y_true'].max(),predictions['y_pred'].max())))
+                plt.ylim(np.min((predictions['y_true'].min(),predictions['y_pred'].min())),np.max((predictions['y_true'].max(),predictions['y_pred'].max())))
                 plt.grid(True)
                 # Add the regression line
-                a, b = np.polyfit(data['y_true'], data['y_pred'], 1)
-                plt.plot(data['y_true'], a * data['y_true'] + b, color='red')
+                a, b = np.polyfit(predictions['y_true'], predictions['y_pred'], 1)
+                plt.plot(predictions['y_true'], a * predictions['y_true'] + b, color='red')
 
                 pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
 
                 # Add stats to the plot
-                plt.text(data['y_true'].min(), data['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
+                plt.text(predictions['y_true'].min(), predictions['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
 
                 # Save the plot
                 plt.savefig(Path(results_dir,f'plots_{scoring}',f'{task}_{y_label}_{dimension}_{model_type}.png'))
@@ -225,7 +249,7 @@ for scoring in scoring_metrics:
     if problem_type == 'reg':
         pearsons_results_file = f'pearons_results_{scoring}_{stat_folder}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
         if not hyp_opt:
-            pearsons_results_file = pearsons_results_file.replace('_hyp_opt','_no_hyp_opt')
+            pearsons_results_file = pearsons_results_file.replace('_hyp_opt','')
         if not feature_selection:
             pearsons_results_file = pearsons_results_file.replace('_feature_selection','')
         if not shuffle_labels:

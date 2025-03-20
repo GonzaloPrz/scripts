@@ -34,8 +34,6 @@ sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str
 
 import utils
 
-cmatrix = [[0,1,1],[1,1,0]]
-
 parallel = True
 
 def parse_args():
@@ -46,7 +44,7 @@ def parse_args():
     parser.add_argument("--stats", type=str, default="", help="Stats to be considered (default = all)")
     parser.add_argument("--shuffle_labels", type=int, default=0, help="Shuffle labels flag (1 or 0)")
     parser.add_argument("--stratify", type=int, default=1, help="Stratification flag (1 or 0)")
-    parser.add_argument("--calibrate", type=int, default=1, help="Whether to calibrate models")
+    parser.add_argument("--calibrate", type=int, default=0, help="Whether to calibrate models")
     parser.add_argument("--n_folds", type=int, default=3, help="Number of folds for cross validation")
     parser.add_argument("--n_iter", type=int, default=50, help="Number of hyperparameter iterations")
     parser.add_argument("--n_iter_features", type=int, default=100, help="Number of feature sets to try and select from")
@@ -145,8 +143,6 @@ elif config["n_folds"] == -1:
 else:
     config["kfold_folder"] = f"{int(config['n_folds'])}_folds"
 
-config["cmatrix"] = cmatrix 
-
 models_dict = {
         "clf": {
             "lr": LR,
@@ -160,7 +156,7 @@ models_dict = {
             "ridge": Ridge,
             "elastic": ElasticNet,
             "svr": SVR,
-            #"xgb": xgboostr
+            "xgb": xgboostr
         }
     }
 
@@ -236,6 +232,9 @@ for y_label, task in itertools.product(y_labels, tasks):
         data = data[features + [y_label, config["id_col"]]]
         data = data.dropna(subset=[y_label])
         
+        if any(data[features].isna().sum()/data.shape[0] > .2):
+            data = data.dropna(subset=features) 
+
         # For regression, optionally filter outliers
         if problem_type == "reg" and config["filter_outliers"]:
             data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
