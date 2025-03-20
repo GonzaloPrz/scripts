@@ -1,9 +1,10 @@
 import pandas as pd
 from pathlib import Path
 import numpy as np
-from mlxtend.evaluate import cochrans_q
+from mlxtend.evaluate import mcnemar_table, mcnemar
 import itertools,pickle
 import sys,json,os
+from scipy.stats import chi2
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -43,7 +44,7 @@ if not isinstance(scoring_metrics,list):
 for scoring in scoring_metrics:
     best_classifiers = pd.read_csv(Path(results_dir,f'best_models_{scoring}_{kfold_folder}_{scaler_name}_hyp_opt_feature_selection.csv'))
 
-    stats = pd.DataFrame(columns=['comparison','q_statistic','p_value'])
+    stats = pd.DataFrame(columns=['comparison','chi2','p_value'])
     y_labels = best_classifiers['y_label'].unique()
     
     for y_label,comparison in itertools.product(y_labels,planned_comparisons):
@@ -67,18 +68,27 @@ for scoring in scoring_metrics:
 
         y_true = pickle.load(open(Path(results_dir,task1,dimension1,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt','feature_selection',f'y_dev.pkl'),'rb'))
 
-        y_true = np.concatenate([y_true[j,r] for j,r in itertools.product(range(y_true.shape[0]),range(y_true.shape[1]))])
+        summed_tb = np.zeros((2,2))
+        p_values = []
+        for j,r in itertools.product(range(outputs_1.shape[0]),range(outputs_1.shape[1])):
 
-        _,y_pred_1 = get_metrics_clf(np.concatenate([outputs_1[j,r] for j,r in itertools.product(range(outputs_1.shape[0]),range(outputs_1.shape[1]))],axis=0),np.array(y_true,dtype=int),[scoring])
-        _,y_pred_2 = get_metrics_clf(np.concatenate([outputs_2[j,r] for j,r in itertools.product(range(outputs_2.shape[0]),range(outputs_2.shape[1]))],axis=0),np.array(y_true,dtype=int),[scoring])
+            _,y_pred_1 = get_metrics_clf(outputs_1[j,r],np.array(y_true[j,r],dtype=int),[])
+            _,y_pred_2 = get_metrics_clf(outputs_2[j,r],np.array(y_true[j,r],dtype=int),[])
 
-        q_statistic,p_value = cochrans_q(y_true,y_pred_1,y_pred_2)
+            tb = mcnemar_table(y_target=y_true[j,r],y_model1=y_pred_1,y_model2=y_pred_2)
+            _, p = mcnemar(ary=tb, corrected=True)
 
-        stats_append = {'comparison':f'{model1} vs {model2}','q_statistic':np.round(q_statistic,3),'p_value':np.round(p_value,3)}
+            p_values.append(p)
+            summed_tb += tb
         
+        #chi2, p_value = mcnemar(ary=summed_tb, corrected=True)
+        #stats_append = {'comparison':f'{model1} vs {model2}','chi2':chi2,'p_value':p_value}
+        chi2_stat = -2 * np.sum(np.log(p_values))
+        combined_p_value = 1 - chi2.cdf(chi2_stat, 2 * len(p_values))
+        stats_append = {'comparison':f'{model1} vs {model2}','chi2':chi2_stat,'p_value':combined_p_value}
         if stats.empty:
             stats = pd.DataFrame(stats_append,index=[0])
         else:
             stats = pd.concat((stats,pd.DataFrame(stats_append,index=[0])),ignore_index=True)
 
-stats.to_csv(Path(results_dir,'stats_comparison.csv'),index=False)
+stats.to_csv(Path(results_dir,'stats_comparison_mcnemar.csv'),index=False)
