@@ -8,13 +8,14 @@ sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str
 
 import utils
 
-tasks_list = [['Animales','cog'],
-              ['Animales','brain'],
-              ['Animales','connectivity']
+tasks_list = [
+              ['Animales__P','cog'],
+              ['Animales__P','brain']
+
 ]
-dimensions_list = [['properties','neuropsico_digits__neuropsico_tmt'],
-                   ['properties','norm_brain_lit'],
-                     ['properties','networks']
+dimensions_list = [
+                   ['properties','neuropsico_digits__neuropsico_tmt'],
+                   ['properties','norm_brain_lit']
 ]
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
@@ -64,6 +65,9 @@ for scoring in scoring_metrics:
         for y_label in y_labels:
             best_models_task1 = best_models[(best_models.task == tasks[0]) & (best_models.dimension == dimensions[0]) & (best_models.y_label == y_label)]
             best_models_task2 = best_models[(best_models.task == tasks[1]) & (best_models.dimension == dimensions[1]) & (best_models.y_label == y_label)]
+
+            if best_models_task1.empty or best_models_task2.empty:
+                continue
 
             model_type_1 = best_models_task1.model_type.values[0]
             model_type_2 = best_models_task2.model_type.values[0]

@@ -72,13 +72,10 @@
             "IFS"
         ],
         "GERO_females":[
-            "DASS_21_Depression_V",
-            "AES_Total_Score",
-            "Depression_Total_Score",
-            "MiniSea_MiniSea_Total_EkmanFaces",
-            "MiniSea_minisea_total",
-            "MoCA_Total_Score",
-            "MMSE_Total_Score"
+            "moca",
+            "mmse",
+            "ifs",
+            "aceiii"
         ]
         
     },
@@ -161,9 +158,10 @@
             "recuerdo_agradable"
         ],
         "GERO_females":[
-            "fugu",
-            "lamina_1",
-            "lamina_2"
+            "fas",
+            "animales",
+            "fas__animales",
+            "grandmean"        
         ]
     },
     "test_size": {
@@ -251,7 +249,7 @@
         ],
         "GERO_Ivo": [
             "psycholinguistic",
-            "speech-timing"
+            "speech_timing"
         ],
         "MPLS": [
             "sentiment_analysis",
@@ -279,9 +277,9 @@
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "GERO_females":
-        ["pitch_analysis",
-         "talking_intervals",
-        "voice_quality"]
+        ["psycholinguistic",
+            "speech_timing"
+        ]
     },
     "data_file": {
         "tell_classifier": "data_MOTOR-LIBRE.csv",
@@ -297,7 +295,7 @@
         "arequipa_reg": "all_data.csv",
         "arequipa_reg_mci":"all_data_matched.csv",
         "arequipa_reg_mci_hc":"all_data_matched.csv",
-        "GERO_females":"all_data_GERO_females.csv"
+        "GERO_females":"all_data.csv"
     },
 
     "data_file_test": {
@@ -419,8 +417,7 @@
     "covars":{
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
-        "GERO_females":["sex","age","education"]
-
+        "GERO_females":["sex","age","education","group"]
     },
     "cmatrix":{
         "MCI_classifier":[[0,1,1],  
@@ -431,6 +428,7 @@
                      [1,0,1],
                      [1,1,0]],
         "Proyecto_Ivo":[[0,1],
-                        [1,0]]
+                        [1,0]],
+        "GERO_females":null
     }
 }
