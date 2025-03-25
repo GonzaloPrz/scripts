@@ -45,8 +45,10 @@ problem_type = config["problem_type"]
 
 if calibrate:
     calmethod = AffineCalLogLoss
-    deploy_priors = None
-    calparams = {'bias': True, 'priors': deploy_priors}
+    calparams = {'bias': True, 'priors': None}
+else:
+    calmethod = None
+    calparams = None
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -92,7 +94,7 @@ for scoring in scoring_metrics:
 
     best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
     if not hyp_opt:
-        best_models_file = best_models_file.replace('_hyp_opt','_no_hyp_opt')
+        best_models_file = best_models_file.replace('_hyp_opt','')
     if not feature_selection:
         best_models_file = best_models_file.replace('_feature_selection','')
     if not shuffle_labels:
@@ -123,11 +125,18 @@ for scoring in scoring_metrics:
             
             model_type = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
             print(model_type)
-            model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
+            model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_index'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
             try:
-                best_model = pd.read_csv(Path(path_to_data,f'all_models_{model_type}_test.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)
+                if calibrate:
+                    best_model = pd.read_csv(Path(path_to_data,f'all_models_{model_type}_test_calibrated.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)
+                else:
+                    best_model = pd.read_csv(Path(path_to_data,f'all_models_{model_type}_test.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)
+
             except:
-                best_model = pd.read_csv(Path(path_to_data,f'all_models_{model_type}_dev_bca.csv')).sort_values(f'{scoring}_{extremo}',ascending=ascending).reset_index(drop=True).head(1)
+                if calibrate:
+                    best_model = pd.read_csv(Path(path_to_data,f'all_models_{model_type}_dev_bca_calibrated.csv')).sort_values(f'{scoring}_{extremo}',ascending=ascending).reset_index(drop=True).head(1)
+                else:
+                    best_model = pd.read_csv(Path(path_to_data,f'all_models_{model_type}_dev_bca.csv')).sort_values(f'{scoring}_{extremo}',ascending=ascending).reset_index(drop=True).head(1)
 
             all_features = [col for col in best_model.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
             features = [col for col in all_features if best_model[col].values[0] == 1]
@@ -145,18 +154,18 @@ for scoring in scoring_metrics:
                 params_dict['random_state'] = int(params_dict['random_state'])
             
             try:
-                model = utils.Model(models_dict[problem_type][model_type](**params_dict),StandardScaler,KNNImputer)
+                model = utils.Model(models_dict[problem_type][model_type](**params_dict),StandardScaler,KNNImputer,calmethod,calparams)
             except:
                 params = list(set(params) - set([x for x in params if any(x in params for x in ['Unnamed: 0'])]))
                 params_dict = {param:best_model.loc[0,param] for param in params if str(best_model.loc[0,param]) != 'nan'}
-                model = utils.Model(models_dict[problem_type][model_type](**params_dict),StandardScaler,KNNImputer)
+                model = utils.Model(models_dict[problem_type][model_type](**params_dict),StandardScaler,KNNImputer,calmethod,calparams)
             
             X_dev = pickle.load(open(Path(path_to_data,'X_dev.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path_to_data,'y_dev.pkl'),'rb'))
             outputs_dev = pickle.load(open(Path(path_to_data,f'outputs_{model_type}.pkl'),'rb'))[:,model_index]
 
             if calibrate:
-                scores = np.concatenate([outputs_dev[j,r]] for j in range(outputs_dev.shape[0]) for r in range(outputs_dev.shape[1]))
+                scores = np.concatenate([outputs_dev[j,r] for j in range(outputs_dev.shape[0]) for r in range(outputs_dev.shape[1])])
                 targets = np.concatenate([y_dev[j,r] for j in range(y_dev.shape[0]) for r in range(y_dev.shape[1])])
 
                 _,calmodel = calibration_train_on_test(scores,targets,calmethod,calparams,return_model=True)
@@ -168,28 +177,24 @@ for scoring in scoring_metrics:
             scaler = model.scaler
             imputer = model.imputer
 
-            feature_importance_file = f'feature_importance_{task}_{dimension}_{y_label}_{stat_folder}_{model_type}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+            feature_importance_file = f'feature_importance_{model_type}_shuffled_calibrated.csv'.replace('__','_')
 
-            if not hyp_opt:
-                feature_importance_file = feature_importance_file.replace('_hyp_opt','')
-            if not feature_selection:
-                feature_importance_file = feature_importance_file.replace('_feature_selection','')
             if not shuffle_labels:
                 feature_importance_file = feature_importance_file.replace('_shuffled','')
             if not calibrate:
                 feature_importance_file = feature_importance_file.replace('_calibrated','')
 
-            Path(results_dir,f'feature_importance_{scoring}').mkdir(parents=True,exist_ok=True)
-            Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_')).mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
 
-            with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),'final_model.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl'),'wb') as f:
                 pickle.dump(trained_model,f)
-            with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),f'scaler.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'scaler.pkl'),'wb') as f:
                 pickle.dump(scaler,f)
-            with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),f'imputer.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'imputer.pkl'),'wb') as f:
                 pickle.dump(imputer,f)
             if calibrate:
-                with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),f'calmodel.pkl'),'wb') as f:
+                with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'calmodel.pkl'),'wb') as f:
                     pickle.dump(calmodel,f)
             
             if model_type == 'svc':
@@ -204,24 +209,25 @@ for scoring in scoring_metrics:
             elif hasattr(model.model,'coef_'):
                 feature_importance = np.abs(model.model.coef_[0])
                 coef = pd.DataFrame({'feature':features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
-                coef.to_csv(Path(results_dir,f'feature_importance_{scoring}',feature_importance_file),index=False)
+                coef.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
             elif hasattr(model.model,'get_booster'):
 
                 feature_importance = pd.DataFrame({'feature':features,'importance':model.model.feature_importances_}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(results_dir,f'feature_importance_{scoring}',feature_importance_file),index=False)
+                feature_importance.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
             else:
                 print(task,dimension,f'No feature importance available for {model_type}')
             
             if problem_type == 'reg':
-                Path(results_dir,f'plots_{scoring}').mkdir(parents=True,exist_ok=True)
+                Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
                 IDs = pickle.load(open(Path(path_to_data,'IDs_dev.pkl'),'rb'))
 
                 predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
                 predictions = predictions.drop_duplicates('ID')
 
-                with open(Path(results_dir,f'final_model_{scoring}',f'{task}_{dimension}_{y_label}_{stat_folder}'.replace('__','_'),f'predictions_dev.pkl'),'wb') as f:
+                with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.pkl'),'wb') as f:
                     pickle.dump(predictions,f)
-
+                predictions.to_csv(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.csv'),index=False)
+                
                 # Calculate Pearson's correlation
                 r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
 
@@ -243,7 +249,7 @@ for scoring in scoring_metrics:
                 plt.text(predictions['y_true'].min(), predictions['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
 
                 # Save the plot
-                plt.savefig(Path(results_dir,f'plots_{scoring}',f'{task}_{y_label}_{dimension}_{model_type}.png'))
+                plt.savefig(Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'{task}_{y_label}_{dimension}_{model_type}.png'))
                 plt.close()
     
     if problem_type == 'reg':

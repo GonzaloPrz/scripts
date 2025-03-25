@@ -183,10 +183,10 @@ for scoring in scoring_metrics:
                             
                         best_models.loc[len(best_models),:] = dict_append
 
-    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_no_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
 
-    if hyp_opt:
-        filename_to_save = filename_to_save.replace('no_hyp_opt','hyp_opt')
+    if not hyp_opt:
+        filename_to_save = filename_to_save.replace('_hyp_opt','')
     if not feature_selection:
         filename_to_save = filename_to_save.replace('_feature_selection','')
     if not shuffle_labels:

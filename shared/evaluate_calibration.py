@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-from expected_cost.calibration import calibration_with_crossval, calibration_train_on_heldout
+from expected_cost.calibration import *
 from expected_cost.psrcal_wrappers import LogLoss
 from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
 
@@ -61,7 +61,7 @@ for scoring in scoring_metrics:
 
     best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
     if not hyp_opt:
-        best_models_file = best_models_file.replace('_hyp_opt','_no_hyp_opt')
+        best_models_file = best_models_file.replace('_hyp_opt','')
     if not feature_selection:
         best_models_file = best_models_file.replace('_feature_selection','')
     if not shuffle_labels:
@@ -71,7 +71,7 @@ for scoring in scoring_metrics:
 
     for r, row in best_models.iterrows():
         print(row["task"], row["dimension"])
-        path_to_results = Path(results_dir, row.task, row.dimension, scaler_name, kfold_folder, row.y_label,stat_folder, "hyp_opt" if hyp_opt else "no_hyp_opt", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
+        path_to_results = Path(results_dir, row.task, row.dimension, scaler_name, kfold_folder, row.y_label,stat_folder, "hyp_opt" if hyp_opt else "", "feature_selection" if feature_selection else "", 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
 
         model_name = row.model_type
         if row.random_seed_test == np.nan:
@@ -86,22 +86,19 @@ for scoring in scoring_metrics:
 
         outputs = pickle.load(open(Path(path_to_results, random_seed, f"outputs_{model_name}.pkl"), "rb"))[:,model_index]
 
-        cal_outputs = np.zeros(outputs.shape) 
+        cal_outputs = np.zeros_like(outputs) 
 
         y_true = pickle.load(open(Path(path_to_results,random_seed, f"y_dev.pkl"), "rb")).astype(int)
 
         for j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1])):
-            cal_outputs[j,r] = calibration_with_crossval(outputs[j,r], y_true[j,r], 
-                                               calparams=calparams, 
-                                               calmethod=calmethod)
+            cal_outputs[j,r] = calibration_train_on_test(outputs[j,r], y_true[j,r], calmethod, calparams)
         
-        overall_perf = metric(flatten_except(outputs,outputs.ndim-1).reshape(-1,len(np.unique(y_true))), y_true.flatten(), priors=deploy_priors, norm=True)
-        overall_perf_after_cal = metric(flatten_except(cal_outputs,cal_outputs.ndim-1).reshape(-1,len(np.unique(y_true))), y_true.flatten(), priors=deploy_priors, norm=True)
-    
+        overall_perf = metric(outputs.reshape(outputs.shape[0]*outputs.shape[1]*outputs.shape[2],outputs.shape[3]), y_true.flatten(), priors=deploy_priors, norm=True)
+        overall_perf_after_cal = metric(cal_outputs.reshape(cal_outputs.shape[0]*cal_outputs.shape[1]*cal_outputs.shape[2],cal_outputs.shape[3]), y_true.flatten(), priors=deploy_priors, norm=True)
         cal_loss = overall_perf-overall_perf_after_cal
         rel_cal_loss = 100*cal_loss/overall_perf
 
         print(f"Overall performance before calibration: {overall_perf:4.4f} for {model_name} in {row.task} - {row.dimension} - {row.y_label}")
         print(f"Overall performance after calibration: {overall_perf_after_cal:4.4f} for {model_name} in {row.task} - {row.dimension} - {row.y_label}")
         print(f"Calibration loss: {cal_loss:4.4f} for {model_name} in {row.task} - {row.dimension} - {row.y_label}")
-        print(f"Relative calibration loss: {rel_cal_loss:4.2f} % for {model_name} in {row.task} - {row.dimension} - {row.y_label}")
+        print(f"Relative calibration loss: {rel_cal_loss:4.2f} % for {model_name} in {row.task} - {row.dimension} - {row.y_label}") 

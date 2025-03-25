@@ -22,6 +22,7 @@ import itertools,pickle,sys, json
 from scipy.stats import loguniform, uniform, randint
 from random import randint as randint_random 
 import warnings,argparse,os,multiprocessing
+from psrcal.calibration import AffineCalLogLoss
 
 from expected_cost.ec import *
 from expected_cost.utils import *
@@ -142,6 +143,13 @@ elif config["n_folds"] == -1:
     config["kfold_folder"] = "loocv"
 else:
     config["kfold_folder"] = f"{int(config['n_folds'])}_folds"
+
+if config["calibrate"]:
+    calmethod = AffineCalLogLoss
+    calparams = {'bias':True, 'priors':None}
+else:
+    calmethod = None
+    calparams = None
 
 models_dict = {
         "clf": {
@@ -356,18 +364,32 @@ for y_label, task in itertools.product(y_labels, tasks):
                             param_names = list(set([col for col in all_models.columns if col not in feature_names]) - set(["threshold"]))
                             hyperp = pd.DataFrame(all_models.loc[model_index][param_names]).T
                             feature_sets = [[col for col in all_models.columns if col in feature_names and all_models.loc[model_index][col] == 1]]
+                    elif config["calibrate"] and Path(str(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "")).replace("shuffle",""), f"all_models_{model_key}.csv").exists():
+                        all_models = pd.read_csv(Path(str(Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "")).replace("shuffle",""), f"all_models_{model_key}.csv"))
 
+                        feature_names = [col for col in all_models.columns if any(x in col for x in dimension.split("__"))]
+                        param_names = list(set(all_models.columns) - set(feature_names) - set(["threshold"]))
+                        hyperp = all_models[param_names]
+                        feature_sets = []
+                        for r,row in all_models.iterrows():
+                            feature_sets.append([col for col in all_models.columns if col in feature_names and row[col] == 1])
+                        
+                        feature_sets = [list(x) for x in set(tuple(x) for x in feature_sets)]
+                        hyperp = hyperp.drop_duplicates() 
+                        if 'priors' in hyperp.columns and hyperp['priors'].isna().all():
+                            hyperp = hyperp.drop(columns='priors')
+                        
                     # Check for data leakage.
                     assert set(ID_train_).isdisjoint(set(ID_test_)), "Data leakage detected between train and test sets!"
                     
-                    if Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists():
+                    if (Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists() and config["calibrate"] == False) or (Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"cal_outputs_{model_key}.pkl").exists() and config["calibrate"]):
                         print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
                         continue
                     
                     print(f"Training model: {model_key}")
 
                     # Call CVT from utils to perform cross-validation training and tuning.
-                    all_models, outputs_, X_dev_, y_dev_, IDs_dev_ = utils.CVT(
+                    all_models, outputs_, cal_outputs_, X_dev_, y_dev_, IDs_dev_ = utils.CVT(
                         model=model_class,
                         scaler=(StandardScaler if config["scaler_name"] == "StandardScaler" else MinMaxScaler),
                         imputer=KNNImputer,
@@ -380,7 +402,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                         IDs=ID_train_,
                         thresholds=thresholds,
                         parallel=parallel,
-                        problem_type=problem_type
+                        problem_type=problem_type,
+                        calmethod=calmethod,
+                        calparams=calparams
                     )
                     
                     if rss == 0:
@@ -388,6 +412,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                         y_dev = np.expand_dims(y_dev_,axis=0)
                         IDs_dev = np.expand_dims(IDs_dev_,axis=0)
                         outputs = np.expand_dims(outputs_,axis=0)
+                        cal_outputs = np.expand_dims(cal_outputs_,axis=0)
                         X_test = np.expand_dims(X_test_,axis=0)
                         y_test = np.expand_dims(y_test_,axis=0)
                         IDs_test = np.expand_dims(ID_test_,axis=0)
@@ -396,6 +421,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                         y_dev = np.concatenate((y_dev,np.expand_dims(y_dev_,axis=0)))
                         IDs_dev = np.concatenate((IDs_dev,np.expand_dims(IDs_dev_,axis=0)))
                         outputs = np.concatenate((outputs,np.expand_dims(outputs_,axis=0)))
+                        cal_outputs = np.concatenate((cal_outputs,np.expand_dims(cal_outputs_,axis=0)))
                         X_test = np.concatenate((X_test,np.expand_dims(X_test_,axis=0)))
                         y_test = np.concatenate((y_test,np.expand_dims(y_test_,axis=0)))
                         IDs_test = np.concatenate((IDs_test,np.expand_dims(ID_test_,axis=0)))
@@ -410,8 +436,11 @@ for y_label, task in itertools.product(y_labels, tasks):
                     "X_dev.pkl": X_dev,
                     "y_dev.pkl": y_dev,
                     "IDs_dev.pkl": IDs_dev,
-                    f"outputs_{model_key}.pkl": outputs,
-                }
+                    f"outputs_{model_key}.pkl": outputs}
+                
+                if config["calibrate"]:
+                    result_files.update({f"cal_outputs_{model_key}.pkl": cal_outputs})
+
                 if test_size > 0:
                     result_files.update({
                         "X_test.pkl": X_test_,

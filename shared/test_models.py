@@ -35,7 +35,7 @@ import utils
 parallel = True 
 late_fusion = False
 
-def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False,calibrate=False):
+def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False,calibrate=False):
 
     results_r = row.dropna().to_dict()
 
@@ -76,12 +76,12 @@ def test_models_bootstrap(model_class,row,scaler,imputer,X_dev,y_dev,X_test,y_te
         outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev, X_test[features], problem_type=problem_type)
 
         if calibrate:
-            model = utils.Model(model_class(**params),scaler,imputer)
+            model = utils.Model(model_class(**params),scaler,imputer,calmethod,calparams)
             model.train(X_dev.loc[boot_index_train,features], y_dev)
             outputs_dev = model.eval(X_dev.loc[boot_index_train,features],problem_type)
-            
-            outputs[b_train,:] = calibration_train_on_heldout(outputs[b_train,:],outputs_dev,y_dev,calmethod=calmethod,calparams=calparams,return_model=False)
-            
+        
+            outputs[b_train,:],_ = model.calibrate(outputs_dev,y_dev,outputs[b_train,:],return_model=False)
+        
         for b_test in range(np.max((1,boot_test))):
             if bayesian:
                 weights = np.random.dirichlet(np.ones(y_test.shape[0]))
@@ -140,10 +140,12 @@ n_boot_test = int(config["n_boot_test"])
 n_boot_train = int(config["n_boot_train"])
 calibrate = bool(config["calibrate"])
 
-if calibrate:
+if calibrate:    
     calmethod = AffineCalLogLoss
-    deploy_priors = None
-    calparams = {'bias': True, 'priors': deploy_priors}
+    calparams = {'bias':True, 'priors':None}
+else:
+    calmethod = None
+    calparams = None
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -265,7 +267,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                         print(f"Testing already done")
                         continue
 
-                    results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,X_dev,y_dev,
+                    results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,calmethod,calparams,X_dev,y_dev,
                                                                                 X_test,y_test,all_features,y_labels,metrics_names,IDs_test,n_boot_train,
                                                                                 n_boot_test,problem_type,threshold=results_dev.loc[r,'threshold'],cmatrix=cmatrix,calibrate=calibrate) 
                                                                                 for r in results_dev.index)

@@ -46,11 +46,6 @@ early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
 calibrate = bool(config["calibrate"])
 
-if calibrate:
-    calmethod = AffineCalLogLoss
-    deploy_priors = None
-    calparams = {'bias': True, 'priors': deploy_priors}
-
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
     results_dir = home / 'results' / project_name
@@ -107,47 +102,33 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             print(task,model,dimension,y_label)
 
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
-            outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
+            outputs = pickle.load(open(Path(path,random_seed,f'cal_outputs_{model}.pkl' if calibrate else f'outputs_{model}.pkl'),'rb')) 
             
             y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb')).astype(int)
             
-            if calibrate:
-                if not Path(path,random_seed,f'outputs_{model}_calibrated.pkl').exists():
-                    cal_outputs = np.empty(outputs.shape)
-                    results = Parallel(n_jobs=-1 if parallel else 1)(delayed(calibration_with_indices)(j, model_index, r, outputs, y_dev, calparams, calmethod)for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
-                    
-                    for j,model_index,r,cal_output in results:
-                        cal_outputs[j,model_index,r] = cal_output
-                    
-                    pickle.dump(cal_outputs,open(Path(path,random_seed,f'outputs_{model}_calibrated.pkl'),'wb'))
-                else:
-                    cal_outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}_calibrated.pkl'),'rb'))
-            else:
-                cal_outputs = outputs
-                      
             IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'))
 
             metrics_names = main_config["metrics_names"][problem_type]
             metrics_names = metrics_names if len(np.unique(y_dev)) == 2 else list(set(metrics_names) - set(['roc_auc','f1','recall']))
 
-            scorings = np.empty(cal_outputs.shape[1])
+            scorings = np.empty(outputs.shape[1])
             
             if config['n_models'] == 0:
-                n_models = cal_outputs.shape[0]
+                n_models = outputs.shape[0]
                 all_models_bool = True
             else:
                 all_models_bool = False
                 if config['n_models'] < 1:
-                    n_models = int(cal_outputs.shape[1]*n_models)
+                    n_models = int(outputs.shape[1]*n_models)
 
-                for i in range(cal_outputs.shape[1]):
-                    scorings_i = np.empty((cal_outputs.shape[0],cal_outputs.shape[2]))
-                    for j,r in itertools.product(range(cal_outputs.shape[0]),range(cal_outputs.shape[2])):
+                for i in range(outputs.shape[1]):
+                    scorings_i = np.empty((outputs.shape[0],outputs.shape[2]))
+                    for j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[2])):
                         if problem_type[project_name] == 'clf':
-                            metrics, _ = get_metrics_clf(cal_outputs[j,i,r], y_dev[j,r], [scoring], cmatrix)
+                            metrics, _ = get_metrics_clf(outputs[j,i,r], y_dev[j,r], [scoring], cmatrix)
                             scorings_i[j,r] = metrics[scoring]
                         else:
-                            metrics = get_metrics_reg(cal_outputs[j,i,r], y_dev[j,r],[scoring])
+                            metrics = get_metrics_reg(outputs[j,i,r], y_dev[j,r],[scoring])
                             scorings_i[j,r] = metrics[scoring]
                     scorings[i] = np.nanmean(scorings_i.flatten())
                 
@@ -157,11 +138,11 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             
                 all_models = all_models.iloc[:,best_models].reset_index(drop=True)
                 all_models['idx'] = best_models
-                cal_outputs = cal_outputs[:,best_models]
+                outputs = outputs[:,best_models]
             
-            metrics = dict((metric,np.zeros((cal_outputs.shape[0],cal_outputs.shape[1],cal_outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
+            metrics = dict((metric,np.zeros((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
             
-            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(utils.compute_metrics)(j,model_index,r, cal_outputs, y_dev, IDs_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=cmatrix,priors=None,threshold=all_models.loc[model_index,'threshold'] if 'threshold' in all_models.columns else None,bayesian=bayesian) for j,model_index,r in itertools.product(range(cal_outputs.shape[0]),range(cal_outputs.shape[1]),range(cal_outputs.shape[2])))
+            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(utils.compute_metrics)(j,model_index,r, outputs, y_dev, IDs_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=cmatrix,priors=None,threshold=all_models.loc[model_index,'threshold'] if 'threshold' in all_models.columns else None,bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
             # Update the metrics array with the computed results
             for j,model_index,r, metrics_result,_ in all_results:
                 for metric in metrics_names:
@@ -170,7 +151,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             if len(all_results) == 0:
                 continue
             # Update the summary statistics in all_models
-            for model_index in range(cal_outputs.shape[1]):
+            for model_index in range(outputs.shape[1]):
                 for metric in metrics_names:
                     all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][:,model_index,:].flatten()).round(5)
                     all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][:,model_index,:].flatten(), 2.5).round(5)
