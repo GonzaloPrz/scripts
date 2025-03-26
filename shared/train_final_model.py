@@ -42,6 +42,7 @@ n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 problem_type = config["problem_type"]
+rewrite = bool(config["rewrite"])
 
 if calibrate:
     calmethod = AffineCalLogLoss
@@ -110,7 +111,7 @@ for scoring in scoring_metrics:
 
     for task,dimension,y_label in itertools.product(tasks,dimensions,y_labels):
         print(task,dimension,y_label)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         
         if not Path(path).exists():
             continue
@@ -184,17 +185,17 @@ for scoring in scoring_metrics:
             if not calibrate:
                 feature_importance_file = feature_importance_file.replace('_calibrated','')
 
-            Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
-            Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
-
-            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl'),'wb') as f:
+            Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+            
+            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl'),'wb') as f:
                 pickle.dump(trained_model,f)
-            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'scaler.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'scaler.pkl'),'wb') as f:
                 pickle.dump(scaler,f)
-            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'imputer.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'imputer.pkl'),'wb') as f:
                 pickle.dump(imputer,f)
             if calibrate:
-                with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'calmodel.pkl'),'wb') as f:
+                with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'calmodel.pkl'),'wb') as f:
                     pickle.dump(calmodel,f)
             
             if model_type == 'svc':
@@ -209,24 +210,24 @@ for scoring in scoring_metrics:
             elif hasattr(model.model,'coef_'):
                 feature_importance = np.abs(model.model.coef_[0])
                 coef = pd.DataFrame({'feature':features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
-                coef.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                coef.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
             elif hasattr(model.model,'get_booster'):
 
                 feature_importance = pd.DataFrame({'feature':features,'importance':model.model.feature_importances_}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                feature_importance.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
             else:
                 print(task,dimension,f'No feature importance available for {model_type}')
             
             if problem_type == 'reg':
-                Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+                Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
                 IDs = pickle.load(open(Path(path_to_data,'IDs_dev.pkl'),'rb'))
 
                 predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
                 predictions = predictions.drop_duplicates('ID')
 
-                with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.pkl'),'wb') as f:
+                with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.pkl'),'wb') as f:
                     pickle.dump(predictions,f)
-                predictions.to_csv(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.csv'),index=False)
+                predictions.to_csv(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.csv'),index=False)
                 
                 # Calculate Pearson's correlation
                 r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
@@ -249,7 +250,7 @@ for scoring in scoring_metrics:
                 plt.text(predictions['y_true'].min(), predictions['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
 
                 # Save the plot
-                plt.savefig(Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'{task}_{y_label}_{dimension}_{model_type}.png'))
+                plt.savefig(Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'{task}_{y_label}_{dimension}_{model_type}.png'))
                 plt.close()
     
     if problem_type == 'reg':

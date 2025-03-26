@@ -46,6 +46,10 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
     y_true_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
     y_pred_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
     IDs_test_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)), dtype=object)
+
+    if cmatrix is not None:
+        metrics_names = list(set(metrics_names) - set(['roc_auc','accuracy','f1','recall','precision']))
+
     metrics_test_bootstrap = {metric: np.empty((np.max((1,boot_train)),np.max((1,boot_test)))) for metric in metrics_names}
 
     params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold','idx']))
@@ -80,7 +84,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
             model.train(X_dev.loc[boot_index_train,features], y_dev)
             outputs_dev = model.eval(X_dev.loc[boot_index_train,features],problem_type)
         
-            outputs[b_train,:],_ = model.calibrate(outputs_dev,y_dev,outputs[b_train,:],return_model=False)
+            outputs[b_train,:],_ = model.calibrate(outputs[b_train,:],None,outputs_dev,y_dev)
         
         for b_test in range(np.max((1,boot_test))):
             if bayesian:
@@ -118,7 +122,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
         result_append[f'inf_{metric}_dev'] = np.round(results_r[f'{metric}_inf'],5)
         result_append[f'mean_{metric}_dev'] = np.round(results_r[f'{metric}_mean'],5)
         result_append[f'sup_{metric}_dev'] = np.round(results_r[f'{metric}_sup'],5)
-    
+        
     return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap,outputs
 ##---------------------------------PARAMETERS---------------------------------##
 config = json.load(Path(Path(__file__).parent,'config.json').open())
@@ -139,6 +143,7 @@ bayesian = bool(config["bayesian"])
 n_boot_test = int(config["n_boot_test"])
 n_boot_train = int(config["n_boot_train"])
 calibrate = bool(config["calibrate"])
+rewrite = bool(config["rewrite"])
 
 if calibrate:    
     calmethod = AffineCalLogLoss
@@ -263,7 +268,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_test)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
-                    if Path(file.parent,f'{filename_to_save}_test.csv').exists():
+                    if Path(file.parent,f'{filename_to_save}_test.csv').exists() and rewrite == False:
                         print(f"Testing already done")
                         continue
 
@@ -282,6 +287,6 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     outputs_test = np.stack([result[5] for result in results],axis=0)
 
                     results_test.to_csv(Path(file.parent,f'{filename_to_save}_test.csv'))
-                    outputs_filename = f'outputs_test_calibrated_{model_name}.pkl' if calibrate else f'outputs_test_{model_name}.pkl'
+                    outputs_filename = f'cal_outputs_test_{model_name}.pkl' if calibrate else f'outputs_test_{model_name}.pkl'
                     with open(Path(file.parent,outputs_filename),'wb') as f:
                         pickle.dump(outputs_bootstrap,f)

@@ -62,6 +62,7 @@ def parse_args():
     parser.add_argument("--early_fusion",type=int,default=1,help="Whether to perform early fusion")
     parser.add_argument("--n_boot_test",type=int,default=200,help="Number of bootstrap samples for holdout")
     parser.add_argument("--n_boot_train",type=int,default=0,help="Number of bootstrap samples of training samples while performing model testing")
+    parser.add_argument("--rewrite",type=int,default=0,help="Whether to rewrite past results or not")
     return parser.parse_args()
 
 def load_configuration(args):
@@ -87,7 +88,8 @@ def load_configuration(args):
         filter_outliers = bool(args.filter_outliers),
         early_fusion = bool(args.early_fusion),
         n_boot_test = float(args.n_boot_test),
-        n_boot_train = float(args.n_boot_train)
+        n_boot_train = float(args.n_boot_train),
+        rewrite = bool(args.rewrite)
     )
 
     return config
@@ -135,7 +137,7 @@ config["avoid_stats"] = list(set(["min","max","median","skewness","kurtosis","st
 config["stat_folder"] = "_".join(sorted(config["stats"].split("_")))
 
 config["random_seeds_train"] = [float(3**x) for x in np.arange(1, config["n_seeds_train"]+1)]
-config["random_seeds_shuffle"] = config["random_seeds_train"][:int(config["n_seeds_shuffle"])] if config["shuffle_labels"] else [""]
+config["random_seeds_shuffle"] = [float(3**x) for x in np.arange(1, config["n_seeds_shuffle"]+1)] if config["shuffle_labels"] else [""]
 
 if config["n_folds"] == 0:
     config["kfold_folder"] = "l2ocv"
@@ -157,7 +159,7 @@ models_dict = {
             "svc": SVC,
             "knnc": KNNC,
             "xgb": xgboost,
-            "nb":GaussianNB
+            #"nb":GaussianNB
         },
         "reg": {
             "lasso": Lasso,
@@ -176,7 +178,9 @@ hp_ranges = {
         "lr": {"C": [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))]},
         "svc": {"C": [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], "gamma": ["scale", "auto"], "kernel": ["rbf", "linear", "poly", "sigmoid"], "probability": [True]},
         "knnc": {"n_neighbors": [x for x in range(1, 21)]},
-        "xgb": {"n_estimators": [x*10**y for x,y in itertools.product(range(1,9),range(1,3))], "max_depth": [1, 2, 3, 4], "learning_rate": [0.1, 0.3, 0.5, 0.7, 0.9]},
+        "xgb": {"n_estimators": [x*10**y for x,y in itertools.product(range(1,9),range(1,3))], "max_depth": [1, 2, 3, 4], "learning_rate": [0.1, 0.3, 0.5, 0.7, 0.9],
+                "tree_method": ["auto"],
+                "gpu_id": [None]},
         "nb": {"priors":[None]},
         "ridge": {"alpha": [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
                   "tol": [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
@@ -312,7 +316,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                 else:
                     X_train_, y_train_, ID_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True)
                     X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
-                
+
                 # If shuffling is requested, perform label shuffling before training.
                 for rss, random_seed_shuffle in enumerate(config["random_seeds_shuffle"]):
                     if config["shuffle_labels"]:
@@ -383,8 +387,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                     assert set(ID_train_).isdisjoint(set(ID_test_)), "Data leakage detected between train and test sets!"
                     
                     if (Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"all_models_{model_key}.csv").exists() and config["calibrate"] == False) or (Path(path_to_save,f"random_seed_{int(random_seed_test)}" if config["test_size"] else "", f"cal_outputs_{model_key}.pkl").exists() and config["calibrate"]):
-                        print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
-                        continue
+                        if config["rewrite"] == False:
+                            print(f"Results already exist for {task} - {y_label} - {model_key}. Skipping...")
+                            continue
                     
                     print(f"Training model: {model_key}")
 
@@ -455,4 +460,5 @@ for y_label, task in itertools.product(y_labels, tasks):
                     json.dump(config, f, indent=4)
                 logging.info(f"Results saved to {path_to_save}")
 
+                del X_dev, y_dev, IDs_dev, outputs, X_test, y_test, IDs_test, all_models, outputs_, cal_outputs_, X_dev_, y_dev_, IDs_dev_, X_test_, y_test_, cal_outputs, hyperp, feature_sets
 ##----------------------------------------------------------------------------##

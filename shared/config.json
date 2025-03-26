@@ -1,13 +1,13 @@
 {
-    "project_name": "ad_mci_hc",
+    "project_name": "MCI_classifier",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 5.0,
-    "n_iter": 10.0,
-    "n_iter_features": 10.0,
+    "n_folds": 6.0,
+    "n_iter": 0.0,
+    "n_iter_features": 50.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -19,24 +19,21 @@
     "filter_outliers": false,
     "early_fusion": true,
     "n_boot_test": 200.0,
-    "n_boot_train": 0.0,
-    "test_size": 0.15,
+    "n_boot_train": 5.0,
+    "rewrite": false,
+    "test_size": 0.3,
     "n_seeds_test": 1.0,
-    "data_file": "data_matched_group.csv",
+    "data_file": "features_data.csv",
     "tasks": [
-        "fugu",
-        "demographic"
+        "fas",
+        "animales",
+        "fas__animales",
+        "grandmean"
     ],
-    "single_dimensions": {
-        "fugu": [
-            "pitch",
-            "talking-intervals",
-            "voice-quality"
-        ],
-        "demographic": [
-            "demographic"
-        ]
-    },
+    "single_dimensions": [
+        "psycholinguistic",
+        "talking_intervals"
+    ],
     "scoring_metrics": "norm_cross_entropy",
     "problem_type": "clf",
     "y_labels": [
@@ -59,5 +56,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "5_folds"
+    "kfold_folder": "6_folds"
 }

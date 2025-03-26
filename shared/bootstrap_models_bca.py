@@ -23,11 +23,6 @@ import utils
 parallel = True 
 late_fusion = False
 
-def calibration_with_indices(j,model_index,r,outputs, y_dev, calparams, calmethod):
-    cal_outputs = calibration_with_crossval(outputs[j,model_index,r], y_dev[j,r], calparams=calparams, calmethod=calmethod,seed=r,nfolds=5,stratified=False)
-    
-    return j,model_index,r,cal_outputs
-
 ##---------------------------------PARAMETERS---------------------------------##
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
@@ -45,6 +40,7 @@ n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
 calibrate = bool(config["calibrate"])
+rewrite = bool(config["rewrite"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -92,7 +88,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             if config['n_models'] != 0:
                 filename_to_save = filename_to_save.replace('all_models','best_models').replace('.csv',f'_{scoring}.csv')
 
-            if Path(path,random_seed,'bayesian' if bayesian else '',filename_to_save).exists():
+            if Path(path,random_seed,'bayesian' if bayesian else '',filename_to_save).exists() and rewrite == False:
                 print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
                 continue
               
@@ -109,7 +105,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'))
 
             metrics_names = main_config["metrics_names"][problem_type]
-            metrics_names = metrics_names if len(np.unique(y_dev)) == 2 else list(set(metrics_names) - set(['roc_auc','f1','recall']))
+            metrics_names = metrics_names if cmatrix == None else list(set(metrics_names) - set(['roc_auc','f1','recall']))
 
             scorings = np.empty(outputs.shape[1])
             

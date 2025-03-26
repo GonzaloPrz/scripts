@@ -29,6 +29,7 @@ hyp_opt = True if config["n_iter"] > 0 else False
 feature_selection = True if config["n_iter_features"] > 0 else False
 filter_outliers = config["filter_outliers"]
 n_boot = int(config["n_boot"])
+rewrite = bool(config["rewrite"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -108,6 +109,13 @@ if problem_type == 'clf':
             else:
                 random_seed = row.random_seed_test
 
+            filename_to_save = f'metrics_best_model_{model_name}_calibrated.pkl'
+            if not calibrate:
+                filename_to_save = filename_to_save.replace("_calibrated","")
+
+            if Path(path_to_results,random_seed,filename_to_save).exists() and rewrite == False:
+                continue
+            
             model_index = pd.read_csv(Path(path_to_results, random_seed, filename)).sort_values(f"{scoring}_{extremo}", ascending=ascending).index[0]
             threshold = None if problem_type == 'reg' else pd.read_csv(Path(path_to_results, random_seed, filename)).sort_values(f"{scoring}_{extremo}", ascending=ascending)['threshold'][0]
 
@@ -132,10 +140,6 @@ if problem_type == 'clf':
                 metrics[metric] = metrics[metric].flatten()
 
                 data_to_plot[metric] = metrics[metric]
-
-            filename_to_save = f'metrics_best_model_{model_name}_calibrated.pkl'
-            if not calibrate:
-                filename_to_save = filename_to_save.replace("_calibrated","")
 
             with open(Path(path_to_results,random_seed,filename_to_save),'wb') as f:
                 pickle.dump(metrics,f)
@@ -200,17 +204,17 @@ if problem_type == 'clf':
             
             data_to_plot.to_csv(Path(results_dir,filename_to_save), index=False)
 
-            Path(results_dir,"plots",task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True, exist_ok=True)
+            Path(results_dir,"plots",task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True, exist_ok=True)
             scores = np.concatenate([outputs_[0,0,r] for r in range(outputs_.shape[2])])
             y_true = np.concatenate([y_true_[0,r] for r in range(y_true_.shape[1])])
             
             filename_to_save = f"best_{model_name}_calibrated_logpost.png" if calibrate else "" + f"best_{model_name}_logpost.png"
 
-            plot_hists(y_true, scores, outfile=Path(results_dir,"plots",task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',filename_to_save), nbins=50, group_by='score', style='-', label_prefix='', axs=None)
+            plot_hists(y_true, scores, outfile=Path(results_dir,"plots",task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',filename_to_save), nbins=50, group_by='score', style='-', label_prefix='', axs=None)
                             
             filename_to_save = f"best_{model_name}_calibrated_post.png" if calibrate else "" + f"best_{model_name}_post.png"
             
-            plot_hists(y_true, np.exp(scores), outfile=Path(results_dir,"plots",task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',filename_to_save), nbins=50, group_by='score', style='-', label_prefix='', axs=None)
+            plot_hists(y_true, np.exp(scores), outfile=Path(results_dir,"plots",task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',filename_to_save), nbins=50, group_by='score', style='-', label_prefix='', axs=None)
 
             try:
                 for metric in metrics_names:
@@ -222,8 +226,8 @@ if problem_type == 'clf':
                     plt.tight_layout()
                     plt.ylim(0, 1)
                     plt.grid(True)
-                    plt.savefig(Path(results_dir,"plots",task,dimension,y_label,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '', filename_to_save.replace("log_odds",f"{metric}_violin")))
-                    plt.savefig(Path(results_dir,"plots",task,dimension,y_label,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '', filename_to_save.replace("log_odds.png",f"{metric}_violin.svg")))
+                    plt.savefig(Path(results_dir,"plots",task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '', filename_to_save.replace("log_odds",f"{metric}_violin")))
+                    plt.savefig(Path(results_dir,"plots",task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '', filename_to_save.replace("log_odds.png",f"{metric}_violin.svg")))
                     plt.close()
             except:
                 pass

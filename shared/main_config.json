@@ -4,7 +4,7 @@
             "target"
         ],
         "MCI_classifier": [
-            "target"
+            "group"
         ],
         "Proyecto_Ivo": [
             "target"
@@ -183,13 +183,13 @@
     },
     "single_dimensions": {
         "tell_classifier": [
-            "voice-quality",
+            "voice_quality",
             "talking-intervals",
             "pitch"
         ],
         "MCI_classifier": [
-            "talking-intervals",
-            "psycholinguistic"
+            "psycholinguistic",
+            "talking_intervals"
         ],
         "Proyecto_Ivo": {
             "Animales": [
@@ -347,7 +347,7 @@
         "GERO_females":[null]
     },
     "scoring_metrics": {
-        "MCI_classifier": "norm_expected_cost",
+        "MCI_classifier": "norm_cross_entropy",
         "tell_classifier": "norm_cross_entropy",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
@@ -384,7 +384,7 @@
     },
     "models": {
         "tell_classifier": ["lr","svc","knnc","xgb"],
-        "MCI_classifier": ["lr","svc","knnc","xgb","nb"],
+        "MCI_classifier": ["lr","svc","knnc","xgb"],
         "Proyecto_Ivo": ["lr","svc","knnc","xgb"],
         "GeroApathy": ["lr","svc","knnc","xgb"],
         "arequipa": ["lr","svc","knnc","xgb"],
