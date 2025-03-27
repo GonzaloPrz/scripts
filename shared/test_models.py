@@ -32,7 +32,6 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 import utils
 
-parallel = True 
 late_fusion = False
 
 def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False,calibrate=False):
@@ -77,7 +76,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
 
     for b_train in range(np.max((1,boot_train))):
         boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
-        outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev, X_test[features], problem_type=problem_type)
+        outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev[boot_index_train], X_test[features], problem_type=problem_type)
 
         if calibrate:
             model = utils.Model(model_class(**params),scaler,imputer,calmethod,calparams)
@@ -168,6 +167,7 @@ data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name]))
+parallel = bool(config["parallel"])
 
 if isinstance(scoring_metrics,str):
     scoring_metrics = [scoring_metrics]
@@ -211,7 +211,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
         print(task,dimension)
         for y_label in y_labels:
             print(y_label)
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '','late_fusion' if late_fusion else '')
+            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
 
             if not path_to_results.exists():
                 continue
@@ -239,6 +239,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 
                 for file in files:
                     model_name = file.stem.split('_')[2]
+
+                    if file.suffix != '.csv':
+                        continue
 
                     filename_to_save = f'all_models_{model_name}_calibrated'
                     if config["n_models"] != 0:

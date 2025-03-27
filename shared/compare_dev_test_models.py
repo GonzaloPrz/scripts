@@ -44,7 +44,7 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',"shuffle" if shuffle_labels else "")
         random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() if 'random_seed' in folder.name]
         if len(random_seeds_test) == 0:
             random_seeds_test = ['']
@@ -59,7 +59,7 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
 
             for file in files:
                 best_classifiers = pd.read_csv(file)
-                path_to_figures = Path(results_dir,'figures_models',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '')
+                path_to_figures = Path(results_dir,'figures_models_dev_holdout',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
                 path_to_figures.mkdir(parents=True,exist_ok=True)
                 for metric in metrics_names:
                     model_name = file.stem.split('_')[2]
@@ -112,8 +112,8 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
                              [0, np.max((np.max(best_classifiers[f'sup_{metric}_dev']),np.max(best_classifiers[f'sup_{metric}_test'])))],
                             transform=plt.gca().transAxes, ls="--", c="red")
                     
-                    plt.xlim(np.min((np.min(best_classifiers[f'sup_{metric}_dev']),np.min(best_classifiers[f'sup_{metric}_test']))),np.max((np.max(best_classifiers[f'inf_{metric}_dev']),np.max(best_classifiers[f'inf_{metric}_test']))))
-                    plt.ylim(np.min((np.min(best_classifiers[f'sup_{metric}_dev']),np.min(best_classifiers[f'sup_{metric}_test']))),np.max((np.max(best_classifiers[f'inf_{metric}_dev']),np.max(best_classifiers[f'inf_{metric}_test']))))
+                    plt.xlim(np.min((np.min(best_classifiers[f'sup_{metric}_dev']),np.min(best_classifiers[f'sup_{metric}_test']))),np.max((np.max(best_classifiers[f'sup_{metric}_dev']),np.max(best_classifiers[f'sup_{metric}_test']))))
+                    plt.ylim(np.min((np.min(best_classifiers[f'sup_{metric}_dev']),np.min(best_classifiers[f'sup_{metric}_test']))),np.max((np.max(best_classifiers[f'sup_{metric}_dev']),np.max(best_classifiers[f'sup_{metric}_test']))))
 
                     plt.savefig(Path(path_to_figures,f'sup_{metric}_{model_name}_calibrated.png')) if calibrate else plt.savefig(Path(path_to_figures,f'sup_{metric}_{model_name}.png'))
                     plt.close()  

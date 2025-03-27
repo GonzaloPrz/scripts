@@ -28,21 +28,22 @@ correction = 'fdr_bh'
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-project_name = config["project_name"]
+project_name = config['project_name']
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 calibrate = config['calibrate']
-avoid_stats = config["avoid_stats"]
+avoid_stats = config['avoid_stats']
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
-n_models = int(config["n_models"])
-n_boot = int(config["n_boot"])
-early_fusion = bool(config["early_fusion"])
-problem_type = config["problem_type"]
-rewrite = bool(config["rewrite"])
+n_models = int(config['n_models'])
+n_boot = int(config['n_boot'])
+early_fusion = bool(config['early_fusion'])
+problem_type = config['problem_type']
+rewrite = bool(config['rewrite'])
+parallel = bool(config['parallel'])
 
 if calibrate:
     calmethod = AffineCalLogLoss
@@ -51,11 +52,11 @@ else:
     calmethod = None
     calparams = None
 
-home = Path(os.environ.get("HOME", Path.home()))
-if "Users/gp" in str(home):
+home = Path(os.environ.get('HOME', Path.home()))
+if 'Users/gp' in str(home):
     results_dir = home / 'results' / project_name
 else:
-    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+    results_dir = Path('D:/CNC_Audio/gonza/results', project_name)
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
@@ -70,19 +71,19 @@ problem_type = main_config['problem_type'][project_name]
 id_col = main_config['id_col'][project_name]
 
 models_dict = {
-        "clf": {
-            "lr": LogisticRegression,
-            "svc": SVC,
-            "knnc": KNeighborsClassifier,
-            "xgb": XGBClassifier,
-            "nb":GaussianNB
+        'clf': {
+            'lr': LogisticRegression,
+            'svc': SVC,
+            'knnc': KNeighborsClassifier,
+            'xgb': XGBClassifier,
+            'nb':GaussianNB
         },
-        "reg": {
-            "lasso": Lasso,
-            "ridge": Ridge,
-            "elastic": ElasticNet,
-            "svr": SVR,
-            "xgb": XGBRegressor
+        'reg': {
+            'lasso': Lasso,
+            'ridge': Ridge,
+            'elastic': ElasticNet,
+            'svr': SVR,
+            'xgb': XGBRegressor
         }
     }
 

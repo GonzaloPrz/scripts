@@ -347,8 +347,8 @@
         "GERO_females":[null]
     },
     "scoring_metrics": {
-        "MCI_classifier": "norm_cross_entropy",
-        "tell_classifier": "norm_cross_entropy",
+        "MCI_classifier": "norm_expected_cost",
+        "tell_classifier": "norm_expected_cost",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
         "arequipa": "roc_auc",

@@ -14,7 +14,7 @@ bayesian = False
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-project_name = config["project_name"]
+project_name = config['project_name']
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
@@ -23,9 +23,10 @@ stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
+parallel = config['parallel']
 
-hyp_opt = True if config["n_iter"] > 0 else False
-feature_selection = True if config["n_iter_features"] > 0 else False
+hyp_opt = True if config['n_iter'] > 0 else False
+feature_selection = True if config['n_iter_features'] > 0 else False
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
@@ -36,8 +37,8 @@ if isinstance(scoring_metrics,str):
     scoring_metrics = [scoring_metrics]
 
 problem_type = main_config['problem_type'][project_name]
-models = main_config["models"][project_name]
-metrics_names = main_config["metrics_names"][problem_type] 
+models = main_config['models'][project_name]
+metrics_names = main_config['metrics_names'][problem_type] 
 
 pd.options.mode.copy_on_write = True 
 
@@ -51,7 +52,7 @@ for scoring in scoring_metrics:
     for task in tasks:
 
         extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
-        ascending = True if extremo == 'sup' else False
+        ascending = True if any(x in scoring for x in ['error','norm']) else False
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
@@ -105,19 +106,19 @@ for scoring in scoring_metrics:
                         
                         best = None
                         for file in files:
-                            
+                            if file.suffix != '.csv':
+                                continue
+
                             df = pd.read_csv(file)
-                            df["score"] = (df[f'sup_{scoring}_dev'] - df[f'inf_{scoring}_dev'])
+                            #df['score'] = (df[f'sup_{scoring}_dev'] - df[f'inf_{scoring}_dev'])
                             if f'{extremo}_{scoring}_dev' in df.columns:
                                 scoring_col = f'{extremo}_{scoring}_dev'
                             else:
                                 scoring_col = f'{scoring}_{extremo}'
-
-                            df["score"] = (df[f'sup_{scoring}_dev'] - df[f'inf_{scoring}_dev']) 
-
+                            
                             df = df.sort_values(by=scoring_col,ascending=ascending)
                             
-                            print(f'{file.stem.split("_")[2]}:{df.iloc[0,:][scoring_col]}')
+                            print(f"{file.stem.split('_')[2]}:{df.iloc[0,:][scoring_col]}")
                             if best is None:
                                 best = df.iloc[0,:]
                                 
@@ -148,14 +149,14 @@ for scoring in scoring_metrics:
                         
                         for metric in metrics_names:
                             if f'inf_{metric}_dev' in best.index:
-                                best[f'{metric}_mean_dev'] = np.round(best[f"mean_{metric}_dev"],5)
-                                best[f'{metric}_ic_dev'] = f'[{np.round(best[f"inf_{metric}_dev"],5)}, {np.round(best[f"sup_{metric}_dev"],5)}]'
+                                best[f'{metric}_mean_dev'] = np.round(best[f'mean_{metric}_dev'],5)
+                                best[f'{metric}_ic_dev'] = f"[{np.round(best[f'inf_{metric}_dev'],5)}, {np.round(best[f'sup_{metric}_dev'],5)}]"
                             elif f'inf_{metric}' in best.index:
-                                best[f'{metric}_mean_dev'] = np.round(best[f"mean_{metric}"],5)
-                                best[f'{metric}_ic_dev'] = f'[{np.round(best[f"inf_{metric}"],5)}, {np.round(best[f"sup_{metric}"],5)}]'
+                                best[f'{metric}_mean_dev'] = np.round(best[f'mean_{metric}'],5)
+                                best[f'{metric}_ic_dev'] = f"[{np.round(best[f'inf_{metric}'],5)}, {np.round(best[f'sup_{metric}'],5)}]"
                             elif f'{metric}_inf' in best.index:
-                                best[f'{metric}_mean_dev'] = np.round(best[f"{metric}_mean"],5)
-                                best[f'{metric}_ic_dev'] = f'[{np.round(best[f"{metric}_inf"],5)}, {np.round(best[f"{metric}_sup"],5)}]'
+                                best[f'{metric}_mean_dev'] = np.round(best[f'{metric}_mean'],5)
+                                best[f'{metric}_ic_dev'] = f"[{np.round(best[f'{metric}_inf'],5)}, {np.round(best[f'{metric}_sup'],5)}]"
                             else:
                                 best[f'{metric}_mean_dev'] = np.nan
                                 best[f'{metric}_ic_dev'] = np.nan

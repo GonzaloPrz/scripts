@@ -1,6 +1,6 @@
 @echo off
 :: Activate virtual environment
-call "C:\Users\CNC Audio\gonza\gonza-env\Scripts\activate"
+::call "C:\Users\CNC Audio\gonza\gonza-env\Scripts\activate"
 
 :: Execute Python scripts with arguments passed directly
 python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" %*

@@ -20,7 +20,6 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 import utils
 
-parallel = True 
 late_fusion = False
 
 ##---------------------------------PARAMETERS---------------------------------##
@@ -41,6 +40,7 @@ early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
 calibrate = bool(config["calibrate"])
 rewrite = bool(config["rewrite"])
+parallel = bool(config["parallel"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -68,7 +68,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
     for dimension in dimensions:
-        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '','late_fusion' if late_fusion else '')
+        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
         
         if not path.exists():  
             continue
