@@ -39,29 +39,30 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='ad_mci_hc',type=str,help='Project name')
+    parser.add_argument('--project_name', default='MCI_classifier',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds', type=int, default=5, help='Number of folds for cross validation')
+    parser.add_argument('--n_folds', type=int, default=6, help='Number of folds for cross validation')
     parser.add_argument('--n_iter', type=int, default=10, help='Number of hyperparameter iterations')
-    parser.add_argument('--n_iter_features', type=int, default=0, help='Number of feature sets to try and select from')
+    parser.add_argument('--n_iter_features', type=int, default=10, help='Number of feature sets to try and select from')
     parser.add_argument('--feature_sample_ratio', type=float, default=0.5, help='Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set')
-    parser.add_argument('--n_seeds_train',type=int,default=5,help='Number of seeds for cross-validation training')
+    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
     parser.add_argument('--n_models',type=float,default=0,help='Number of hyperparameter combinatios to try and select from  to train')
-    parser.add_argument('--n_boot',type=int,default=20,help='Number of features to select')
+    parser.add_argument('--n_boot',type=int,default=200,help='Number of features to select')
     parser.add_argument('--bayesian',type=int,default=0,help='Whether to calculate bayesian credible intervals or bootstrap confidence intervals')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
-    parser.add_argument('--n_boot_test',type=int,default=20,help='Number of bootstrap samples for holdout')
-    parser.add_argument('--n_boot_train',type=int,default=0,help='Number of bootstrap samples of training samples while performing model testing')
-    parser.add_argument('--rewrite',type=int,default=0,help='Whether to rewrite past results or not')
+    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
+    parser.add_argument('--n_boot_test',type=int,default=400,help='Number of bootstrap samples for holdout')
+    parser.add_argument('--n_boot_train',type=int,default=5,help='Number of bootstrap samples of training samples while performing model testing')
+    parser.add_argument('--rewrite',type=int,default=1,help='Whether to rewrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
+    parser.add_argument('--n_seeds_test',type=int,default=2,help='Number of seeds for testing')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -89,7 +90,8 @@ def load_configuration(args):
         n_boot_test = float(args.n_boot_test),
         n_boot_train = float(args.n_boot_train),
         rewrite = bool(args.rewrite),
-        parallel = bool(args.parallel)
+        parallel = bool(args.parallel),
+        n_seeds_test = float(args.n_seeds_test) if args.n_folds != -1 else float(0)
     )
 
     return config
@@ -124,7 +126,6 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 
 config['test_size'] = float(test_size)
-config['n_seeds_test'] = float(0) if config['test_size']== 0 else float(2)
 config['data_file'] = data_file
 config['tasks'] = tasks
 config['single_dimensions'] = single_dimensions        
@@ -137,6 +138,7 @@ config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','st
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
 
 config['random_seeds_train'] = [float(3**x) for x in np.arange(1, config['n_seeds_train']+1)]
+config['random_seeds_test'] = [float(3**x) for x in np.arange(1, config['n_seeds_test']+1)] if config['n_folds'] != -1 else ['']
 config['random_seeds_shuffle'] = [float(3**x) for x in np.arange(1, config['n_seeds_shuffle']+1)] if config['shuffle_labels'] else ['']
 
 if config['n_folds'] == 0:
@@ -273,7 +275,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                     n_folds = data.shape[0]
                 n_seeds_test = 1
 
-            random_seeds_test = np.arange(n_seeds_test) if config['test_size'] > 0 else ['']
+            random_seeds_test = config['random_seeds_test']
             # Choose cross-validation iterator
             CV_type = (StratifiedKFold(n_splits=int(n_folds), shuffle=True)
                         if config['stratify'] and problem_type == 'clf'
@@ -459,6 +461,4 @@ for y_label, task in itertools.product(y_labels, tasks):
                 with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', 'config.json'), 'w') as f:
                     json.dump(config, f, indent=4)
                 logging.info(f'Results saved to {path_to_save}')
-
-                del X_dev, y_dev, IDs_dev, outputs, X_test, y_test, IDs_test, all_models, outputs_, cal_outputs_, X_dev_, y_dev_, IDs_dev_, X_test_, y_test_, cal_outputs, hyperp, feature_sets
 ##----------------------------------------------------------------------------##
