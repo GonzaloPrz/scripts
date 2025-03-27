@@ -124,7 +124,7 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 
 config['test_size'] = float(test_size)
-config['n_seeds_test'] = float(0) if config['test_size']== 0 else float(1)
+config['n_seeds_test'] = float(0) if config['test_size']== 0 else float(2)
 config['data_file'] = data_file
 config['tasks'] = tasks
 config['single_dimensions'] = single_dimensions        

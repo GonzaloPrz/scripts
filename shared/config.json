@@ -1,13 +1,13 @@
 {
-    "project_name": "ad_mci_hc",
+    "project_name": "MCI_classifier",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
     "n_folds": 6.0,
-    "n_iter": 10.0,
-    "n_iter_features": 10.0,
+    "n_iter": 20.0,
+    "n_iter_features": 20.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
@@ -20,26 +20,22 @@
     "early_fusion": true,
     "n_boot_test": 400.0,
     "n_boot_train": 5.0,
-    "rewrite": false,
+    "rewrite": true,
     "parallel": true,
-    "test_size": 0.15,
-    "n_seeds_test": 1.0,
-    "data_file": "data_matched_group.csv",
+    "test_size": 0.3,
+    "n_seeds_test": 2.0,
+    "data_file": "features_data.csv",
     "tasks": [
-        "fugu",
-        "demographic"
+        "fas",
+        "animales",
+        "fas__animales",
+        "grandmean"
     ],
-    "single_dimensions": {
-        "fugu": [
-            "pitch",
-            "talking-intervals",
-            "voice-quality"
-        ],
-        "demographic": [
-            "demographic"
-        ]
-    },
-    "scoring_metrics": "norm_cross_entropy",
+    "single_dimensions": [
+        "psycholinguistic",
+        "talking_intervals"
+    ],
+    "scoring_metrics": "norm_expected_cost",
     "problem_type": "clf",
     "y_labels": [
         "group"

@@ -70,14 +70,16 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
     if 'random_state' in params.keys():
         params['random_state'] = int(params['random_state'])
     outputs = np.empty((np.max((1,boot_train)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
-    
+    y_test_ = np.empty((np.max((1,boot_train)),len(y_test)))
+    IDs_test_ = np.empty((np.max((1,boot_train)),len(y_test)), dtype=object)
+
     if problem_type == 'reg':
         outputs = outputs.squeeze(axis=-1)
 
     for b_train in range(np.max((1,boot_train))):
         boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
         outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev[boot_index_train], X_test[features], problem_type=problem_type)
-
+        
         if calibrate:
             model = utils.Model(model_class(**params),scaler,imputer,calmethod,calparams)
             model.train(X_dev.loc[boot_index_train,features], y_dev)
@@ -122,7 +124,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
         result_append[f'mean_{metric}_dev'] = np.round(results_r[f'{metric}_mean'],5)
         result_append[f'sup_{metric}_dev'] = np.round(results_r[f'{metric}_sup'],5)
         
-    return result_append,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap,outputs
+    return result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
 ##---------------------------------PARAMETERS---------------------------------##
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
@@ -220,7 +222,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
 
             if len(random_seeds_test) == 0:
                 random_seeds_test = ['']
-                
+              
             for random_seed_test in random_seeds_test:
                 if int(config["n_models"] == 0):
                     files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev_bca','calibrated'])] if calibrate else [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev_bca']) and 'calibrated' not in file.stem]
@@ -283,13 +285,13 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
                     results_test['idx'] = results_dev['Unnamed: 0'].values
 
-                    outputs_bootstrap = np.stack([result[1] for result in results],axis=0)
-                    y_true_bootstrap = np.stack([result[2] for result in results],axis=0)
-                    y_pred_bootstrap = np.stack([result[3] for result in results],axis=0)
-                    IDs_test_bootstrap = np.stack([result[4] for result in results],axis=0)
-                    outputs_test = np.stack([result[5] for result in results],axis=0)
+                    outputs_test = np.stack([result[1] for result in results],axis=0)
+                    outputs_bootstrap = np.stack([result[2] for result in results],axis=0)
+                    y_true_bootstrap = np.stack([result[3] for result in results],axis=0)
+                    y_pred_bootstrap = np.stack([result[4] for result in results],axis=0)
+                    IDs_test_bootstrap = np.stack([result[5] for result in results],axis=0)
 
                     results_test.to_csv(Path(file.parent,f'{filename_to_save}_test.csv'))
                     outputs_filename = f'cal_outputs_test_{model_name}.pkl' if calibrate else f'outputs_test_{model_name}.pkl'
                     with open(Path(file.parent,outputs_filename),'wb') as f:
-                        pickle.dump(outputs_bootstrap,f)
+                        pickle.dump(outputs_test,f)
