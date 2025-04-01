@@ -137,7 +137,7 @@ if problem_type == 'clf':
 
                         scores = np.concatenate([outputs_test[r] for r in range(outputs_test.shape[0])])
                         
-                        ax = plot_hists(y_test, scores, outfile=None, nbins=50, group_by='score', style='--', label_prefix='test ', axs=None)
+                        plot_hists(y_test, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost_test.png'), nbins=50, group_by='score', style='--', label_prefix='test ', axs=None)
                     
                     outputs_ = pickle.load(open(Path(path_to_results, random_seed, outputs_filename), 'rb'))[:,model_index]
 

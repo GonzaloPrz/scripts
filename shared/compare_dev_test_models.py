@@ -59,7 +59,7 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
 
             for file in files:
                 best_classifiers = pd.read_csv(file)
-                path_to_figures = Path(results_dir,'figures_models_dev_holdout',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+                path_to_figures = Path(results_dir,'figures_models_dev_holdout',task,dimension,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test)
                 path_to_figures.mkdir(parents=True,exist_ok=True)
                 for metric in metrics_names:
                     model_name = file.stem.split('_')[2]

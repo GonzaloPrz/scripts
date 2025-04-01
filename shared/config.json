@@ -1,13 +1,13 @@
 {
     "project_name": "MCI_classifier",
-    "stats": "",
+    "stats": "mean",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
     "n_folds": 6.0,
-    "n_iter": 10.0,
-    "n_iter_features": 10.0,
+    "n_iter": 0.0,
+    "n_iter_features": 50.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -20,7 +20,7 @@
     "early_fusion": true,
     "n_boot_test": 400.0,
     "n_boot_train": 5.0,
-    "rewrite": true,
+    "rewrite": false,
     "parallel": true,
     "n_seeds_test": 2.0,
     "test_size": 0.3,
@@ -35,13 +35,20 @@
         "psycholinguistic",
         "talking_intervals"
     ],
-    "scoring_metrics": "norm_expected_cost",
+    "scoring_metrics": "norm_cross_entropy",
     "problem_type": "clf",
     "y_labels": [
         "group"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "min",
+        "std",
+        "median",
+        "kurtosis",
+        "skewness",
+        "max"
+    ],
+    "stat_folder": "mean",
     "random_seeds_train": [
         3.0,
         9.0,
