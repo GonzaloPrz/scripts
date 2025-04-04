@@ -60,9 +60,9 @@ def parse_args():
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
     parser.add_argument('--n_boot_test',type=int,default=400,help='Number of bootstrap samples for holdout')
     parser.add_argument('--n_boot_train',type=int,default=5,help='Number of bootstrap samples of training samples while performing model testing')
-    parser.add_argument('--rewrite',type=int,default=1,help='Whether to rewrite past results or not')
+    parser.add_argument('--rewrite',type=int,default=0,help='Whether to rewrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
-    parser.add_argument('--n_seeds_test',type=int,default=2,help='Number of seeds for testing')
+    parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -160,8 +160,8 @@ models_dict = {
             'lr': LR,
             'svc': SVC,
             'knnc': KNNC,
-            'xgb': xgboost,
-            #'nb':GaussianNB
+            #'xgb': xgboost,
+            'nb':GaussianNB
         },
         'reg': {
             'lasso': Lasso,

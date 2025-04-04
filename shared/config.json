@@ -1,11 +1,11 @@
 {
-    "project_name": "MCI_classifier",
-    "stats": "mean",
+    "project_name": "ad_mci_hc",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 6.0,
+    "n_folds": 5.0,
     "n_iter": 0.0,
     "n_iter_features": 50.0,
     "feature_sample_ratio": 0.5,
@@ -20,35 +20,34 @@
     "early_fusion": true,
     "n_boot_test": 400.0,
     "n_boot_train": 5.0,
-    "rewrite": false,
+    "rewrite": true,
     "parallel": true,
-    "n_seeds_test": 2.0,
-    "test_size": 0.3,
-    "data_file": "features_data.csv",
+    "n_seeds_test": 1.0,
+    "test_size": 0.0,
+    "data_file": "data_matched_group.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean"
+        "fugu",
+        "demographic"
     ],
-    "single_dimensions": [
-        "psycholinguistic",
-        "talking_intervals"
-    ],
+    "single_dimensions": {
+        "fugu": [
+            "pitch",
+            "talking-intervals",
+            "voice-quality"
+        ],
+        "demographic": [
+            "demographic"
+        ]
+    },
     "scoring_metrics": "norm_cross_entropy",
     "problem_type": "clf",
     "y_labels": [
-        "group"
+        "group",
+        "center",
+        "country"
     ],
-    "avoid_stats": [
-        "min",
-        "std",
-        "median",
-        "kurtosis",
-        "skewness",
-        "max"
-    ],
-    "stat_folder": "mean",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
         3.0,
         9.0,
@@ -62,11 +61,10 @@
         59049.0
     ],
     "random_seeds_test": [
-        3.0,
-        9.0
+        3.0
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "6_folds"
+    "kfold_folder": "5_folds"
 }

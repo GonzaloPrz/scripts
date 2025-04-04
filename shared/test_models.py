@@ -46,7 +46,7 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
     y_pred_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
     IDs_test_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)), dtype=object)
 
-    if cmatrix is not None:
+    if cmatrix is not None or len(np.unique(y_dev)) > 2:
         metrics_names = list(set(metrics_names) - set(['roc_auc','accuracy','f1','recall','precision']))
 
     metrics_test_bootstrap = {metric: np.empty((np.max((1,boot_train)),np.max((1,boot_test)))) for metric in metrics_names}
@@ -94,7 +94,8 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
                 weights = None
 
             boot_index = resample(range(outputs.shape[1]), n_samples=outputs.shape[1], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
-
+            while len(np.unique(y_test[boot_index])) < len(np.unique(y_dev)):
+                boot_index = resample(range(outputs.shape[1]), n_samples=outputs.shape[1], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test*boot_test + b_test)
             outputs_bootstrap[b_train,b_test] = outputs[b_train,boot_index]
 
             if problem_type == 'clf':
@@ -168,7 +169,7 @@ single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name]))
+cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 parallel = bool(config["parallel"])
 
 if isinstance(scoring_metrics,str):
@@ -271,7 +272,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     if len(all_features) == 0:
                         continue
                     
-                    metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_test)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
+                    metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_dev)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
                     if Path(file.parent,f'{filename_to_save}_test.csv').exists() and rewrite == False:
                         print(f"Testing already done")

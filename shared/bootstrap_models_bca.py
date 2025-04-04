@@ -60,7 +60,7 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name]))
+cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
 ##---------------------------------PARAMETERS---------------------------------##
 for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scoring_metrics]):    
@@ -105,7 +105,6 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'))
 
             metrics_names = main_config["metrics_names"][problem_type]
-            metrics_names = metrics_names if cmatrix == None else list(set(metrics_names) - set(['roc_auc','f1','recall']))
 
             scorings = np.empty(outputs.shape[1])
             
@@ -141,7 +140,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(utils.compute_metrics)(j,model_index,r, outputs, y_dev, IDs_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=cmatrix,priors=None,threshold=all_models.loc[model_index,'threshold'] if 'threshold' in all_models.columns else None,bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
             # Update the metrics array with the computed results
             for j,model_index,r, metrics_result,_ in all_results:
-                for metric in metrics_names:
+                for metric in metrics_result.keys():
                     metrics[metric][j,model_index,r,:] = metrics_result[metric]
 
             if len(all_results) == 0:
