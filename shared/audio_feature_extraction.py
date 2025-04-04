@@ -5,13 +5,13 @@ from warnings import filterwarnings
 
 filterwarnings('ignore')
 
-subsets = ['nlp','audio']
+subsets = ['audio']
 
-dimensions = {'nlp':['sentiment_analysis'],
+dimensions = {
               'audio':['talking_intervals','pitch_analysis']
         }
 
-file_extentions = {'audio':'.mp3','nlp':'.txt'}
+file_extentions = {'audio':'.wav','nlp':'.txt'}
 
 project_name = 'sj'
 
@@ -21,12 +21,15 @@ for subset in subsets:
 
         from app import main
 
-        data_dir = Path(Path.home(),'data',project_name,'AUDIOS PROCESADOS')
+        data_dir = Path(Path.home(),'data',project_name,'audios_prepro')
 
         extracted_features = pd.DataFrame(columns=['id'])
         files = [file for file in data_dir.iterdir() if file.suffix == file_extentions[subset]]
 
-        for file in tqdm.tqdm(files[:10]):
+        for file in tqdm.tqdm(files):
+            filename = file.stem.replace('Preg','Pre').replace('pre','Pre').replace('post','Post').replace('2Pos1','2Post1').replace('2Pos2','2Post2')
+            if not Path(data_dir.parent,'transcripciones',f'{filename}_mono_16khz_diarize_loudnorm_denoised.txt').exists():
+                continue
             try:
                 features_dict = main(str(file))
                 if 'data' in features_dict.keys():
@@ -34,9 +37,13 @@ for subset in subsets:
                 else:
                     features_dict = json.loads(features_dict['body']).copy()
                     features = features_dict['data'].copy()
+                features = {f'{dimension}__{k}': v for k, v in features.items() if not isinstance(v, list)}
+
             except:
                 print(f'Error extracting features from {file.stem}')
                 continue
+            #Drop items from features_dict['scores'] that are lists
+            features_dict['scores'] = {k: v for k, v in features_dict['scores'].items() if not isinstance(v, list)}
             features.update(features_dict['scores'])
 
             features['id'] = '_'.join(file.stem.split('_')[:2])

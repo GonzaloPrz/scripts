@@ -1,6 +1,6 @@
 {
-    "project_name": "MCI_classifier",
-    "stats": "mean",
+    "project_name": "ad_mci_hc",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
@@ -22,33 +22,27 @@
     "n_boot_train": 5.0,
     "rewrite": false,
     "parallel": true,
-    "n_seeds_test": 2.0,
-    "test_size": 0.3,
-    "data_file": "features_data.csv",
+    "n_seeds_test": 1.0,
+    "test_size": 0.15,
+    "data_file": "data_matched_group_country.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean"
+        "fugu"
     ],
-    "single_dimensions": [
-        "psycholinguistic",
-        "talking_intervals"
-    ],
+    "single_dimensions": {
+        "fugu": [
+            "pitch",
+            "talking-intervals",
+            "voice-quality"
+        ]
+    },
     "scoring_metrics": "norm_cross_entropy",
     "problem_type": "clf",
     "y_labels": [
-        "group"
+        "group",
+        "country"
     ],
-    "avoid_stats": [
-        "min",
-        "std",
-        "median",
-        "kurtosis",
-        "skewness",
-        "max"
-    ],
-    "stat_folder": "mean",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
         3.0,
         9.0,
@@ -62,8 +56,7 @@
         59049.0
     ],
     "random_seeds_test": [
-        3.0,
-        9.0
+        3.0
     ],
     "random_seeds_shuffle": [
         ""

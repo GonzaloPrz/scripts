@@ -19,9 +19,10 @@
         
         "arequipa": [
             "group"
-        ],
+            ],
         "ad_mci_hc": [
-            "group"
+            "group",
+            "country"
         ],
         "GeroApathy_reg": [
             "DASS_21_Depression_V",
@@ -109,9 +110,8 @@
             "recuerdo_agradable"
         ],
         "ad_mci_hc": [
-            "fugu",
-            "demographic"
-        ],
+            "fugu"
+                ],
         "GeroApathy_reg": [
             "agradable"
         ],
@@ -238,9 +238,8 @@
             "fugu":[
                 "pitch",
                 "talking-intervals",
-                "voice-quality"],
-            "demographic":["demographic"]
-        },
+                "voice-quality"]
+            },
         "GeroApathy_reg": [
             "mfcc",
             "ratio",
@@ -287,7 +286,7 @@
         "Proyecto_Ivo": "all_data.csv",
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
-        "ad_mci_hc": "data_matched_group.csv",
+        "ad_mci_hc": "data_matched_group_country.csv",
         "GeroApathy_reg": "all_data_agradable.csv",
         "GERO_Ivo": "all_data.csv",
         "MPLS": "all_data.csv",
@@ -424,9 +423,7 @@
                           [1,1,0]],
         "tell_classifier":[[0,1,1],  
                           [1,1,0]],
-        "ad_mci_hc":[[0,1,1],  
-                     [1,0,1],
-                     [1,1,0]],
+        "ad_mci_hc":null,
         "Proyecto_Ivo":[[0,1],
                         [1,0]],
         "GERO_females":null

@@ -5,8 +5,9 @@ project_name = 'sj'
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path(Path.home(),'D:/','CNC_Audio','gonza','data',project_name)
 
-dimensions = ['pitch_analysis','talking_intervals']
-
+dimensions = ['pitch_analysis','talking_intervals',
+              #'sentiment_analysis','verbosity','granularity','freeling','psycholinguistic_objective'
+            ]
 df_modified = pd.DataFrame()
 
 for dimension in dimensions:
@@ -27,4 +28,4 @@ for dimension in dimensions:
         else:
             df_modified = pd.merge(df_modified, df_task, on='id',how='outer')
 
-df_modified.to_csv(Path(data_dir,'all_features.csv'), index=False)
+df_modified.to_csv(Path(data_dir,'audio_features.csv'), index=False)
