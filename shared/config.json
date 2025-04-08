@@ -1,11 +1,11 @@
 {
-    "project_name": "ad_mci_hc",
+    "project_name": "ad_mci_hc_chile",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 6.0,
+    "n_folds": 7.0,
     "n_iter": 0.0,
     "n_iter_features": 50.0,
     "feature_sample_ratio": 0.5,
@@ -20,11 +20,11 @@
     "early_fusion": true,
     "n_boot_test": 400.0,
     "n_boot_train": 5.0,
-    "rewrite": false,
+    "rewrite": true,
     "parallel": true,
     "n_seeds_test": 1.0,
-    "test_size": 0.15,
-    "data_file": "data_matched_group_country.csv",
+    "test_size": 0.25,
+    "data_file": "data_matched_group.csv",
     "tasks": [
         "fugu"
     ],
@@ -38,8 +38,7 @@
     "scoring_metrics": "norm_cross_entropy",
     "problem_type": "clf",
     "y_labels": [
-        "group",
-        "country"
+        "group"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -61,5 +60,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "6_folds"
+    "kfold_folder": "7_folds"
 }

@@ -106,7 +106,7 @@ for scoring in scoring_metrics:
                         
                         best = None
                         for file in files:
-                            if file.suffix != '.csv':
+                            if file.suffix != '.csv' or 'knn' in file.stem:
                                 continue
 
                             df = pd.read_csv(file)

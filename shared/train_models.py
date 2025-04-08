@@ -131,9 +131,7 @@ config['tasks'] = tasks
 config['single_dimensions'] = single_dimensions        
 config['scoring_metrics'] = scoring_metrics
 config['problem_type'] = problem_type
-# Model dictionaries. Note: KNNR and other regressors can be added as needed.    
 config['y_labels'] = y_labels
-# Determine which stats to avoid (if not all stats)
 config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
 
@@ -161,7 +159,7 @@ models_dict = {
             'svc': SVC,
             'knnc': KNNC,
             'xgb': xgboost,
-            #'nb':GaussianNB
+            'nb':GaussianNB
         },
         'reg': {
             'lasso': Lasso,
