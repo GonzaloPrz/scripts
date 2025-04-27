@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import math 
 import logging, sys
-import torch
 
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
@@ -17,10 +15,7 @@ from xgboost import XGBRegressor as xgboostr
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
-from tqdm import tqdm
 import itertools,pickle,sys, json
-from scipy.stats import loguniform, uniform, randint
-from random import randint as randint_random 
 import warnings,argparse,os,multiprocessing
 from psrcal.calibration import AffineCalLogLoss
 
@@ -62,7 +57,7 @@ def parse_args():
     parser.add_argument('--n_boot_train',type=int,default=5,help='Number of bootstrap samples of training samples while performing model testing')
     parser.add_argument('--rewrite',type=int,default=1,help='Whether to rewrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
-    parser.add_argument('--n_seeds_test',type=int,default=2,help='Number of seeds for testing')
+    parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -136,7 +131,7 @@ config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','st
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
 
 config['random_seeds_train'] = [float(3**x) for x in np.arange(1, config['n_seeds_train']+1)]
-config['random_seeds_test'] = [float(3**x) for x in np.arange(1, config['n_seeds_test']+1)] if config['n_folds'] != -1 else ['']
+config['random_seeds_test'] = [float(3**x) for x in np.arange(1, config['n_seeds_test']+1)] if config['test_size'] > 0 else ['']
 config['random_seeds_shuffle'] = [float(3**x) for x in np.arange(1, config['n_seeds_shuffle']+1)] if config['shuffle_labels'] else ['']
 
 if config['n_folds'] == 0:
@@ -158,7 +153,7 @@ models_dict = {
             'lr': LR,
             'svc': SVC,
             'knnc': KNNC,
-            'xgb': xgboost,
+            #'xgb': xgboost,
             'nb':GaussianNB
         },
         'reg': {
@@ -178,9 +173,7 @@ hp_ranges = {
         'lr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))]},
         'svc': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'gamma': ['scale', 'auto'], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'probability': [True]},
         'knnc': {'n_neighbors': [x for x in range(1, 21)]},
-        'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,9),range(1,3))], 'max_depth': [1, 2, 3, 4], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9],
-                'tree_method': ['auto'],
-                'gpu_id': [None]},
+        'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,9),range(1,3))], 'max_depth': [1, 2, 3, 4], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
         'nb': {'priors':[None]},
         'ridge': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
                   'tol': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
@@ -239,11 +232,14 @@ for y_label, task in itertools.product(y_labels, tasks):
                     for x,y in itertools.product(task.split('__'), dimension.split('__'))) 
                     and not isinstance(data.iloc[0][col], str) 
                     and all(f'_{x}' not in col for x in config['avoid_stats'] + ['query', 'timestamp'])]
-        
+
+        if "group_as_feature" in config["project_name"] and y_label != "group":
+            features = features + ["group"]
+
         # Select only the desired features along with the target and id
         data = data[features + [y_label, config['id_col']]]
         data = data.dropna(subset=[y_label])
-        
+                
         if any(data[features].isna().sum()/data.shape[0] > .2):
             data = data.dropna(subset=features) 
 

@@ -4,16 +4,9 @@ import pickle
 from pathlib import Path
 import itertools
 from joblib import Parallel, delayed
-import sys,tqdm,os
-from pingouin import compute_bootci
-from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, f1_score, r2_score, mean_squared_error, mean_absolute_error
-import logging, sys
-import json
+import sys,os,json
+
 from expected_cost.ec import CostMatrix
-from expected_cost.utils import plot_hists
-from expected_cost.calibration import calibration_with_crossval, calibration_train_on_heldout
-from expected_cost.psrcal_wrappers import LogLoss
-from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
 from matplotlib import pyplot as plt
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
@@ -105,7 +98,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'))
 
             metrics_names = main_config["metrics_names"][problem_type]
-            metrics_names = metrics_names if cmatrix == None else list(set(metrics_names) - set(['roc_auc','f1','recall']))
+            metrics_names = metrics_names if cmatrix == None and outputs.shape[-1] == 2 else list(set(metrics_names) - set(['roc_auc','f1','recall']))
 
             scorings = np.empty(outputs.shape[1])
             

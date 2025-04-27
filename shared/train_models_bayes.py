@@ -14,125 +14,133 @@ from xgboost import XGBClassifier as xgboost
 from xgboost import XGBRegressor as xgboostr
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
-from tqdm import tqdm
 import itertools,pickle,sys, json
-from scipy.stats import loguniform, uniform, randint
-from random import randint as randint_random 
-from joblib import Parallel, delayed
-from skopt.space import Real, Integer, Categorical
-from random import randint as randint_random 
+import logging,sys,os,argparse
+from psrcal.calibration import AffineCalLogLoss
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-from utils import *
+import utils
 
-from expected_cost.ec import *
-from expected_cost.utils import *
-
-##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy_reg'
-n_folds = 5
-filter_outliers = True
-feature_selection = True
-shuffle_labels = False
-n_iter = 15
-init_points = 10
-scaler_name = 'StandardScaler'
-id_col = 'id'
-stratify = True
-
-# Check if required arguments are provided
-if len(sys.argv) > 1:
-    project_name = sys.argv[1]
-if len(sys.argv) > 2:
-    feature_selection = bool(int(sys.argv[2]))
-if len(sys.argv) > 3:
-    filter_outliers = bool(int(sys.argv[3]))
-if len(sys.argv) > 4:
-    shuffle_labels = bool(int(sys.argv[4]))
-if len(sys.argv) > 5:
-    n_folds = int(sys.argv[5])
-if len(sys.argv) > 6:
-    n_iter = int(sys.argv[6])
-if len(sys.argv) > 7:
-    init_points = int(sys.argv[7])
-
-l2ocv = False
-
-cmatrix = None 
-
-n_seeds_train = 10
-
-random_seeds_train = [3**x for x in range(n_seeds_train)] if n_seeds_train > 0 else ['']
-
-thresholds = {'tell_classifier':[np.log(0.5)],
-              'MCI_classifier':[np.log(0.5)],
-                'Proyecto_Ivo':[np.log(0.5)],
-                'GeroApathy':[np.log(0.5)],
-                'GeroApathy_reg':[None],
-                'GERO_Ivo':[None]}
-
-test_size = {'tell_classifier':0,
-             'MCI_classifier':0,
-            'Proyecto_Ivo':0,
-            'GeroApathy':0,
-            'GeroApathy_reg':0,
-            'GERO_Ivo':0}
-
-n_seeds_test_ = 0 if test_size[project_name] == 0 else 1
+from expected_cost.ec import CostMatrix
 
 ##---------------------------------PARAMETERS---------------------------------##
-data_file = {'tell_classifier':'data_MOTOR-LIBRE.csv',
-            'MCI_classifier':'features_data.csv',
-            'Proyecto_Ivo':'data_total.csv',
-            'GeroApathy':'data_matched_agradable',
-            'GeroApathy_reg':'all_data_agradable.csv',
-            'GERO_Ivo':'all_data.csv'}
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Train models with hyperparameter optimization and feature selection'
+    )
+    parser.add_argument('--project_name', default='ad_mci_hc',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
+    parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
+    parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
+    parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
+    parser.add_argument('--n_folds_outer', type=int, default=6, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_iter', type=int, default=10, help='Number of hyperparameter iterations')
+    parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
+    parser.add_argument('--init_points', type=int, default=20, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_seeds_train',type=int,default=20,help='Number of seeds for cross-validation training')
+    parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
+    parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
+    parser.add_argument('--id_col', type=str, default='id', help='ID column name')
+    parser.add_argument('--n_models',type=float,default=0,help='Number of hyperparameter combinatios to try and select from  to train')
+    parser.add_argument('--n_boot',type=int,default=200,help='Number of features to select')
+    parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
+    parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
+    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
+    parser.add_argument('--rewrite',type=int,default=1,help='Whether to rewrite past results or not')
+    parser.add_argument('--parallel',type=int,default=0,help='Whether to parallelize processes or not')
+    parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
 
-tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['agradable'],
-         'GeroApathy_reg':['agradable'],
-         'GERO_Ivo':['animales','grandmean','fas__animales','fas']
-         }
+    return parser.parse_args()
 
-single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
-                     'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':{'Animales':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'P':['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
-                                     'cog':['neuropsico','neuropsico_mmse'],
-                                     'brain':['norm_brain_lit'],
-                                     'AAL':['norm_AAL'],
-                                     'conn':['connectivity']
-                                     },
-                        'GeroApathy':['mfcc','pitch','ratio','talking-intervals'],
-                        'GeroApathy_reg':['mfcc','pitch','ratio','talking-intervals'],
-                        'GERO_Ivo':['psycholinguistic','speech-timing']
-}
+def load_configuration(args):
+    # Global configuration dictionaries
+    config = dict(
+        project_name = args.project_name,
+        stats = str(args.stats),
+        shuffle_labels = bool(args.shuffle_labels),
+        shuffle_all = bool(args.shuffle_all),
+        stratify = bool(args.stratify),
+        calibrate = bool(args.calibrate),
+        n_folds_outer = float(args.n_folds_outer),
+        n_folds_inner = float(args.n_folds_inner),
+        n_iter = float(args.n_iter),
+        feature_selection = bool(args.feature_selection),
+        init_points = float(args.init_points),
+        n_seeds_train = float(args.n_seeds_train) if args.n_folds_outer!= -1 else float(1),
+        n_seeds_shuffle = float(args.n_seeds_shuffle) if args.shuffle_labels else float(0),
+        scaler_name = args.scaler_name,
+        id_col = args.id_col,
+        n_models = float(args.n_models),
+        n_boot = float(args.n_boot),
+        filter_outliers = bool(args.filter_outliers),
+        early_fusion = bool(args.early_fusion),
+        rewrite = bool(args.rewrite),
+        parallel = bool(args.parallel),
+        n_seeds_test = float(args.n_seeds_test) if args.n_folds_outer!= -1 else float(0)
+    )
 
-scoring = {'tell_classifier':'norm_cross_entropy',
-            'MCI_classifier':'norm_cross_entropy',
-            'Proyecto_Ivo':'roc_auc_score',
-            'GeroApathy':'roc_auc_score',
-            'GeroApathy_reg':'mean_absolute_error',
-            'GERO_Ivo':'r2_score'}
+    return config
 
-if scaler_name == 'StandardScaler':
-    scaler = StandardScaler
-elif scaler_name == 'MinMaxScaler':
-    scaler = MinMaxScaler
+args = parse_args()
+config = load_configuration(args)
+project_name = config['project_name']
+
+logging.info('Configuration loaded. Starting training...')
+logging.info('Training completed.')
+
+##------------------ Configuration and Parameter Parsing ------------------##
+home = Path(os.environ.get('HOME', Path.home()))
+if 'Users/gp' in str(home):
+    data_dir = home / 'data' / project_name
 else:
-    scaler = None
-imputer = KNNImputer
+    data_dir = Path('D:/CNC_Audio/gonza/data', project_name)
 
-if l2ocv:
-    kfold_folder = 'l2ocv'
+results_dir = Path(str(data_dir).replace('data', 'results'))
+
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
+
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+test_size = main_config['test_size'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config['data_file'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+problem_type = main_config['problem_type'][project_name]
+cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+
+config['test_size'] = float(test_size)
+config['data_file'] = data_file
+config['tasks'] = tasks
+config['single_dimensions'] = single_dimensions        
+config['scoring_metrics'] = scoring_metrics
+config['problem_type'] = problem_type
+config['y_labels'] = y_labels
+config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
+config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
+
+config['random_seeds_train'] = [int(3**x) for x in np.arange(1, config['n_seeds_train']+1)]
+config['random_seeds_test'] = [int(3**x) for x in np.arange(1, config['n_seeds_test']+1)] if config['test_size'] > 0 else ['']
+config['random_seeds_shuffle'] = [float(3**x) for x in np.arange(1, config['n_seeds_shuffle']+1)] if config['shuffle_labels'] else ['']
+
+if config['n_folds_outer'] == 0:
+    config['kfold_folder'] = 'l2ocv'
+elif config['n_folds_outer'] == -1:
+    config['kfold_folder'] = 'loocv'
 else:
-    kfold_folder = f'{n_folds}_folds'
-models_dict = {'clf':{'lr':LR,
-                    #'svc':SVC,
+    config['kfold_folder'] = f'{int(config["n_folds_outer"])}_folds'
+
+if config['calibrate']:
+    calmethod = AffineCalLogLoss
+    calparams = {'bias':True, 'priors':None}
+else:
+    calmethod = None
+    calparams = None
+
+models_dict = {'clf':{'svc':SVC,
+                    'lr':LR,
                     'knnc':KNNC,
                     'xgb':xgboost},
                 
@@ -145,33 +153,12 @@ models_dict = {'clf':{'lr':LR,
                     }
 }
 
-y_labels = {'tell_classifier':['target'],
-            'MCI_classifier':['target'],
-            'Proyecto_Ivo':['target'],
-            'GeroApathy':[#'DASS_21_Depression_V_label','Depression_Total_Score_label','AES_Total_Score_label',
-                            #'MiniSea_minisea_total_label',
-                            'MiniSea_MiniSea_Total_EkmanFaces_label'
-                          ],
-            'GeroApathy_reg':[#'DASS_21_Depression_V','Depression_Total_Score','AES_Total_Score',
-                                'MiniSea_minisea_total','MiniSea_MiniSea_Total_EkmanFaces'
-                          ],
-            'GERO_Ivo':['MMSE_Total_Score','IFS_Total_Score','ACEIII_Total_Score']
-}
-
-problem_type = {'tell_classifier':'clf',
-                'MCI_classifier':'clf',
-                'Proyecto_Ivo':'clf',
-                'GeroApathy':'clf',
-                'GeroApathy_reg':'reg',
-                'GERO_Ivo':'reg'}
-
 hyperp = {'lr':{'C':(1e-4,100)},
           'svc':{'C':(1e-4,100),
-                 'gamma':(1e-4,1e4),
-                 'probability':[True]},
+                 'gamma':(1e-4,1e4)},
             'knnc':{'n_neighbors':(1,40)},
             'xgb':{'max_depth':(1,10),
-                   'n_estimators':(1,1000),
+                   'n_estimators':(1,2000),
                    'learning_rate':(1e-4,1)},
             'lasso':{'alpha':(1e-4,1e4)},
             'ridge':{'alpha':(1e-4,1e4)},
@@ -182,31 +169,28 @@ hyperp = {'lr':{'C':(1e-4,100)},
                     'gamma':(1e-4,1e4)}
             }
 
-data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
-results_dir = Path(str(data_dir).replace('data','results'))
-
-for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]):
+for y_label,task in itertools.product(y_labels,tasks):
     dimensions = list()
-    if isinstance(single_dimensions[project_name],list):
-        for ndim in range(1,len(single_dimensions[project_name])+1):
-            for dimension in itertools.combinations(single_dimensions[project_name],ndim):
+    if isinstance(single_dimensions,list):
+        for ndim in range(1,len(single_dimensions)+1):
+            for dimension in itertools.combinations(single_dimensions,ndim):
                 dimensions.append('__'.join(dimension))
 
     if len(dimensions) == 0:
-        dimensions = single_dimensions[project_name][task]
+        dimensions = single_dimensions[task]
     
     for dimension in dimensions:
         print(task,dimension)
         
-        if problem_type[project_name] == 'clf':
-            data = pd.read_csv(Path(data_dir,f'{data_file[project_name]}_{y_label}.csv'))
+        if problem_type == 'clf':
+            data = pd.read_csv(Path(data_dir,data_file))
         else:
-            data = pd.read_excel(Path(data_dir,data_file[project_name])) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file[project_name]))
+            data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
         
-        if problem_type[project_name] == 'reg' and filter_outliers:
+        if problem_type == 'reg' and config['filter_outliers']:
             data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
 
-        if shuffle_labels and problem_type[project_name] == 'clf':
+        if config['shuffle_labels'] and problem_type == 'clf':
             np.random.seed(0)
             zero_indices = np.where(y == 0)[0]
             one_indices = np.where(y == 1)[0]
@@ -219,80 +203,135 @@ for y_label,task in itertools.product(y_labels[project_name],tasks[project_name]
             y[zero_to_flip] = 1
             y[one_to_flip] = 0
 
-        elif shuffle_labels:
+        elif config['shuffle_labels']:
             np.random.seed(42)
             #Perform random permutations of the labels
             y = np.random.permutation(y)
     
-        all_features = [col for col in data.columns if any(f'{x}_{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and isinstance(data.loc[0,col],(int,float)) and 'timestamp' not in col]
+        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and isinstance(data.loc[0,col],(int,float)) and 'timestamp' not in col]
         
-        data = data[all_features + [y_label,id_col]]
+        data = data[all_features + [y_label,config['id_col']]]
         
         features = all_features
         
-        ID = data.pop(id_col)
+        ID = data.pop(config['id_col'])
 
         y = data.pop(y_label)
 
-        for model in models_dict[problem_type[project_name]].keys():        
-            print(model)
+        for model_key, model_class in models_dict[problem_type].items():        
+            print(model_key)
             
-            random_seeds_test = np.arange(n_seeds_test_) if test_size[project_name] > 0 else ['']
+            held_out = (config['n_iter'] > 0 or config['n_iter_features'] > 0)
+            n_folds_outer = int(config['n_folds_outer'])
+            n_folds_inner = int(config['n_folds_inner'])
+            if held_out:
+                if n_folds_outer== 0:
+                    n_folds_outer= int((data.shape[0]*(1 - config['test_size'])) / 2)
+                elif n_folds_outer== -1:
+                    n_folds_outer= int(data.shape[0]*(1 - config['test_size']))
+                n_seeds_test = config['n_seeds_test']
+            else:
+                if n_folds_outer== 0:
+                    n_folds_outer= int(data.shape[0]/2)
+                elif n_folds_outer== -1:
+                    n_folds_outer= data.shape[0]
+                n_seeds_test = 1
 
-            CV_type = StratifiedKFold(n_splits=n_folds,shuffle=True) if stratify and problem_type[project_name] == 'clf' else KFold(n_splits=n_folds,shuffle=True)
-
-            path_to_save = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','bayes','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
+            random_seeds_test = config['random_seeds_test']
             
-            path_to_save.mkdir(parents=True,exist_ok=True)
-
-            config = {'n_iter':n_iter,
-                      'init_points':init_points,
-            'test_size':test_size[project_name],
-            'cmatrix':str(cmatrix)}
-
-            with open(Path(path_to_save,'config.json'),'w') as f:
-                json.dump(config,f)
+            CV_outer = (StratifiedKFold(n_splits=int(n_folds_outer), shuffle=True)
+                        if config['stratify'] and problem_type == 'clf'
+                        else KFold(n_splits=n_folds_outer, shuffle=True))  
             
+            CV_inner = (StratifiedKFold(n_splits=int(n_folds_inner), shuffle=True)
+                        if config['stratify'] and problem_type == 'clf'
+                        else KFold(n_splits=n_folds_inner, shuffle=True))            
+            subfolders = [
+                task, dimension, config['scaler_name'],
+                config['kfold_folder'], y_label, config['stat_folder'],'bayes',
+                'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
+                'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
+                'shuffle' if config['shuffle_labels'] else ''
+            ]
+
+            path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
+            path_to_save.mkdir(parents=True, exist_ok=True)
+
+            with open(Path(__file__).parent/'config.json', 'w') as f:
+                json.dump(config, f, indent=4)
+
             for random_seed_test in random_seeds_test:
-                if test_size[project_name] > 0:
-                    path_to_save_final = Path(path_to_save,f'random_seed_{random_seed_test}')
-
-                    X_train,X_test,y_train,y_test,ID_train,ID_test = train_test_split(data,y,ID,test_size=test_size[project_name],random_state=random_seed_test,shuffle=True,stratify=y if stratify and problem_type[project_name] == 'clf' else None)
-                    X_train.reset_index(drop=True,inplace=True)
-                    X_test.reset_index(drop=True,inplace=True)
-                    y_train.reset_index(drop=True,inplace=True)
-                    y_test.reset_index(drop=True,inplace=True)
-                    ID_train.reset_index(drop=True,inplace=True)
-                    ID_test.reset_index(drop=True,inplace=True)
+                if test_size > 0:
+                    X_train_, X_test_, y_train_, y_test_, ID_train_, ID_test_ = train_test_split(
+                        data, y, ID,
+                        test_size=config['test_size'],
+                        random_state=int(random_seed_test),
+                        shuffle=True,
+                        stratify=y if (config['stratify'] and problem_type == 'clf') else None
+                    )
+                    # Reset indexes after split.
+                    X_train_.reset_index(drop=True, inplace=True)
+                    X_test_.reset_index(drop=True, inplace=True)
+                    y_train_ = y_train_.reset_index(drop=True)
+                    y_test_ = y_test_.reset_index(drop=True)
+                    ID_train_ = ID_train_.reset_index(drop=True)
+                    ID_test_ = ID_test_.reset_index(drop=True)
                 else:
-                    X_train = data.reset_index(drop=True)
-                    y_train = y.reset_index(drop=True)
-                    ID_train = ID.reset_index(drop=True)
+                    X_train_, y_train_, ID_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True)
+                    X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
 
-                    X_test = pd.DataFrame()
-                    y_test = pd.Series()
-                    ID_test = pd.Series()
-                    path_to_save_final = path_to_save
+                hyperp['knnc']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)**2-1))
+                hyperp['knnr']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)**2-1))
 
-                hyperp['knnc']['n_neighbors'] = (1,int(X_train.shape[0]*(1-test_size[project_name])*(1-1/n_folds)**2-1))
-                hyperp['knnr']['n_neighbors'] = (1,int(X_train.shape[0]*(1-test_size[project_name])*(1-1/n_folds)**2-1))
-
-                path_to_save_final.mkdir(parents=True,exist_ok=True)
-
-                assert not set(ID_train).intersection(set(ID_test)), "Data leakeage detected between train and test sets!"
-
-                if Path(path_to_save_final,f'all_models_{model}.csv').exists():
-                    continue
+                # Check for data leakage.
+                assert set(ID_train_).isdisjoint(set(ID_test_)), 'Data leakage detected between train and test sets!'
                 
-                with open(Path(path_to_save_final,'config.json'),'w') as f:
+                if (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'all_models_{model_key}.csv').exists() and config['calibrate'] == False) or (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'cal_outputs_{model_key}.pkl').exists() and config['calibrate']):
+                    if config['rewrite'] == False:
+                        print(f'Results already exist for {task} - {y_label} - {model_key}. Skipping...')
+                        continue
+                
+                print(f'Training model: {model_key}')
+    
+                all_models,outputs_best,y_dev,y_pred_best,IDs_dev = utils.nestedCVT(model_class=models_dict[problem_type][model_key],
+                                                                                     scaler=StandardScaler if config['scaler_name'] == 'StandardScaler' else MinMaxScaler,
+                                                                                     imputer=KNNImputer,
+                                                                                     X=X_train_,
+                                                                                     y=y_train_,
+                                                                                     n_iter=int(config['n_iter']),
+                                                                                     iterator_outer=CV_outer,
+                                                                                     iterator_inner=CV_inner,
+                                                                                     random_seeds_outer=config['random_seeds_train'],
+                                                                                     hyperp_space=hyperp[model_key],
+                                                                                     IDs=ID_train_,
+                                                                                     init_points=int(config['init_points']),
+                                                                                     scoring=scoring_metrics,
+                                                                                     problem_type=problem_type,
+                                                                                     cmatrix=cmatrix,priors=None,
+                                                                                     threshold=thresholds,
+                                                                                     parallel=config['parallel'],
+                                                                                     calmethod=calmethod,
+                                                                                     calparams=calparams)
+
+                Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(parents=True, exist_ok=True)
+                with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '','config.json'),'w') as f:
                     json.dump(config,f)
+            
+                all_models.to_csv(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '',f'all_models_{model_key}.csv'),index=False)
+                result_files = {
+                    'y_dev.pkl': y_dev,
+                    'IDs_dev.pkl': IDs_dev,
+                    f'outputs_{model_key}.pkl': outputs_best}
                 
-                all_models,outputs_best,y_true,y_pred_best,IDs_val = nestedCVT(models_dict[problem_type[project_name]][model],scaler,imputer,X_train,y_train,n_iter,CV_type,CV_type,random_seeds_train,hyperp[model],ID_train,
-                                                                               init_points=init_points,scoring=scoring[project_name],problem_type=problem_type[project_name],cmatrix=cmatrix,priors=None,
-                                                                               threshold=thresholds[project_name],feature_selection=feature_selection)
-
-                all_models.to_csv(Path(path_to_save_final,f'all_models_{model}.csv'),index=False)
-                pickle.dump(outputs_best,open(Path(path_to_save_final,f'outputs_best_{model}.pkl'),'wb'))
-                pickle.dump(y_true,open(Path(path_to_save_final,f'y_true_dev.pkl'),'wb'))
-                pickle.dump(y_pred_best,open(Path(path_to_save_final,f'y_pred_best_{model}.pkl'),'wb'))
-                pickle.dump(IDs_val,open(Path(path_to_save_final,f'IDs_val.pkl'),'wb'))
+                if test_size > 0:
+                    result_files.update({
+                        'X_test.pkl': X_test_,
+                        'y_test.pkl': y_test_,
+                        'IDs_test.pkl': ID_test_,
+                    })
+                for fname, obj in result_files.items():
+                    with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', fname), 'wb') as f:
+                        pickle.dump(obj, f)
+                
+                with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', 'config.json'), 'w') as f:
+                    json.dump(config, f, indent=4)

@@ -44,6 +44,7 @@ early_fusion = bool(config['early_fusion'])
 problem_type = config['problem_type']
 rewrite = bool(config['rewrite'])
 parallel = bool(config['parallel'])
+id_col = config['id_col']
 
 if calibrate:
     calmethod = AffineCalLogLoss
@@ -68,7 +69,6 @@ data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = [main_config['scoring_metrics'][project_name]]
 problem_type = main_config['problem_type'][project_name]
-id_col = main_config['id_col'][project_name]
 
 models_dict = {
         'clf': {
@@ -140,7 +140,7 @@ for scoring in scoring_metrics:
                 else:
                     best_model = pd.read_csv(Path(path_to_data,f'all_models_{model_type}_dev_bca.csv')).sort_values(f'{scoring}_{extremo}',ascending=ascending).reset_index(drop=True).head(1)
 
-            all_features = [col for col in best_model.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+            all_features = [col for col in best_model.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) or col =='group']
             features = [col for col in all_features if best_model[col].values[0] == 1]
             params = [col for col in best_model.columns if all(x not in col for x in  all_features + ['inf','sup','mean','ic'] + [y_label,id_col,'Unnamed: 0','threshold','index'])]
 
