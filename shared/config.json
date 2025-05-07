@@ -1,11 +1,11 @@
 {
-    "project_name": "ad_mci_hc_ct",
+    "project_name": "mci_hc_fugu",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 6.0,
+    "n_folds_outer": 5.0,
     "n_folds_inner": 5.0,
     "n_iter": 20.0,
     "feature_selection": true,
@@ -17,21 +17,23 @@
     "n_models": 0.0,
     "n_boot": 200.0,
     "filter_outliers": false,
-    "early_fusion": true,
-    "rewrite": true,
+    "early_fusion": false,
+    "overwrite": true,
     "parallel": true,
     "n_seeds_test": 1.0,
-    "test_size": 0.13,
-    "data_file": "data_matched_group.csv",
+    "test_size": 0.0,
+    "data_file": "data_mfa_matched_group.csv",
     "tasks": [
         "fugu"
     ],
-    "single_dimensions": {
-        "fugu": [
-            "talking-intervals"
-        ]
-    },
-    "scoring_metrics": "norm_expected_cost",
+    "single_dimensions": [
+        "talking_intervals_mfa",
+        "talking_intervals"
+    ],
+    "scoring_metrics": [
+        "norm_cross_entropy",
+        "norm_expected_cost"
+    ],
     "problem_type": "clf",
     "y_labels": [
         "group"
@@ -61,10 +63,10 @@
         3486784401
     ],
     "random_seeds_test": [
-        3
+        ""
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "6_folds"
+    "kfold_folder": "5_folds"
 }

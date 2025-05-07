@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import math 
 import logging, sys
+import torch
 
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
@@ -15,7 +17,10 @@ from xgboost import XGBRegressor as xgboostr
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
+from tqdm import tqdm
 import itertools,pickle,sys, json
+from scipy.stats import loguniform, uniform, randint
+from random import randint as randint_random 
 import warnings,argparse,os,multiprocessing
 from psrcal.calibration import AffineCalLogLoss
 
@@ -48,14 +53,14 @@ def parse_args():
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
     parser.add_argument('--n_models',type=float,default=0,help='Number of hyperparameter combinatios to try and select from  to train')
-    parser.add_argument('--n_boot',type=int,default=200,help='Number of features to select')
+    parser.add_argument('--n_boot',type=int,default=200,help='')
     parser.add_argument('--bayesian',type=int,default=0,help='Whether to calculate bayesian credible intervals or bootstrap confidence intervals')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
     parser.add_argument('--n_boot_test',type=int,default=400,help='Number of bootstrap samples for holdout')
     parser.add_argument('--n_boot_train',type=int,default=5,help='Number of bootstrap samples of training samples while performing model testing')
-    parser.add_argument('--rewrite',type=int,default=1,help='Whether to rewrite past results or not')
+    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     return parser.parse_args()
@@ -84,7 +89,7 @@ def load_configuration(args):
         early_fusion = bool(args.early_fusion),
         n_boot_test = float(args.n_boot_test),
         n_boot_train = float(args.n_boot_train),
-        rewrite = bool(args.rewrite),
+        overwrite = bool(args.overwrite),
         parallel = bool(args.parallel),
         n_seeds_test = float(args.n_seeds_test) if args.n_folds != -1 else float(0)
     )
@@ -383,7 +388,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                     assert set(ID_train_).isdisjoint(set(ID_test_)), 'Data leakage detected between train and test sets!'
                     
                     if (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'all_models_{model_key}.csv').exists() and config['calibrate'] == False) or (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'cal_outputs_{model_key}.pkl').exists() and config['calibrate']):
-                        if config['rewrite'] == False:
+                        if config['overwrite'] == False:
                             print(f'Results already exist for {task} - {y_label} - {model_key}. Skipping...')
                             continue
                     

@@ -20,6 +20,9 @@
         "arequipa": [
             "group"
             ],
+        "mci_hc_fugu": [
+            "group"
+        ],
         "ad_mci_hc": [
             "group"
         ],
@@ -121,6 +124,9 @@
             "dia_tipico",
             "recuerdo_agradable"
         ],
+        "mci_hc_fugu": [
+            "fugu"
+        ],
         "ad_mci_hc": [
             "fugu"
                 ],
@@ -196,6 +202,7 @@
         "Proyecto_Ivo": 0,
         "GeroApathy": 0.3,
         "arequipa": 0,
+        "mci_hc_fugu": 0,
         "ad_mci_hc": 0.13,
         "ad_mci_hc_ct": 0.13,
         "ad_mci_hc_chile": 0.25,
@@ -264,14 +271,20 @@
         "arequipa": [
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
+        "mci_hc_fugu":[
+            "talking_intervals_mfa",
+            "talking_intervals"
+        ],
         "ad_mci_hc":{
             "fugu":[
                 "talking-intervals"
                 ]
             },
         "ad_mci_hc_ct":{
-            "fugu":[
-                "talking-intervals"
+            "fugu":[                
+                "pitch",
+                "talking-intervals",
+                "voice-quality"
             ]
             },
         "ad_mci_hc_chile":{
@@ -337,6 +350,7 @@
         "Proyecto_Ivo": "all_data.csv",
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
+        "mci_hc_fugu": "data_mfa_matched_group.csv",
         "ad_mci_hc": "data_matched_group.csv",
         "ad_mci_hc_ct": "data_matched_group.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
@@ -364,6 +378,7 @@
         "Proyecto_Ivo": [null],
         "GeroApathy": [null],
         "arequipa": [null],
+        "mci_hc_fugu": [null],
         "ad_mci_hc": [null],
         "ad_mci_hc_ct": [null],
         "ad_mci_hc_chile": [null],
@@ -384,8 +399,9 @@
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
         "arequipa": "roc_auc",
+        "mci_hc_fugu": ["norm_cross_entropy","norm_expected_cost"],
         "ad_mci_hc": "norm_cross_entropy",
-        "ad_mci_hc_ct": "norm_expected_cost",
+        "ad_mci_hc_ct": ["norm_expected_cost","norm_cross_entropy"],
         "ad_mci_hc_chile": "norm_cross_entropy",
         "ad_mci_hc_group_as_feature": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",
@@ -404,6 +420,7 @@
         "Proyecto_Ivo": "clf",
         "GeroApathy": "clf",
         "arequipa": "clf",
+        "mci_hc_fugu": "clf",
         "ad_mci_hc": "clf",
         "ad_mci_hc_ct": "clf",
         "ad_mci_hc_chile": "clf",
@@ -428,6 +445,7 @@
         "Proyecto_Ivo": ["lr","svc","knnc","xgb"],
         "GeroApathy": ["lr","svc","knnc","xgb"],
         "arequipa": ["lr","svc","knnc","xgb"],
+        "mci_hc_fugu": ["lr","svc","knnc","xgb"],
         "ad_mci_hc": ["lr","svc","xgb","knnc","nb"],
         "ad_mci_hc_ct": ["lr","svc","xgb","knnc","nb"],
         "ad_mci_hc_chile": ["lr","svc","xgb","knnc","nb"],
@@ -441,7 +459,6 @@
         "arequipa_reg_mci_hc": ["lasso","ridge","elastic","svr"],
         "GERO_females":["lasso","ridge","elastic","svr","xgb"],
         "tea_tomi_chu": ["lr","svc","xgb","knnc","nb"]
-
     },
     "covars":{
         "arequipa_reg_mci":["sex","age","education"],
@@ -451,10 +468,9 @@
     "cmatrix":{
         "MCI_classifier":null,
         "tell_classifier":null,
+        "mci_hc_fugu":null,
         "ad_mci_hc":null,
-        "ad_mci_hc_ct":[[0,1,1],
-                        [1,0,1],
-                        [1,1,0]],
+        "ad_mci_hc_ct":null,
         "ad_mci_hc_chile":null,
         "ad_mci_hc_group_as_feature":null,
         "Proyecto_Ivo":null,

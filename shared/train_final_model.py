@@ -42,7 +42,7 @@ n_models = int(config['n_models'])
 n_boot = int(config['n_boot'])
 early_fusion = bool(config['early_fusion'])
 problem_type = config['problem_type']
-rewrite = bool(config['rewrite'])
+overwrite = bool(config['overwrite'])
 parallel = bool(config['parallel'])
 id_col = config['id_col']
 

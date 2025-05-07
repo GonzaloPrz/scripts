@@ -145,7 +145,7 @@ bayesian = bool(config["bayesian"])
 n_boot_test = int(config["n_boot_test"])
 n_boot_train = int(config["n_boot_train"])
 calibrate = bool(config["calibrate"])
-rewrite = bool(config["rewrite"])
+overwrite = bool(config["overwrite"])
 
 if calibrate:    
     calmethod = AffineCalLogLoss
@@ -274,7 +274,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_dev)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
-                    if Path(file.parent,f'{filename_to_save}_test.csv').exists() and rewrite == False:
+                    if Path(file.parent,f'{filename_to_save}_test.csv').exists() and overwrite == False:
                         print(f"Testing already done")
                         continue
 

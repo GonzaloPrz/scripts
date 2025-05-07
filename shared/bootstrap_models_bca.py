@@ -32,7 +32,7 @@ n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
 calibrate = bool(config["calibrate"])
-rewrite = bool(config["rewrite"])
+overwrite = bool(config["overwrite"])
 parallel = bool(config["parallel"])
 
 home = Path(os.environ.get("HOME", Path.home()))
@@ -81,7 +81,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             if config['n_models'] != 0:
                 filename_to_save = filename_to_save.replace('all_models','best_models').replace('.csv',f'_{scoring}.csv')
 
-            if Path(path,random_seed,'bayesian' if bayesian else '',filename_to_save).exists() and rewrite == False:
+            if Path(path,random_seed,'bayesian' if bayesian else '',filename_to_save).exists() and overwrite == False:
                 print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
                 continue
               

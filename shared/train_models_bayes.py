@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import math 
 
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
@@ -10,10 +9,10 @@ from sklearn.neighbors import KNeighborsClassifier as KNNC
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import train_test_split
-from xgboost import XGBClassifier as xgboost
-from xgboost import XGBRegressor as xgboostr
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
+from xgboost import XGBClassifier as xgboost
+from xgboost import XGBRegressor as xgboostr
 import itertools,pickle,sys, json
 import logging,sys,os,argparse
 from psrcal.calibration import AffineCalLogLoss
@@ -47,8 +46,8 @@ def parse_args():
     parser.add_argument('--n_boot',type=int,default=200,help='Number of features to select')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--rewrite',type=int,default=1,help='Whether to rewrite past results or not')
+    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
+    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=0,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
 
@@ -76,7 +75,7 @@ def load_configuration(args):
         n_boot = float(args.n_boot),
         filter_outliers = bool(args.filter_outliers),
         early_fusion = bool(args.early_fusion),
-        rewrite = bool(args.rewrite),
+        overwrite = bool(args.overwrite),
         parallel = bool(args.parallel),
         n_seeds_test = float(args.n_seeds_test) if args.n_folds_outer!= -1 else float(0)
     )
@@ -108,6 +107,9 @@ single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
+if not isinstance(scoring_metrics,list):
+    scoring_metrics = [scoring_metrics]
+
 problem_type = main_config['problem_type'][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
@@ -169,7 +171,7 @@ hyperp = {'lr':{'C':(1e-4,100)},
                     'gamma':(1e-4,1e4)}
             }
 
-for y_label,task in itertools.product(y_labels,tasks):
+for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
     dimensions = list()
     if isinstance(single_dimensions,list):
         for ndim in range(1,len(single_dimensions)+1):
@@ -248,7 +250,7 @@ for y_label,task in itertools.product(y_labels,tasks):
                         else KFold(n_splits=n_folds_inner, shuffle=True))            
             subfolders = [
                 task, dimension, config['scaler_name'],
-                config['kfold_folder'], y_label, config['stat_folder'],'bayes',
+                config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
                 'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                 'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
                 'shuffle' if config['shuffle_labels'] else ''
@@ -287,7 +289,7 @@ for y_label,task in itertools.product(y_labels,tasks):
                 assert set(ID_train_).isdisjoint(set(ID_test_)), 'Data leakage detected between train and test sets!'
                 
                 if (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'all_models_{model_key}.csv').exists() and config['calibrate'] == False) or (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'cal_outputs_{model_key}.pkl').exists() and config['calibrate']):
-                    if config['rewrite'] == False:
+                    if config['overwrite'] == False:
                         print(f'Results already exist for {task} - {y_label} - {model_key}. Skipping...')
                         continue
                 
@@ -305,7 +307,7 @@ for y_label,task in itertools.product(y_labels,tasks):
                                                                                      hyperp_space=hyperp[model_key],
                                                                                      IDs=ID_train_,
                                                                                      init_points=int(config['init_points']),
-                                                                                     scoring=scoring_metrics,
+                                                                                     scoring=scoring,
                                                                                      problem_type=problem_type,
                                                                                      cmatrix=cmatrix,priors=None,
                                                                                      threshold=thresholds,
@@ -319,6 +321,9 @@ for y_label,task in itertools.product(y_labels,tasks):
             
                 all_models.to_csv(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '',f'all_models_{model_key}.csv'),index=False)
                 result_files = {
+                    'X_train.pkl': X_train_,
+                    'y_train.pkl': y_train_,
+                    'IDs_train.pkl': ID_train_,
                     'y_dev.pkl': y_dev,
                     'IDs_dev.pkl': IDs_dev,
                     f'outputs_{model_key}.pkl': outputs_best}
