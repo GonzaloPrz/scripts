@@ -7,7 +7,6 @@ from joblib import Parallel, delayed
 import sys,os,json
 
 from expected_cost.ec import CostMatrix
-from matplotlib import pyplot as plt
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 

@@ -3,9 +3,7 @@ import pickle
 from pathlib import Path
 from expected_cost.utils import *
 import itertools
-from joblib import Parallel, delayed
 import sys,json
-from pingouin import compute_bootci
 import numpy as np
 
 from expected_cost.ec import CostMatrix
