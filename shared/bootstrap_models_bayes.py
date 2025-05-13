@@ -73,7 +73,7 @@ for scoring in scoring_metrics:
             
             for random_seed in random_seeds:
 
-                if not Path(path,random_seed,f'outputs_{model}.pkl').exists():
+                if not Path(path,random_seed,f'outputs_{model}.pkl').exists() and not overwrite:
                     continue
                 
                 outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))

@@ -70,8 +70,6 @@ def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_d
     if 'random_state' in params.keys():
         params['random_state'] = int(params['random_state'])
     outputs = np.empty((np.max((1,boot_train)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
-    y_test_ = np.empty((np.max((1,boot_train)),len(y_test)))
-    IDs_test_ = np.empty((np.max((1,boot_train)),len(y_test)), dtype=object)
 
     if problem_type == 'reg':
         outputs = outputs.squeeze(axis=-1)
@@ -205,6 +203,7 @@ models_dict = {'clf':{'lr': LogisticRegression,
 }
 
 for task,scoring in itertools.product(tasks,scoring_metrics):
+    scoring = scoring.replace('_score','')
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
@@ -263,7 +262,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     else:
                         scoring_col = f'{scoring}_{extremo}'
 
-                    results_dev = results_dev.sort_values(by=scoring_col,ascending=ascending)
+                    results_dev = results_dev.sort_values(by=scoring_col.replace('_score',''),ascending=ascending)
                     
                     all_features = [col for col in results_dev.columns if any([dim in col for dim in dimension.split('__')])]
                     if 'threshold' not in results_dev.columns:

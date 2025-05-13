@@ -131,7 +131,8 @@
             "fugu"
                 ],
         "ad_mci_hc_ct": [
-            "fugu"
+            "image-description",
+            "routine__image-description"
         ],
         "ad_mci_hc_chile": [
             "fugu"
@@ -198,13 +199,13 @@
     },
     "test_size": {
         "tell_classifier": 0.3,
-        "MCI_classifier": 0.3,
+        "MCI_classifier": 0.18,
         "Proyecto_Ivo": 0,
         "GeroApathy": 0.3,
         "arequipa": 0,
         "mci_hc_fugu": 0.3,
         "ad_mci_hc": 0.13,
-        "ad_mci_hc_ct": 0.13,
+        "ad_mci_hc_ct": 0.18,
         "ad_mci_hc_chile": 0.25,
         "ad_mci_hc_group_as_feature": 0,
         "GERO_Ivo": 0.3,
@@ -273,7 +274,7 @@
         ],
         "mci_hc_fugu":[
             "talking_intervals_mfa",
-            "talking_intervals"
+            "talking-intervals"
         ],
         "ad_mci_hc":{
             "fugu":[
@@ -281,11 +282,14 @@
                 ]
             },
         "ad_mci_hc_ct":{
-            "fugu":[                
-                "pitch",
-                "talking-intervals",
-                "voice-quality"
-            ]
+            "routine":[                
+                "talking_intervals",
+                "word_properties"
+                ],
+            "image-description":[
+                "talking_intervals",
+                "word_properties"
+                ]
             },
         "ad_mci_hc_chile":{
             "fugu":[
@@ -346,13 +350,13 @@
     },
     "data_file": {
         "tell_classifier": "data_MOTOR-LIBRE.csv",
-        "MCI_classifier": "features_data.csv",
+        "MCI_classifier": "data_matched_unbalanced_group.csv",
         "Proyecto_Ivo": "all_data.csv",
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
         "mci_hc_fugu": "data_mfa_matched_group.csv",
         "ad_mci_hc": "data_matched_group.csv",
-        "ad_mci_hc_ct": "data_matched_group.csv",
+        "ad_mci_hc_ct": "data_matched_group_routine_image.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
         "ad_mci_hc_group_as_feature": "data_matched_group.csv",
         "GeroApathy_reg": "all_data_agradable.csv",
@@ -394,7 +398,7 @@
         "tea_tomi_chu":[null]
     },
     "scoring_metrics": {
-        "MCI_classifier": "norm_cross_entropy",
+        "MCI_classifier": "roc_auc_score",
         "tell_classifier": "norm_expected_cost",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",

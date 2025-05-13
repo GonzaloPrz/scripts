@@ -105,7 +105,7 @@ if problem_type == 'clf':
                     if not Path(path_to_results,random_seed,file).exists():
                         continue
                     
-                    df_filename = pd.read_csv(Path(path_to_results, random_seed, file)).sort_values(f'{scoring}_{extremo}', ascending=ascending)
+                    df_filename = pd.read_csv(Path(path_to_results, random_seed, file)).sort_values(f'{scoring}_{extremo}'.replace('_score',''), ascending=ascending)
                     model_index = df_filename.index[0]
 
                     if 'threshold' in df_filename.columns:
@@ -114,7 +114,7 @@ if problem_type == 'clf':
                         threshold = None
                         
                     if Path(path_to_results, 'shuffle', random_seed,file).exists():
-                        df_filename_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f'all_models_{model_name}_dev_bca.csv')).sort_values(f'{scoring}_{extremo}', ascending=ascending)
+                        df_filename_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f'all_models_{model_name}_dev_bca.csv')).sort_values(f'{scoring}_{extremo}'.replace('_score',''), ascending=ascending)
                         model_index_shuffle = df_filename_shuffle.index[0]
                         if 'threshold' in df_filename_shuffle.columns:
                             threshold_shuffle = df_filename_shuffle['threshold'][0]

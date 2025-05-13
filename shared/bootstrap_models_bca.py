@@ -112,7 +112,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
                 for i in range(outputs.shape[1]):
                     scorings_i = np.empty((outputs.shape[0],outputs.shape[2]))
                     for j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[2])):
-                        if problem_type[project_name] == 'clf':
+                        if problem_type == 'clf':
                             metrics, _ = get_metrics_clf(outputs[j,i,r], y_dev[j,r], [scoring], cmatrix)
                             scorings_i[j,r] = metrics[scoring]
                         else:

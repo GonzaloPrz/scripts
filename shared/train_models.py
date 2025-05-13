@@ -158,7 +158,7 @@ models_dict = {
             'lr': LR,
             'svc': SVC,
             'knnc': KNNC,
-            #'xgb': xgboost,
+            'xgb': xgboost,
             'nb':GaussianNB
         },
         'reg': {

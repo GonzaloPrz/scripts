@@ -99,8 +99,10 @@ def test_models_bootstrap(model_class,params,features,scaler,imputer,calmethod,c
             IDs_test_bootstrap[b_train,b_test] = IDs_test.squeeze()[boot_index]
 
             for metric in metrics_names:
-                metrics_test_bootstrap[metric][b_train,b_test] = metrics_test[metric]
-    
+                try:
+                    metrics_test_bootstrap[metric][b_train,b_test] = metrics_test[metric]
+                except:
+                    continue
     for metric in metrics_names:
         mean, inf, sup = utils.conf_int_95(metrics_test_bootstrap[metric].flatten())
 
@@ -135,6 +137,7 @@ tasks = main_config['tasks'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
 model_types = main_config['models'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
 
 if not isinstance(scoring_metrics,list):
     scoring_metrics = [scoring_metrics]
@@ -196,12 +199,12 @@ for scoring in scoring_metrics:
                     params = trained_model.get_params()
                     features = trained_model.feature_names_in_
 
-                    metrics_names = list(set(metrics_names_) - set(['roc_auc','accuracy','f1','recall','precision'])) if cmatrix is not None or len(np.unique(y_train)) > 2 else metrics_names
+                    metrics_names = list(set(metrics_names_) - set(['roc_auc','accuracy','f1','recall','precision'])) if cmatrix is not None or len(np.unique(y_train)) > 2 else metrics_names_
 
                     result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_models_bootstrap(type(trained_model),params,features,type(trained_scaler),type(trained_imputer),None,None,X_train,y_train,X_test,y_test,metrics_names,IDs_test,n_boot_train,n_boot_test,problem_type,threshold=None,cmatrix=cmatrix)
                     result_append.update({'task':task,'dimension':dimension,'y_label':y_label,'model_type':model_type,'random_seed':random_seed_test})
                     for metric in metrics_names:
-                        result_append.update({f'{metric}_dev':f"{best_model_dev[best_model_dev['metric'] == metric]['mean'].values[0]}, {best_model_dev[best_model_dev['metric'] == metric]['95_ci'].values[0]}"})
+                        result_append.update({f'{metric.replace('_score','')}_dev':f"{best_model_dev[best_model_dev['metric'] == metric.replace('_score','')]['mean'].values[0]}, {best_model_dev[best_model_dev['metric'] == metric.replace('_score','')]['95_ci'].values[0]}"})
                     if results_test.empty:
                         results_test = pd.DataFrame(result_append,index=[0])
                     else:

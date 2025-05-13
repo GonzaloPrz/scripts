@@ -112,9 +112,9 @@ for scoring in scoring_metrics:
                             df = pd.read_csv(file)
                             #df['score'] = (df[f'sup_{scoring}_dev'] - df[f'inf_{scoring}_dev'])
                             if f'{extremo}_{scoring}_dev' in df.columns:
-                                scoring_col = f'{extremo}_{scoring}_dev'
+                                scoring_col = f'{extremo}_{scoring}_dev'.replace('_score','')
                             else:
-                                scoring_col = f'{scoring}_{extremo}'
+                                scoring_col = f'{scoring}_{extremo}'.replace('_score','')
                             
                             df = df.sort_values(by=scoring_col,ascending=ascending)
                             
