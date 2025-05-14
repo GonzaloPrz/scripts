@@ -131,6 +131,7 @@
             "fugu"
                 ],
         "ad_mci_hc_ct": [
+            "routine",
             "image-description",
             "routine__image-description"
         ],
@@ -199,7 +200,7 @@
     },
     "test_size": {
         "tell_classifier": 0.3,
-        "MCI_classifier": 0.18,
+        "MCI_classifier": 0.2,
         "Proyecto_Ivo": 0,
         "GeroApathy": 0.3,
         "arequipa": 0,
@@ -289,6 +290,10 @@
             "image-description":[
                 "talking_intervals",
                 "word_properties"
+                ],
+            "routine__image-description":[                
+                "talking_intervals",
+                "word_properties"
                 ]
             },
         "ad_mci_hc_chile":{
@@ -350,7 +355,7 @@
     },
     "data_file": {
         "tell_classifier": "data_MOTOR-LIBRE.csv",
-        "MCI_classifier": "data_matched_unbalanced_group.csv",
+        "MCI_classifier": "data_matched_group.csv",
         "Proyecto_Ivo": "all_data.csv",
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
@@ -405,7 +410,7 @@
         "arequipa": "roc_auc",
         "mci_hc_fugu": ["norm_cross_entropy","norm_expected_cost"],
         "ad_mci_hc": "norm_cross_entropy",
-        "ad_mci_hc_ct": ["norm_expected_cost","norm_cross_entropy"],
+        "ad_mci_hc_ct": "norm_expected_cost",
         "ad_mci_hc_chile": "norm_cross_entropy",
         "ad_mci_hc_group_as_feature": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",
@@ -445,15 +450,15 @@
     },
     "models": {
         "tell_classifier": ["lr","svc","knnc","xgb"],
-        "MCI_classifier": ["lr","svc","knnc","xgb"],
+        "MCI_classifier": ["lr","knnc","xgb","nb"],
         "Proyecto_Ivo": ["lr","svc","knnc","xgb"],
         "GeroApathy": ["lr","svc","knnc","xgb"],
         "arequipa": ["lr","svc","knnc","xgb"],
         "mci_hc_fugu": ["lr","svc","knnc","xgb"],
-        "ad_mci_hc": ["lr","svc","xgb","knnc","nb"],
-        "ad_mci_hc_ct": ["lr","svc","xgb","knnc","nb"],
-        "ad_mci_hc_chile": ["lr","svc","xgb","knnc","nb"],
-        "ad_mci_hc_group_as_feature": ["lr","svc","xgb","knnc","nb"],
+        "ad_mci_hc": ["lr","svc","xgb","knnc"],
+        "ad_mci_hc_ct": ["lr","svc","xgb","knnc"],
+        "ad_mci_hc_chile": ["lr","svc","xgb","knnc"],
+        "ad_mci_hc_group_as_feature": ["lr","svc","xgb","knnc"],
         "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "GERO_Ivo": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],

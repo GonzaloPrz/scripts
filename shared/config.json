@@ -1,13 +1,13 @@
 {
     "project_name": "MCI_classifier",
-    "stats": "",
+    "stats": "mean_std",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 5.0,
+    "n_folds": 6.0,
     "n_iter": 20.0,
-    "n_iter_features": 20.0,
+    "n_iter_features": 10.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -18,13 +18,13 @@
     "bayesian": false,
     "filter_outliers": false,
     "early_fusion": true,
-    "n_boot_test": 400.0,
-    "n_boot_train": 5.0,
-    "overwrite": false,
+    "n_boot_test": 2000.0,
+    "n_boot_train": 0.0,
+    "overwrite": true,
     "parallel": true,
     "n_seeds_test": 1.0,
-    "test_size": 0.18,
-    "data_file": "data_matched_unbalanced_group.csv",
+    "test_size": 0.2,
+    "data_file": "data_matched_group.csv",
     "tasks": [
         "fas",
         "animales",
@@ -40,8 +40,14 @@
     "y_labels": [
         "group"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "median",
+        "kurtosis",
+        "min",
+        "skewness",
+        "max"
+    ],
+    "stat_folder": "mean_std",
     "random_seeds_train": [
         3.0,
         9.0,
@@ -60,5 +66,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "5_folds"
+    "kfold_folder": "6_folds"
 }

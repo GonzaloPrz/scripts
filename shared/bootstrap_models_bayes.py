@@ -24,11 +24,9 @@ stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = config['feature_selection']
 filter_outliers = config['filter_outliers']
-n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 calibrate = bool(config["calibrate"])
 overwrite = bool(config["overwrite"])
-parallel = bool(config["parallel"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -56,7 +54,7 @@ cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_con
 conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model_type','metric','mean','95_ci'])
 
 for scoring in scoring_metrics:
-    for task,model,y_label,scoiring_metric in itertools.product(tasks,models,y_labels,scoring_metrics):    
+    for task,model,y_label in itertools.product(tasks,models,y_labels):    
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
@@ -67,7 +65,7 @@ for scoring in scoring_metrics:
             if not path.exists():  
                 continue
 
-            random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name]
+            random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name] if config["test_size"] > 0 else []
             if len(random_seeds) == 0:
                 random_seeds = ['']
             

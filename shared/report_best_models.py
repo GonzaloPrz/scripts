@@ -44,6 +44,7 @@ pd.options.mode.copy_on_write = True
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 for scoring in scoring_metrics:
+    scoring = scoring.replace('_score','')
     best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test','fusion'] + [f'{metric}_mean_dev' for metric in metrics_names] 
                            + [f'{metric}_ic_dev' for metric in metrics_names] 
                            + [f'{metric}_mean_holdout' for metric in metrics_names]
@@ -68,8 +69,8 @@ for scoring in scoring_metrics:
                 if not path.exists():
                     continue
                 random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
-                if len(random_seeds_test) == 0:
-                    random_seeds_test = ['']
+                
+                random_seeds_test.append('')
 
                 for random_seed_test in random_seeds_test:
                     late_fusion_folders = ['']
@@ -106,15 +107,15 @@ for scoring in scoring_metrics:
                         
                         best = None
                         for file in files:
-                            if file.suffix != '.csv':
+                            if file.suffix != '.csv' or 'svc' in file.stem:
                                 continue
 
                             df = pd.read_csv(file)
                             #df['score'] = (df[f'sup_{scoring}_dev'] - df[f'inf_{scoring}_dev'])
                             if f'{extremo}_{scoring}_dev' in df.columns:
-                                scoring_col = f'{extremo}_{scoring}_dev'.replace('_score','')
+                                scoring_col = f'{extremo}_{scoring}_dev'
                             else:
-                                scoring_col = f'{scoring}_{extremo}'.replace('_score','')
+                                scoring_col = f'{scoring}_{extremo}'
                             
                             df = df.sort_values(by=scoring_col,ascending=ascending)
                             

@@ -58,8 +58,8 @@ def parse_args():
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--n_boot_test',type=int,default=400,help='Number of bootstrap samples for holdout')
-    parser.add_argument('--n_boot_train',type=int,default=5,help='Number of bootstrap samples of training samples while performing model testing')
+    parser.add_argument('--n_boot_test',type=int,default=2000,help='Number of bootstrap samples for holdout')
+    parser.add_argument('--n_boot_train',type=int,default=0,help='Number of bootstrap samples of training samples while performing model testing')
     parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
@@ -156,7 +156,6 @@ else:
 models_dict = {
         'clf': {
             'lr': LR,
-            'svc': SVC,
             'knnc': KNNC,
             'xgb': xgboost,
             'nb':GaussianNB

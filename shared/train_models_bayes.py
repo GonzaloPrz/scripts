@@ -38,12 +38,13 @@ def parse_args():
     parser.add_argument('--n_iter', type=int, default=10, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--init_points', type=int, default=20, help='Number of random initial points to test during Bayesian optimization')
-    parser.add_argument('--n_seeds_train',type=int,default=20,help='Number of seeds for cross-validation training')
+    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
-    parser.add_argument('--n_models',type=float,default=0,help='Number of hyperparameter combinatios to try and select from  to train')
-    parser.add_argument('--n_boot',type=int,default=200,help='Number of features to select')
+    parser.add_argument('--n_boot',type=int,default=200,help='Number of bootstrap iterations')
+    parser.add_argument('--n_boot_train',type=int,default=0,help='Number of bootstrap iterations for training')
+    parser.add_argument('--n_boot_test',type=int,default=2000,help='Number of bootstrap iterations for testing')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
@@ -71,8 +72,9 @@ def load_configuration(args):
         n_seeds_shuffle = float(args.n_seeds_shuffle) if args.shuffle_labels else float(0),
         scaler_name = args.scaler_name,
         id_col = args.id_col,
-        n_models = float(args.n_models),
         n_boot = float(args.n_boot),
+        n_boot_test = float(args.n_boot_test),
+        n_boot_train = float(args.n_boot_train),
         filter_outliers = bool(args.filter_outliers),
         early_fusion = bool(args.early_fusion),
         overwrite = bool(args.overwrite),
@@ -116,7 +118,8 @@ cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_con
 config['test_size'] = float(test_size)
 config['data_file'] = data_file
 config['tasks'] = tasks
-config['single_dimensions'] = single_dimensions        
+config['single_dimensions'] = single_dimensions    
+
 config['scoring_metrics'] = scoring_metrics
 config['problem_type'] = problem_type
 config['y_labels'] = y_labels
@@ -173,14 +176,16 @@ hyperp = {'lr':{'C':(1e-4,100)},
 
 for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
     dimensions = list()
-    if isinstance(single_dimensions,list):
-        for ndim in range(1,len(single_dimensions)+1):
-            for dimension in itertools.combinations(single_dimensions,ndim):
+    if isinstance(single_dimensions,dict):
+        single_dimensions_ = single_dimensions[task]
+    else:
+        single_dimensions_ = single_dimensions
+
+    if isinstance(single_dimensions_,list) and config["early_fusion"]:
+        for ndim in range(len(single_dimensions_)):
+            for dimension in itertools.combinations(single_dimensions_,ndim+1):
                 dimensions.append('__'.join(dimension))
 
-    if len(dimensions) == 0:
-        dimensions = single_dimensions[task]
-    
     for dimension in dimensions:
         print(task,dimension)
         
@@ -289,7 +294,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                 assert set(ID_train_).isdisjoint(set(ID_test_)), 'Data leakage detected between train and test sets!'
                 
                 if (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'all_models_{model_key}.csv').exists() and config['calibrate'] == False) or (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'cal_outputs_{model_key}.pkl').exists() and config['calibrate']):
-                    if config['overwrite'] == False:
+                    if not bool(config['overwrite']):
                         print(f'Results already exist for {task} - {y_label} - {model_key}. Skipping...')
                         continue
                 

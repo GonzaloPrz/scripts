@@ -218,7 +218,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
             if not path_to_results.exists():
                 continue
             
-            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
+            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name] if config["test_size"] > 0 else []
 
             if len(random_seeds_test) == 0:
                 random_seeds_test = ['']
@@ -286,11 +286,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     results_test['idx'] = results_dev['Unnamed: 0'].values
 
                     outputs_test = np.stack([result[1] for result in results],axis=0)
-                    outputs_bootstrap = np.stack([result[2] for result in results],axis=0)
-                    y_true_bootstrap = np.stack([result[3] for result in results],axis=0)
-                    y_pred_bootstrap = np.stack([result[4] for result in results],axis=0)
-                    IDs_test_bootstrap = np.stack([result[5] for result in results],axis=0)
-
+                    
                     results_test.to_csv(Path(file.parent,f'{filename_to_save}_test.csv'))
                     outputs_filename = f'cal_outputs_test_{model_name}.pkl' if calibrate else f'outputs_test_{model_name}.pkl'
                     with open(Path(file.parent,outputs_filename),'wb') as f:

@@ -25,7 +25,6 @@ stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
-rewrite = bool(config['rewrite'])
 test_size = float(config['test_size'])
 n_boot = int(config['n_boot'])
 

@@ -91,6 +91,8 @@ results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path
 pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
 
 for scoring in scoring_metrics:
+    scoring = scoring.replace('_score','')
+    
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
@@ -117,7 +119,7 @@ for scoring in scoring_metrics:
         if not Path(path).exists():
             continue
 
-        random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and 'random_seed' in folder.name]
+        random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and 'random_seed' in folder.name] if test_size > 0 else []
         
         if len(random_seeds_test) == 0:
             random_seeds_test = ['']

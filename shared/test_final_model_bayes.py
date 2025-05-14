@@ -121,8 +121,8 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 feature_selection = config['feature_selection']
 filter_outliers = config['filter_outliers']
-n_boot_test = 2000
-n_boot_train = 0
+n_boot_test = int(config['n_boot_test'])
+n_boot_train = int(config['n_boot_train'])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -183,7 +183,7 @@ for scoring in scoring_metrics:
                 if not path_to_results.exists():
                     continue
                 
-                random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
+                random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name] if config["test_size"] > 0 else []
 
                 if len(random_seeds_test) == 0:
                     random_seeds_test = ['']
@@ -204,7 +204,7 @@ for scoring in scoring_metrics:
                     result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_models_bootstrap(type(trained_model),params,features,type(trained_scaler),type(trained_imputer),None,None,X_train,y_train,X_test,y_test,metrics_names,IDs_test,n_boot_train,n_boot_test,problem_type,threshold=None,cmatrix=cmatrix)
                     result_append.update({'task':task,'dimension':dimension,'y_label':y_label,'model_type':model_type,'random_seed':random_seed_test})
                     for metric in metrics_names:
-                        result_append.update({f'{metric.replace('_score','')}_dev':f"{best_model_dev[best_model_dev['metric'] == metric.replace('_score','')]['mean'].values[0]}, {best_model_dev[best_model_dev['metric'] == metric.replace('_score','')]['95_ci'].values[0]}"})
+                        result_append.update({f'{metric}_dev':f"{best_model_dev[best_model_dev['metric'] == metric]['mean'].values[0]}, {best_model_dev[best_model_dev['metric'] == metric]['95_ci'].values[0]}"})
                     if results_test.empty:
                         results_test = pd.DataFrame(result_append,index=[0])
                     else:
