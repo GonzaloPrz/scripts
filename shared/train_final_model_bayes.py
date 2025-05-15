@@ -67,8 +67,8 @@ models = main_config["models"][project_name]
 models_dict = {
         'clf': {
             'lr': LogisticRegression,
-            'svc': SVC,
-            'knnc': KNeighborsClassifier,
+            #'svc': SVC,
+            #'knnc': KNeighborsClassifier,
             'xgb': XGBClassifier,
             'nb':GaussianNB
         },

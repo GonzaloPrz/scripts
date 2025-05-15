@@ -69,6 +69,7 @@ data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = [main_config['scoring_metrics'][project_name]]
 problem_type = main_config['problem_type'][project_name]
+overwrite = bool(config['overwrite'])
 
 models_dict = {
         'clf': {
@@ -127,6 +128,10 @@ for scoring in scoring_metrics:
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
             
+            if Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl').exists() and not overwrite:
+                print(f'Final model already exists for {task} {dimension} {y_label} {random_seed_test}. Skipping.')
+                continue
+
             model_type = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
             print(model_type)
             model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_index'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
