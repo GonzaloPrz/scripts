@@ -60,7 +60,7 @@ for scoring in scoring_metrics:
 
         for dimension in dimensions:
             print(task,model,dimension,y_label)
-            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,stat_folder,y_label,'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
+            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
             
             if not path.exists():  
                 continue

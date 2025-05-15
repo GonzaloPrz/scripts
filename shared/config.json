@@ -1,13 +1,13 @@
 {
-    "project_name": "MCI_classifier",
-    "stats": "mean_std",
+    "project_name": "ad_mci_hc",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
     "n_folds": 6.0,
     "n_iter": 20.0,
-    "n_iter_features": 10.0,
+    "n_iter_features": 20.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -20,34 +20,26 @@
     "early_fusion": true,
     "n_boot_test": 2000.0,
     "n_boot_train": 0.0,
-    "overwrite": true,
+    "overwrite": false,
     "parallel": true,
     "n_seeds_test": 1.0,
-    "test_size": 0.2,
+    "test_size": 0.13,
     "data_file": "data_matched_group.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean"
+        "fugu"
     ],
-    "single_dimensions": [
-        "psycholinguistic",
-        "talking_intervals"
-    ],
-    "scoring_metrics": "roc_auc_score",
+    "single_dimensions": {
+        "fugu": [
+            "talking-intervals"
+        ]
+    },
+    "scoring_metrics": "norm_cross_entropy",
     "problem_type": "clf",
     "y_labels": [
         "group"
     ],
-    "avoid_stats": [
-        "median",
-        "kurtosis",
-        "min",
-        "skewness",
-        "max"
-    ],
-    "stat_folder": "mean_std",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
         3.0,
         9.0,

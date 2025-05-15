@@ -10,36 +10,27 @@ sys.path.append(str(Path(Path.home(),'scripts_generales')))
 
 from matching_module import perform_matching
 
-project_name = 'GeroApathy'
-target_vars = ['Depression_Total_Score_label','DASS_21_Depression_V_label','AES_Total_Score_label',
-                'MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label']
+project_name = 'MCI_classifier'
+target_vars = ['group']
 
 for target_var in target_vars:
     print(target_var)
     # Define variables
-    vars = ['sex','age','education', target_var, 'id']
+    vars = ['sex','age','education','handedness', target_var, 'id']
     output_var = target_var
     
-    matching_vars = ['sex','age','education']
+    matching_vars = ['sex','age','education','handedness']
 
-    fact_vars = ['sex']
+    fact_vars = ['sex','handedness']
     cont_vars = ['education','age']
 
-    data = pd.read_csv(Path(Path.home(),'data',project_name,'all_data_agradable.csv'))
-    data.drop(['target'],axis=1,inplace=True)
-    demographic_data = pd.read_csv(Path(Path.home(),'data','Audios_GERO_T1.csv'))
-    data = pd.merge(data,demographic_data,left_on='id',right_on='id',how='inner')
+    data = pd.read_csv(Path(Path.home(),'data',project_name,'original_data.csv'))
 
     data.dropna(subset=[target_var],inplace=True)
     for fact_var in fact_vars:
         data[fact_var] = data[fact_var].astype('category').cat.codes
  
-    if 'Ekman' in target_var:
-        caliper = 0.09
-    elif 'Minisea' in target_var:
-        caliper = 2
-    else:
-        caliper =  0.05
+    caliper = 0.4
 
     matched_data = perform_matching(data, output_var,matching_vars,fact_vars,caliper=caliper)
 

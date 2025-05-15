@@ -144,7 +144,7 @@ else:
     calmethod = None
     calparams = None
 
-models_dict = {'clf':{'svc':SVC,
+models_dict = {'clf':{#'svc':SVC,
                     'lr':LR,
                     'knnc':KNNC,
                     'xgb':xgboost},
