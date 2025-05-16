@@ -71,9 +71,9 @@ for scoring in scoring_metrics:
             
             for random_seed in random_seeds:
 
-                if not Path(path,random_seed,f'outputs_{model}.pkl').exists() and not overwrite:
+                if not Path(path,random_seed,f'outputs_{model}.pkl').exists():
                     continue
-                
+
                 outputs = pickle.load(open(Path(path,random_seed,f'outputs_{model}.pkl'),'rb'))
             
                 y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb'))
@@ -103,4 +103,4 @@ for scoring in scoring_metrics:
                 pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
                 pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
 
-    conf_int_metrics.to_csv(Path(results_dir,f'metrics_{scoring}_feature_selection_dev.csv' if feature_selection else f'metrics_{scoring}_dev.csv'),index=False)
+    conf_int_metrics.to_csv(Path(results_dir,f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')),index=False)

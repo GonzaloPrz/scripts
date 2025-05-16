@@ -67,8 +67,8 @@ models = main_config["models"][project_name]
 models_dict = {
         'clf': {
             'lr': LogisticRegression,
-            #'svc': SVC,
-            #'knnc': KNeighborsClassifier,
+            'svc': SVC,
+            'knnc': KNeighborsClassifier,
             'xgb': XGBClassifier,
             'nb':GaussianNB
         },
@@ -113,11 +113,9 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     for task, dimension, y_label,model_type in itertools.product(tasks,dimensions,y_labels,model_types):
         print(task,dimension,y_label,model_type)
         path_to_results = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '')
-        random_seeds = [folder.name for folder in path_to_results.iterdir() if 'random_seed' in folder.name] if config["test_size"] > 0 else []
+        random_seeds = [folder.name for folder in path_to_results.iterdir() if 'random_seed' in folder.name]
+        random_seeds.append('')
         
-        if len(random_seeds) == 0:
-            random_seeds = ['']
-
         for random_seed in random_seeds:
             all_models = pd.read_csv(Path(path_to_results,random_seed,f'all_models_{model_type}.csv'))
             

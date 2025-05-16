@@ -44,7 +44,10 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = [main_config['scoring_metrics'][project_name]]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+if not isinstance(scoring_metrics,list):
+    scoring_metrics = [scoring_metrics]
+    
 problem_type = main_config['problem_type'][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 

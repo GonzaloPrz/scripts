@@ -218,10 +218,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
             if not path_to_results.exists():
                 continue
             
-            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name] if config["test_size"] > 0 else []
-
-            if len(random_seeds_test) == 0:
-                random_seeds_test = ['']
+            random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
               
             for random_seed_test in random_seeds_test:
                 if int(config["n_models"] == 0):

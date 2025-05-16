@@ -1,6 +1,6 @@
 {
     "project_name": "MCI_classifier",
-    "stats": "mean_std",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
@@ -22,8 +22,8 @@
     "n_boot_train": 0.0,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 1.0,
-    "test_size": 0.0,
+    "n_seeds_test": 2.0,
+    "test_size": 0.2,
     "data_file": "data_matched_group.csv",
     "tasks": [
         "fas",
@@ -40,14 +40,8 @@
     "y_labels": [
         "group"
     ],
-    "avoid_stats": [
-        "kurtosis",
-        "median",
-        "skewness",
-        "min",
-        "max"
-    ],
-    "stat_folder": "mean_std",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
         3.0,
         9.0,
@@ -61,7 +55,8 @@
         59049.0
     ],
     "random_seeds_test": [
-        ""
+        3.0,
+        9.0
     ],
     "random_seeds_shuffle": [
         ""

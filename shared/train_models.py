@@ -156,7 +156,8 @@ else:
 models_dict = {
         'clf': {
             'lr': LR,
-            #'knnc': KNNC,
+            'svc': SVC,
+            'knnc': KNNC,
             'xgb': xgboost,
             'nb':GaussianNB
         },

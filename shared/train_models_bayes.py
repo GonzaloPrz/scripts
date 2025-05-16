@@ -144,9 +144,9 @@ else:
     calmethod = None
     calparams = None
 
-models_dict = {'clf':{#'svc':SVC,
+models_dict = {'clf':{'svc':SVC,
                     'lr':LR,
-                    #'knnc':KNNC,
+                    'knnc':KNNC,
                     'xgb':xgboost},
                 
                 'reg':{'lasso':Lasso,
@@ -181,10 +181,16 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
     else:
         single_dimensions_ = single_dimensions
 
-    if isinstance(single_dimensions_,list) and config["early_fusion"]:
-        for ndim in range(len(single_dimensions_)):
-            for dimension in itertools.combinations(single_dimensions_,ndim+1):
-                dimensions.append('__'.join(dimension))
+    if isinstance(single_dimensions_,list):
+        if config["early_fusion"]:
+            for ndim in range(len(single_dimensions_)):
+                for dimension in itertools.combinations(single_dimensions_,ndim+1):
+                    dimensions.append('__'.join(dimension))
+        else:
+            dimensions = single_dimensions_
+    
+    else:
+        dimensions = single_dimensions[task]
 
     for dimension in dimensions:
         print(task,dimension)

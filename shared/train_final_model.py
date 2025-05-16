@@ -67,7 +67,9 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = [main_config['scoring_metrics'][project_name]]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+if not isinstance(scoring_metrics,list):
+    scoring_metrics = [scoring_metrics]
 problem_type = main_config['problem_type'][project_name]
 overwrite = bool(config['overwrite'])
 
@@ -120,10 +122,9 @@ for scoring in scoring_metrics:
         if not Path(path).exists():
             continue
 
-        random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and 'random_seed' in folder.name] if test_size > 0 else []
-        
-        if len(random_seeds_test) == 0:
-            random_seeds_test = ['']
+        random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and 'random_seed' in folder.name]
+
+        random_seeds_test.append('')
 
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
