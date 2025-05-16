@@ -9,7 +9,7 @@ from statsmodels.stats.multitest import multipletests
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from xgboost import XGBClassifier, XGBRegressor
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import KNNImputer
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
@@ -86,7 +86,8 @@ models_dict = {
             'ridge': Ridge,
             'elastic': ElasticNet,
             'svr': SVR,
-            'xgb': XGBRegressor
+            'xgb': XGBRegressor,
+            'knnr': KNeighborsRegressor
         }
     }
 
@@ -172,6 +173,9 @@ for scoring in scoring_metrics:
             
             X_dev = pickle.load(open(Path(path_to_data,'X_dev.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path_to_data,'y_dev.pkl'),'rb'))
+            if not Path(path_to_data,'outputs_dev.pkl').exists():   
+                continue
+
             outputs_dev = pickle.load(open(Path(path_to_data,f'outputs_{model_type}.pkl'),'rb'))[:,model_index]
 
             if calibrate:
@@ -241,27 +245,29 @@ for scoring in scoring_metrics:
                 # Calculate Pearson's correlation
                 r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
 
-                plt.figure()
-                sns.scatterplot(x='y_true',y='y_pred',data=predictions)
-                plt.xlabel('True vaue')
-                plt.ylabel('Predicted value')
-                plt.title(f'{model_type} - {y_label} - {dimension} - {task}')
-                plt.xlim(np.min((predictions['y_true'].min(),predictions['y_pred'].min())),np.max((predictions['y_true'].max(),predictions['y_pred'].max())))
-                plt.ylim(np.min((predictions['y_true'].min(),predictions['y_pred'].min())),np.max((predictions['y_true'].max(),predictions['y_pred'].max())))
-                plt.grid(True)
-                # Add the regression line
-                a, b = np.polyfit(predictions['y_true'], predictions['y_pred'], 1)
-                plt.plot(predictions['y_true'], a * predictions['y_true'] + b, color='red')
+                plt.figure(figsize=(8, 6))  # Adjust figure size for better aesthetics
+                sns.regplot(x='y_true', y='y_pred', data=predictions, scatter_kws={'alpha':0.6}, line_kws={'color': 'red'}) # Use regplot for scatter and regression line, adjust scatter alpha
+                plt.xlabel('True Value', fontsize=12)  # Corrected label and increased font size
+                plt.ylabel('Predicted Value', fontsize=12)  # Corrected label and increased font size
+                plt.title(f'{model_type} - {y_label} - {dimension} - {task}', fontsize=14)  # Increased font size
+                
+                # Calculate the limits based on the data
+                min_val = min(predictions['y_true'].min(), predictions['y_pred'].min())
+                max_val = max(predictions['y_true'].max(), predictions['y_pred'].max())
+                plt.xlim(min_val, max_val)
+                plt.ylim(min_val, max_val)
+                
+                plt.grid(True, linestyle='--', alpha=0.5)  # Added grid for better readability
 
                 pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
 
-                # Add stats to the plot
-                plt.text(predictions['y_true'].min(), predictions['y_pred'].max(), f'r = {r:.2f}, p = {p:.2e}', fontsize=12)
+                # Add stats to the plot, adjust position for better visibility
+                plt.text(0.05, 0.95, f'r = {r:.2f}, p = {p:.2e}', fontsize=12, transform=plt.gca().transAxes, verticalalignment='top')
 
-                # Save the plot
-                plt.savefig(Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'{task}_{y_label}_{dimension}_{model_type}.png'))
+                # Save the plot with higher DPI for better resolution
+                plt.savefig(Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'{task}_{y_label}_{dimension}_{model_type}.png'), dpi=300)
                 plt.close()
-    
+
     if problem_type == 'reg':
         pearsons_results_file = f'pearons_results_{scoring}_{stat_folder}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
         if not hyp_opt:

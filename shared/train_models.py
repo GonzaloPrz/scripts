@@ -39,7 +39,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='MCI_classifier',type=str,help='Project name')
+    parser.add_argument('--project_name', default='GERO_Ivo',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
@@ -60,7 +60,7 @@ def parse_args():
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
     parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap samples for holdout')
     parser.add_argument('--n_boot_train',type=int,default=0,help='Number of bootstrap samples of training samples while performing model testing')
-    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
+    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     return parser.parse_args()

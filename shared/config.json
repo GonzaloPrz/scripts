@@ -1,30 +1,30 @@
 {
-    "project_name": "MCI_classifier",
+    "project_name": "GERO_Ivo",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 11.0,
+    "n_folds": 5.0,
     "n_iter": 10.0,
     "n_iter_features": 10.0,
     "feature_sample_ratio": 0.5,
-    "n_seeds_train": 10.0,
+    "n_seeds_train": 1.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
     "n_models": 0.0,
-    "n_boot": 500.0,
+    "n_boot": 200.0,
     "bayesian": false,
     "filter_outliers": false,
     "early_fusion": true,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
-    "overwrite": false,
+    "overwrite": true,
     "parallel": true,
-    "n_seeds_test": 2.0,
-    "test_size": 0.2,
-    "data_file": "data_matched_group.csv",
+    "n_seeds_test": 1.0,
+    "test_size": 0.0,
+    "data_file": "all_data.csv",
     "tasks": [
         "fas",
         "animales",
@@ -33,33 +33,34 @@
     ],
     "single_dimensions": [
         "psycholinguistic",
-        "talking_intervals"
+        "speech_timing"
     ],
-    "scoring_metrics": "roc_auc_score",
-    "problem_type": "clf",
+    "scoring_metrics": "mean_absolute_error",
+    "problem_type": "reg",
     "y_labels": [
-        "group"
+        "GM_norm",
+        "WM_norm",
+        "norm_vol_bilateral_HIP",
+        "norm_vol_mask_AD",
+        "GM",
+        "WM",
+        "vol_bilateral_HIP",
+        "vol_mask_AD",
+        "MMSE_Total_Score",
+        "ACEIII_Total_Score",
+        "IFS_Total_Score",
+        "MoCA_Total_Boni_3"
     ],
     "avoid_stats": [],
     "stat_folder": "",
     "random_seeds_train": [
-        3.0,
-        9.0,
-        27.0,
-        81.0,
-        243.0,
-        729.0,
-        2187.0,
-        6561.0,
-        19683.0,
-        59049.0
+        3.0
     ],
     "random_seeds_test": [
-        3.0,
-        9.0
+        ""
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "11_folds"
+    "kfold_folder": "5_folds"
 }

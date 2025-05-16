@@ -52,8 +52,10 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
-
+if problem_type == 'clf':
+    cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+else:
+    cmatrix = None
 ##---------------------------------PARAMETERS---------------------------------##
 for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scoring_metrics]):    
     
