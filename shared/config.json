@@ -1,30 +1,29 @@
 {
-    "project_name": "GERO_Ivo",
-    "stats": "",
+    "project_name": "MCI_classifier",
+    "stats": "mean_std",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 5.0,
+    "n_folds_outer": 11.0,
+    "n_folds_inner": 5.0,
     "n_iter": 10.0,
-    "n_iter_features": 10.0,
-    "feature_sample_ratio": 0.5,
-    "n_seeds_train": 1.0,
+    "feature_selection": true,
+    "init_points": 10.0,
+    "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
-    "n_models": 0.0,
     "n_boot": 200.0,
-    "bayesian": false,
+    "n_boot_test": 2000.0,
+    "n_boot_train": 0.0,
     "filter_outliers": false,
     "early_fusion": true,
-    "n_boot_test": 1000.0,
-    "n_boot_train": 0.0,
-    "overwrite": true,
+    "overwrite": false,
     "parallel": true,
     "n_seeds_test": 1.0,
     "test_size": 0.0,
-    "data_file": "all_data.csv",
+    "data_file": "data_matched_group.csv",
     "tasks": [
         "fas",
         "animales",
@@ -33,28 +32,34 @@
     ],
     "single_dimensions": [
         "psycholinguistic",
-        "speech_timing"
+        "talking_intervals"
     ],
-    "scoring_metrics": "mean_absolute_error",
-    "problem_type": "reg",
+    "scoring_metrics": [
+        "roc_auc_score"
+    ],
+    "problem_type": "clf",
     "y_labels": [
-        "GM_norm",
-        "WM_norm",
-        "norm_vol_bilateral_HIP",
-        "norm_vol_mask_AD",
-        "GM",
-        "WM",
-        "vol_bilateral_HIP",
-        "vol_mask_AD",
-        "MMSE_Total_Score",
-        "ACEIII_Total_Score",
-        "IFS_Total_Score",
-        "MoCA_Total_Boni_3"
+        "group"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "max",
+        "skewness",
+        "min",
+        "kurtosis",
+        "median"
+    ],
+    "stat_folder": "mean_std",
     "random_seeds_train": [
-        3.0
+        3,
+        9,
+        27,
+        81,
+        243,
+        729,
+        2187,
+        6561,
+        19683,
+        59049
     ],
     "random_seeds_test": [
         ""
@@ -62,5 +67,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "5_folds"
+    "kfold_folder": "11_folds"
 }

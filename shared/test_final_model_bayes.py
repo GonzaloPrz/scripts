@@ -201,7 +201,10 @@ for scoring in scoring_metrics:
                     result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_models_bootstrap(type(trained_model),params,features,type(trained_scaler),type(trained_imputer),None,None,X_train,y_train,X_test,y_test,metrics_names,IDs_test,n_boot_train,n_boot_test,problem_type,threshold=None,cmatrix=cmatrix)
                     result_append.update({'task':task,'dimension':dimension,'y_label':y_label,'model_type':model_type,'random_seed':random_seed_test})
                     for metric in metrics_names:
-                        result_append.update({f'{metric}_dev':f"{best_model_dev[best_model_dev['metric'] == metric]['mean'].values[0]}, {best_model_dev[best_model_dev['metric'] == metric]['95_ci'].values[0]}"})
+                        try:
+                            result_append.update({f'{metric}_dev':f"{best_model_dev[best_model_dev['metric'] == metric]['mean'].values[0]}, {best_model_dev[best_model_dev['metric'] == metric]['95_ci'].values[0]}"})
+                        except:
+                            continue
                     if results_test.empty:
                         results_test = pd.DataFrame(result_append,index=[0])
                     else:

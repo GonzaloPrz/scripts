@@ -130,9 +130,9 @@ for scoring in scoring_metrics:
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
             
-            if Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl').exists() and not overwrite:
-                print(f'Final model already exists for {task} {dimension} {y_label} {random_seed_test}. Skipping.')
-                continue
+            #if Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl').exists() and not overwrite:
+            #    print(f'Final model already exists for {task} {dimension} {y_label} {random_seed_test}. Skipping.')
+            #    continue
 
             model_type = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
             print(model_type)
@@ -173,7 +173,7 @@ for scoring in scoring_metrics:
             
             X_dev = pickle.load(open(Path(path_to_data,'X_dev.pkl'),'rb'))
             y_dev = pickle.load(open(Path(path_to_data,'y_dev.pkl'),'rb'))
-            if not Path(path_to_data,'outputs_dev.pkl').exists():   
+            if not Path(path_to_data,f'outputs_{model_type}.pkl').exists():   
                 continue
 
             outputs_dev = pickle.load(open(Path(path_to_data,f'outputs_{model_type}.pkl'),'rb'))[:,model_index]
@@ -232,6 +232,15 @@ for scoring in scoring_metrics:
                 print(task,dimension,f'No feature importance available for {model_type}')
             
             if problem_type == 'reg':
+                sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
+                plt.rcParams.update({
+                    "font.family": "DejaVu Sans",
+                    "axes.titlesize": 16,
+                    "axes.labelsize": 14,
+                    "xtick.labelsize": 12,
+                    "ytick.labelsize": 12
+                })
+                
                 Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
                 IDs = pickle.load(open(Path(path_to_data,'IDs_dev.pkl'),'rb'))
 
@@ -242,30 +251,48 @@ for scoring in scoring_metrics:
                     pickle.dump(predictions,f)
                 predictions.to_csv(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.csv'),index=False)
                 
-                # Calculate Pearson's correlation
                 r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
 
-                plt.figure(figsize=(8, 6))  # Adjust figure size for better aesthetics
-                sns.regplot(x='y_true', y='y_pred', data=predictions, scatter_kws={'alpha':0.6}, line_kws={'color': 'red'}) # Use regplot for scatter and regression line, adjust scatter alpha
-                plt.xlabel('True Value', fontsize=12)  # Corrected label and increased font size
-                plt.ylabel('Predicted Value', fontsize=12)  # Corrected label and increased font size
-                plt.title(f'{model_type} - {y_label} - {dimension} - {task}', fontsize=14)  # Increased font size
-                
-                # Calculate the limits based on the data
-                min_val = min(predictions['y_true'].min(), predictions['y_pred'].min())
-                max_val = max(predictions['y_true'].max(), predictions['y_pred'].max())
-                plt.xlim(min_val, max_val)
-                plt.ylim(min_val, max_val)
-                
-                plt.grid(True, linestyle='--', alpha=0.5)  # Added grid for better readability
+                plt.figure(figsize=(8, 6))
+                sns.regplot(
+                    x='y_true', y='y_pred', data=predictions,
+                    scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
+                    line_kws={'color': 'darkred', 'linewidth': 2}
+                )
 
+                # Línea de identidad (y = x)
+                #min_val = min(predictions['y_true'].min(), predictions['y_pred'].min())
+                #max_val = max(predictions['y_true'].max(), predictions['y_pred'].max())
+                #plt.plot([min_val, max_val], [min_val, max_val], linestyle='--', color='gray', linewidth=1)
+
+                #plt.xlim(min_val - 0.05 * abs(min_val), max_val + 0.05 * abs(max_val))
+                #plt.ylim(min_val - 0.05 * abs(min_val), max_val + 0.05 * abs(max_val))
+
+                # Etiquetas y título
+                plt.xlabel('True Value')
+                plt.ylabel('Predicted Value')
+                plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
+
+                # Añadir estadística en esquina superior izquierda
+                plt.text(0.05, 0.95,
+                        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
+                        fontsize=12,
+                        transform=plt.gca().transAxes,
+                        verticalalignment='top',
+                        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+                # Guardar resultado y cerrar
                 pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
 
-                # Add stats to the plot, adjust position for better visibility
-                plt.text(0.05, 0.95, f'r = {r:.2f}, p = {p:.2e}', fontsize=12, transform=plt.gca().transAxes, verticalalignment='top')
+                save_path = Path(results_dir, f'plots_{scoring}', task, dimension, y_label,
+                                stat_folder, scoring,
+                                'hyp_opt' if hyp_opt else '',
+                                'feature_selection' if feature_selection else '',
+                                f'{task}_{y_label}_{dimension}_{model_type}.png')
+                save_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # Save the plot with higher DPI for better resolution
-                plt.savefig(Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'{task}_{y_label}_{dimension}_{model_type}.png'), dpi=300)
+                plt.tight_layout()
+                plt.savefig(save_path, dpi=300)
                 plt.close()
 
     if problem_type == 'reg':

@@ -167,13 +167,16 @@ single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+problem_type = main_config['problem_type'][project_name]
+if problem_type == 'clf':
+    cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+else:
+    cmatrix = None
+    
 parallel = bool(config["parallel"])
 
 if isinstance(scoring_metrics,str):
     scoring_metrics = [scoring_metrics]
-
-problem_type = main_config['problem_type'][project_name]
 
 ##---------------------------------PARAMETERS---------------------------------##
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)

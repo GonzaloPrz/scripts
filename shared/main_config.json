@@ -46,14 +46,6 @@
             "MiniSea_minisea_total"
         ],
         "GERO_Ivo": [
-            "GM_norm",
-            "WM_norm",
-            "norm_vol_bilateral_HIP",
-            "norm_vol_mask_AD",
-            "GM",
-            "WM",
-            "vol_bilateral_HIP",
-            "vol_mask_AD",
             "MMSE_Total_Score",
             "ACEIII_Total_Score",
             "IFS_Total_Score",
@@ -208,8 +200,8 @@
     },
     "test_size": {
         "tell_classifier": 0.3,
-        "MCI_classifier_unbalanced": 0.2,
-        "MCI_classifier": 0.2,
+        "MCI_classifier_unbalanced": 0,
+        "MCI_classifier": 0,
         "Proyecto_Ivo": 0,
         "GeroApathy": 0.3,
         "arequipa": 0,
@@ -462,7 +454,7 @@
         "tea_tomi_chu":"clf"
     },
     "metrics_names": {
-        "clf": ["roc_auc","accuracy","recall","f1","norm_cross_entropy", "norm_expected_cost"],
+        "clf": ["roc_auc","recall","f1","norm_cross_entropy","norm_expected_cost"],
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "models": {
