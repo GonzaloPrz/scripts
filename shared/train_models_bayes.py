@@ -174,6 +174,10 @@ hyperp = {'lr':{'C':(1e-4,100)},
                     'gamma':(1e-4,1e4)}
             }
 
+                
+with open(Path(__file__).parent/'config.json', 'w') as f:
+    json.dump(config, f, indent=4)
+
 for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
     dimensions = list()
     if isinstance(single_dimensions,dict):
@@ -270,9 +274,6 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
             path_to_save.mkdir(parents=True, exist_ok=True)
 
-            with open(Path(__file__).parent/'config.json', 'w') as f:
-                json.dump(config, f, indent=4)
-
             for random_seed_test in random_seeds_test:
                 if test_size > 0:
                     X_train_, X_test_, y_train_, y_test_, ID_train_, ID_test_ = train_test_split(
@@ -348,6 +349,6 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                 for fname, obj in result_files.items():
                     with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', fname), 'wb') as f:
                         pickle.dump(obj, f)
-                
+
                 with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', 'config.json'), 'w') as f:
                     json.dump(config, f, indent=4)

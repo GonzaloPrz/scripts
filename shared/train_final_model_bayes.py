@@ -102,7 +102,7 @@ results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path
 for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     if str(threshold) == 'None':
         threshold = None
-    filename = f'metrics_{scoring}_feature_selection_dev.csv' if feature_selection else f'metrics_{scoring}_dev.csv'
+    filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')
     best_models = pd.read_csv(Path(results_dir,filename))
 
     tasks = best_models['task'].unique()
