@@ -497,8 +497,8 @@
     },
     "models": {
         "tell_classifier": ["lr","svc","knnc","xgb"],
-        "MCI_classifier_unbalanced": ["lr","knnc","xgb","nb"],
-        "MCI_classifier": ["lr","knnc","xgb","nb"],
+        "MCI_classifier_unbalanced": ["lr","knnc","xgb","nb","svc"],
+        "MCI_classifier": ["lr","knnc","xgb","nb","svc"],
         "Proyecto_Ivo": ["lr","svc","knnc","xgb"],
         "GeroApathy": ["lr","svc","knnc","xgb"],
         "arequipa": ["lr","svc","knnc","xgb"],

@@ -110,7 +110,12 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     y_labels = best_models['y_label'].unique()
     model_types = best_models['model_type'].unique()
 
-    for task, dimension, y_label,model_type in itertools.product(tasks,dimensions,y_labels,model_types):
+    for r, row in best_models.iterrows():
+        task = row.task
+        dimension = row.dimension
+        y_label = row.y_label
+        model_type = row.model_type
+
         print(task,dimension,y_label,model_type)
         path_to_results = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '')
         random_seeds = [folder.name for folder in path_to_results.iterdir() if 'random_seed' in folder.name]

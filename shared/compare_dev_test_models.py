@@ -45,6 +45,10 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
     for dimension in dimensions:
         print(task,dimension)
         path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',"shuffle" if shuffle_labels else "")
+        
+        if not path.exists():
+            continue
+        
         random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() if 'random_seed' in folder.name]
         if len(random_seeds_test) == 0:
             random_seeds_test = ['']

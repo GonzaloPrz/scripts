@@ -70,53 +70,57 @@ for scoring in scoring_metrics:
     tasks = best_models['task'].unique()
     y_labels = best_models['y_label'].unique()
     dimensions = best_models['dimension'].unique()  
-    random_seeds_test = best_models['random_seed_test'].unique()
     
-    for task,y_label in itertools.product(tasks,y_labels):
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-        for dimension in dimensions:
-            print(task,dimension)
-            best_model = best_models[(best_models['task'] == task) & (best_models['y_label'] == y_label) & (best_models['dimension'] == dimension)]
+    for r,row in best_models.iterrows():
+        task = row.task
+        dimension = row.dimension
+        y_label = row.y_label
+        random_seed = row.random_seed_test
 
-            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
-            
-            for random_seed in random_seeds_test:
-                if str(random_seed) == 'nan':
-                    random_seed = ''
-                
-                model_name = best_model['model_type'].values[0]
-                model_index = best_model['model_index'].values[0]
+        print(task,dimension)
+        best_model = best_models[(best_models['task'] == task) & (best_models['y_label'] == y_label) & (best_models['dimension'] == dimension)]
 
-                with open(Path(path,random_seed,'bayesian' if bayesian else '','y_dev.pkl'),'rb') as f:
-                    y_dev = np.array(pickle.load(f),dtype=int)
-                
-                with open(Path(path,random_seed,'bayesian' if bayesian else '',f'outputs_{model_name}.pkl'),'rb') as f:
-                    outputs_dev = pickle.load(f)
-                
-                _, y_pred_dev = utils.get_metrics_clf(outputs_dev.squeeze()[model_index], y_dev, [], cmatrix,)
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        
+        if str(random_seed) == 'nan':
+            random_seed = ''
+        
+        model_name = best_model['model_type'].values[0]
+        model_index = best_model['model_index'].values[0]
 
-                cmatrix_dev = confusion_matrix(y_dev.flatten(), y_pred_dev.flatten(),normalize='all')
+        with open(Path(path,random_seed,'bayesian' if bayesian else '','y_dev.pkl'),'rb') as f:
+            y_dev = np.array(pickle.load(f),dtype=int)
+        
+        with open(Path(path,random_seed,'bayesian' if bayesian else '',f'outputs_{model_name}.pkl'),'rb') as f:
+            outputs_dev = pickle.load(f)
+        
+        _, y_pred_dev = utils.get_metrics_clf(outputs_dev.squeeze()[model_index], y_dev, [], cmatrix,)
 
-                if Path(path,random_seed,'bayesian' if bayesian else '','y_test.pkl').exists():
-                    with open(Path(path,random_seed,'bayesian' if bayesian else '','y_test.pkl'),'rb') as f:
-                        y_test = np.array(pickle.load(f),dtype=int)
-                    with open(Path(path,random_seed,'bayesian' if bayesian else '',f'outputs_test_{model_name}.pkl'),'rb') as f:
-                        outputs_test = pickle.load(f)
-                    _, y_pred_test = utils.get_metrics_clf(outputs_test.squeeze()[model_index], y_test, [], cmatrix)
-                    cmatrix_test = confusion_matrix(y_test.flatten(), y_pred_test.flatten(),normalize='all')
-                    fig, ax = plt.subplots(1,2,figsize=(10,5))
-                    ConfusionMatrixDisplay(cmatrix_dev).plot(ax=ax[0])
-                    ax[0].set_title('X-val')
-                    ConfusionMatrixDisplay(cmatrix_test).plot(ax=ax[1])
-                    ax[1].set_title('Test')
-                else:
-                    fig, ax = plt.subplots(1,1,figsize=(10,5))
-                    ConfusionMatrixDisplay(cmatrix_dev).plot(ax=ax)
-                    ax.set_title('X-val')
-                #Plot confusion matrix and save as fig
-                
-                fig.suptitle(f'{task} - {dimension} - {y_label} - {model_name} - {random_seed}')
-                plt.savefig(Path(path,random_seed,f'confusion_matrix_{model_name}.png'))
+        try:
+            cmatrix_dev = confusion_matrix(y_dev.flatten(), y_pred_dev.flatten(),normalize='all')
+        except:
+            continue
+
+        if Path(path,random_seed,'bayesian' if bayesian else '','y_test.pkl').exists():
+            with open(Path(path,random_seed,'bayesian' if bayesian else '','y_test.pkl'),'rb') as f:
+                y_test = np.array(pickle.load(f),dtype=int)
+            with open(Path(path,random_seed,'bayesian' if bayesian else '',f'outputs_test_{model_name}.pkl'),'rb') as f:
+                outputs_test = pickle.load(f)
+            _, y_pred_test = utils.get_metrics_clf(outputs_test.squeeze()[model_index], y_test, [], cmatrix)
+            cmatrix_test = confusion_matrix(y_test.flatten(), y_pred_test.flatten(),normalize='all')
+            fig, ax = plt.subplots(1,2,figsize=(10,5))
+            ConfusionMatrixDisplay(cmatrix_dev).plot(ax=ax[0])
+            ax[0].set_title('X-val')
+            ConfusionMatrixDisplay(cmatrix_test).plot(ax=ax[1])
+            ax[1].set_title('Test')
+        else:
+            fig, ax = plt.subplots(1,1,figsize=(10,5))
+            ConfusionMatrixDisplay(cmatrix_dev).plot(ax=ax)
+            ax.set_title('X-val')
+        #Plot confusion matrix and save as fig
+        
+        fig.suptitle(f'{task} - {dimension} - {y_label} - {model_name} - {random_seed}')
+        plt.savefig(Path(path,random_seed,f'confusion_matrix_{model_name}.png'))
 
 
                 
