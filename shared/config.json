@@ -1,13 +1,13 @@
 {
-    "project_name": "MCI_classifier_unbalanced",
+    "project_name": "MCI_classifier",
     "stats": "mean_std",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 5.0,
-    "n_iter": 10.0,
-    "n_iter_features": 10.0,
+    "n_folds": 11.0,
+    "n_iter": 100.0,
+    "n_iter_features": 0.0,
     "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -24,28 +24,46 @@
     "parallel": true,
     "n_seeds_test": 1.0,
     "test_size": 0.0,
-    "data_file": "data_matched_unbalanced_group.csv",
+    "data_file": "data_matched_group.csv",
     "tasks": [
+        "nps",
         "fas",
         "animales",
         "fas__animales",
         "grandmean"
     ],
-    "single_dimensions": [
-        "psycholinguistic",
-        "talking_intervals"
-    ],
+    "single_dimensions": {
+        "fas": [
+            "psycholinguistic",
+            "talking_intervals"
+        ],
+        "animales": [
+            "psycholinguistic",
+            "talking_intervals"
+        ],
+        "fas__animales": [
+            "psycholinguistic",
+            "talking_intervals"
+        ],
+        "grandmean": [
+            "psycholinguistic",
+            "talking_intervals"
+        ],
+        "nps": [
+            "nps"
+        ]
+    },
     "scoring_metrics": "roc_auc_score",
     "problem_type": "clf",
     "y_labels": [
         "group"
     ],
     "avoid_stats": [
-        "min",
-        "median",
         "skewness",
-        "max",
-        "kurtosis"
+        "kurtosis",
+        "median",
+        "min",
+        "max"
     ],
     "stat_folder": "mean_std",
     "random_seeds_train": [
@@ -66,5 +84,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "5_folds"
+    "kfold_folder": "11_folds"
 }

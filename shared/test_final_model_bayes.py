@@ -160,7 +160,7 @@ results_test = pd.DataFrame()
 
 for scoring in scoring_metrics:
     for task,model_type in itertools.product(tasks,model_types):
-        filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{stat_folder}_{scoring}_dev.csv'.replace('__','_')
+        filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')
         best_models = pd.read_csv(Path(results_dir,filename))
 
         dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]

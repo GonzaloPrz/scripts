@@ -94,12 +94,14 @@
             "MOTOR-LIBRE"
         ],
         "MCI_classifier_unbalanced": [
+            "nps",
             "fas",
             "animales",
             "fas__animales",
             "grandmean"
         ],
         "MCI_classifier": [
+            "nps",
             "fas",
             "animales",
             "fas__animales",
@@ -223,18 +225,54 @@
     },
     "single_dimensions": {
         "tell_classifier": [
+            "pitch",
             "voice_quality",
-            "talking-intervals",
-            "pitch"
+            "talking-intervals"
         ],
-        "MCI_classifier_unbalanced": [
+        "MCI_classifier_unbalanced": {
+            "fas":[
             "psycholinguistic",
             "talking_intervals"
-        ],
-        "MCI_classifier": [
+            ],
+            "animales":[
             "psycholinguistic",
             "talking_intervals"
-        ],
+            ],
+            "fas__animales":
+            ["psycholinguistic",
+            "talking_intervals"
+            ],
+            "grandmean":
+            ["psycholinguistic",
+            "talking_intervals"
+            ],
+            "nps":
+            ["nps"]
+        },
+        "MCI_classifier": {
+            "fas":[
+            "psycholinguistic",
+            "talking_intervals"
+            ],
+            "animales":[
+            "psycholinguistic",
+            "talking_intervals"
+            ],
+            "fas__animales":
+            [
+            "psycholinguistic",
+            "talking_intervals"
+            ],
+            "grandmean":
+            [
+            "psycholinguistic",
+            "talking_intervals"
+            ],
+            "nps":
+            [
+                "nps"
+            ]
+        },
         "Proyecto_Ivo": {
             "Animales": [
                 "properties",
@@ -454,7 +492,7 @@
         "tea_tomi_chu":"clf"
     },
     "metrics_names": {
-        "clf": ["roc_auc","recall","f1","norm_cross_entropy","norm_expected_cost"],
+        "clf": ["roc_auc","accuracy","recall","f1","norm_cross_entropy","norm_expected_cost"],
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "models": {
