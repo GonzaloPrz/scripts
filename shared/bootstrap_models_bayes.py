@@ -21,8 +21,8 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
-hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = config['feature_selection']
+hyp_opt = True if int(config['n_iter']) > 0 else False
+feature_selection = bool(config['feature_selection'])
 filter_outliers = config['filter_outliers']
 n_boot = int(config["n_boot"])
 calibrate = bool(config["calibrate"])
@@ -54,6 +54,10 @@ cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_con
 conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model_type','metric','mean','95_ci'])
 
 for scoring in scoring_metrics:
+    
+    if (Path(results_dir,f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')).exists()) and (not overwrite):
+        continue
+
     for task,model,y_label in itertools.product(tasks,models,y_labels):    
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]

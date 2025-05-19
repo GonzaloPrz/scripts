@@ -247,7 +247,10 @@
             "talking_intervals"
             ],
             "nps":
-            ["nps"]
+            ["digits",
+             "TMT_A",
+             "TMT_B"
+            ]
         },
         "MCI_classifier": {
             "fas":[
@@ -270,7 +273,9 @@
             ],
             "nps":
             [
-                "nps"
+            "digits",
+            "TMT_A",
+            "TMT_B"
             ]
         },
         "Proyecto_Ivo": {

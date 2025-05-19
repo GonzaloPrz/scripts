@@ -105,11 +105,6 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')
     best_models = pd.read_csv(Path(results_dir,filename))
 
-    tasks = best_models['task'].unique()
-    dimensions = best_models['dimension'].unique()
-    y_labels = best_models['y_label'].unique()
-    model_types = best_models['model_type'].unique()
-
     for r, row in best_models.iterrows():
         task = row.task
         dimension = row.dimension
@@ -122,6 +117,10 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
         random_seeds.append('')
         
         for random_seed in random_seeds:
+            if Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl').exists() and not overwrite:
+                print('Model already exists')
+                continue
+            
             all_models = pd.read_csv(Path(path_to_results,random_seed,f'all_models_{model_type}.csv'))
             
             features = [col for col in all_models.columns if f'{task}__' in col]
@@ -143,9 +142,6 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 cmatrix = CostMatrix.zero_one_costs(K=len(np.unique(y_train)))
             best_features = utils.rfe(utils.Model(model_class(probability=True) if model_class == SVC else model_class(),scaler,imputer,None,None),X_train,y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold) if feature_selection else X_train.columns
             
-            if Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl').exists() and not overwrite:
-                print('Model already exists')
-                continue
             
             best_params, best_score = utils.tuning(model_class,scaler,imputer,X_train,y_train,hyperp[model_type],CV,init_points=int(config['init_points']),n_iter=n_iter,scoring=scoring,problem_type=problem_type,cmatrix=cmatrix,priors=None,threshold=threshold,calmethod=None,calparams=None)
             

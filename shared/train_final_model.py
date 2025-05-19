@@ -94,13 +94,11 @@ models_dict = {
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
 
-for scoring in scoring_metrics:
-    scoring = scoring.replace('_score','')
-    
+for scoring in scoring_metrics:    
     extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
     ascending = True if extremo == 'sup' else False
 
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    best_models_file = f'best_models_{scoring.replace("_score","")}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','')
     if not feature_selection:
@@ -118,11 +116,11 @@ for scoring in scoring_metrics:
 
     for task,dimension,y_label in itertools.product(tasks,dimensions,y_labels):
         print(task,dimension,y_label)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,scoring,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         
         if not Path(path).exists():
             continue
-
+        
         random_seeds_test = [folder.name for folder in Path(path).iterdir() if folder.is_dir() and 'random_seed' in folder.name]
 
         random_seeds_test.append('')
@@ -130,13 +128,14 @@ for scoring in scoring_metrics:
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
             
-            #if Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl').exists() and not overwrite:
-            #    print(f'Final model already exists for {task} {dimension} {y_label} {random_seed_test}. Skipping.')
-            #    continue
+            if Path(results_dir,f'final_models',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl').exists() and not overwrite:
+                print(f'Final model already exists for {task} {dimension} {y_label} {random_seed_test}. Skipping.')
+                continue
 
             model_type = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
             print(model_type)
             model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_index'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
+            scoring = scoring.replace("_score","")
             try:
                 if calibrate:
                     best_model = pd.read_csv(Path(path_to_data,f'all_models_{model_type}_test_calibrated.csv')).sort_values(f'{extremo}_{scoring}_dev',ascending=ascending).reset_index(drop=True).head(1)

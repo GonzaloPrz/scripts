@@ -33,11 +33,11 @@ def parse_args():
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=11, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
     parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
-    parser.add_argument('--n_iter', type=int, default=10, help='Number of hyperparameter iterations')
-    parser.add_argument('--feature_selection',type=int,default=0,help='Whether to perform feature selection with RFE or not')
-    parser.add_argument('--init_points', type=int, default=10, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_iter', type=int, default=0, help='Number of hyperparameter iterations')
+    parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
+    parser.add_argument('--init_points', type=int, default=0, help='Number of random initial points to test during Bayesian optimization')
     parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
@@ -238,7 +238,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
         for model_key, model_class in models_dict[problem_type].items():        
             print(model_key)
             
-            held_out = (config['n_iter'] > 0 or config['n_iter_features'] > 0)
+            held_out = config['n_iter'] > 0 or bool(config['feature_selection'])
             n_folds_outer = int(config['n_folds_outer'])
             n_folds_inner = int(config['n_folds_inner'])
             if held_out:
@@ -266,7 +266,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             subfolders = [
                 task, dimension, config['scaler_name'],
                 config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
-                'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
+                'hyp_opt' if int(config['n_iter']) > 0 else '','feature_selection' if bool(config['feature_selection']) else '',
                 'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
                 'shuffle' if config['shuffle_labels'] else ''
             ]
