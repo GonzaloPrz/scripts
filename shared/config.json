@@ -51,8 +51,9 @@
         ],
         "nps": [
             "digits",
-            "TMT_A",
-            "TMT_B"
+            "memory",
+            "moca",
+            "TMT"
         ]
     },
     "scoring_metrics": "roc_auc_score",
@@ -61,11 +62,11 @@
         "group"
     ],
     "avoid_stats": [
-        "min",
-        "max",
         "median",
-        "kurtosis",
-        "skewness"
+        "max",
+        "min",
+        "skewness",
+        "kurtosis"
     ],
     "stat_folder": "mean_std",
     "random_seeds_train": [

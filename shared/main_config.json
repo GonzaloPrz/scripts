@@ -209,7 +209,7 @@
         "arequipa": 0,
         "mci_hc_fugu": 0.3,
         "ad_mci_hc": 0.13,
-        "ad_mci_hc_ct": 0.18,
+        "ad_mci_hc_ct": 0,
         "ad_mci_hc_chile": 0.25,
         "ad_mci_hc_group_as_feature": 0,
         "GERO_Ivo": 0,
@@ -248,8 +248,9 @@
             ],
             "nps":
             ["digits",
-             "TMT_A",
-             "TMT_B"
+            "memory",
+            "moca",
+             "TMT"
             ]
         },
         "MCI_classifier": {
@@ -274,8 +275,9 @@
             "nps":
             [
             "digits",
-            "TMT_A",
-            "TMT_B"
+            "memory",
+            "moca",
+             "TMT"
             ]
         },
         "Proyecto_Ivo": {

@@ -4,6 +4,7 @@ from pathlib import Path
 import itertools, sys, pickle, tqdm, warnings, json, os
 import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
+import numpy as np
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -102,40 +103,45 @@ for scoring in scoring_metrics:
         y_true_ = pickle.load(open(Path(path_to_results,random_seed, f'y_dev.pkl'), 'rb'))
         IDs_ = pickle.load(open(Path(path_to_results,random_seed, f'IDs_dev.pkl'), 'rb'))
 
-        results = Parallel(n_jobs=1)(delayed(compute_metrics)(j,model_index, r, outputs_, y_true_,IDs_,metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=threshold) for j,model_index, r in itertools.product(range(outputs_.shape[0]),range(outputs_.shape[1]),range(outputs_.shape[2])))
-        metrics = dict((metric,) for metric in metrics_names)
+        results = Parallel(n_jobs=1)(delayed(compute_metrics)(j,0, r, outputs_, y_true_,IDs_,metrics_names, n_boot, problem_type, cmatrix=None, priors=None, threshold=threshold) for j, r in itertools.product(range(outputs_.shape[0]),range(outputs_.shape[1])))
+        metrics_dict = dict((metric,np.empty((outputs_.shape[0],outputs_.shape[1],n_boot))) for metric in metrics_names)
         
         #Check whether IDs and IDs_shuffle are the same
 
         for metric in metrics_names:
-            for j, model_index, r, metrics_result, IDs in results:
-                metrics[metric][j, model_index, r, :] = metrics_result[metric]
-            metrics[metric] = metrics[metric].flatten()
+            for j, _, r, metrics_result, IDs in results:
+                metrics_dict[metric][j, r,:] = metrics_result[metric]
+            metrics_dict[metric] = metrics_dict[metric].flatten()
 
-            data_append[metric] = metrics[metric]
+            data_append[metric] = metrics_dict[metric]
             data_append['dimension'] = dimension
             data_append['task'] = task
     
-    if data_to_plot.empty:
-        data_to_plot = data_append
-    else:
-        data_to_plot = pd.concat(data_to_plot,data_append,axis=0)
-#        data_to_plot.to_csv(Path(results_dir,filename_to_save), index=False)
+        if data_to_plot.empty:
+            data_to_plot = data_append
+        else:
+            data_to_plot = pd.concat((data_to_plot,data_append),axis=0)
+    #        data_to_plot.to_csv(Path(results_dir,filename_to_save), index=False)
+    data_to_plot = data_to_plot[((data_to_plot["task"] == "Animales__P") & (data_to_plot["dimension"] == "properties")) |
+                                ((data_to_plot["task"] == "cog") & (data_to_plot["dimension"] == "neuropsico_digits__neuropsico_tmt")) |
+                                ((data_to_plot["task"] == "brain") & (data_to_plot["dimension"] == "norm_brain_lit")) 
+                                ]
     
+    data_to_plot["dimension"] = data_to_plot["dimension"].map({"properties":"Speech","neuropsico_digits__neuropsico_tmt": "Cognitive","norm_brain_lit":"Brain"})
     for metric in metrics_names:
         plt.figure()
-        sns.violinplot(data=data_to_plot,x=task,y=metric, palette='muted')
+        sns.violinplot(data=data_to_plot,x='dimension',y=metric, color="#1f77b4",)
         plt.ylabel(metric.replace('_', ' ').upper())
-        plt.title(f"{metric.replace('_', ' ').upper()} Distribution for {model_name}")
+        #plt.title(f"{metric.replace('_', ' ').upper()} Distribution for {model_name}")
         plt.tight_layout()
         plt.grid(True)
         filename_to_save = f'violin_{metric}_best_model_{task}_{dimension}_{y_label}_{stat_folder}_{scoring}_hyp_opt_feature_selection_shuffle'
         if not hyp_opt:
-            filename_to_save = filename_to_save.replace(filename_to_save,'_hyp_opt','')
+            filename_to_save = filename_to_save.replace('_hyp_opt','')
         if not feature_selection:
-            filename_to_save = filename_to_save.replace(filename_to_save,'_feature_selection','')
+            filename_to_save = filename_to_save.replace('_feature_selection','')
         if not shuffle_labels:
-            filename_to_save = filename_to_save.replace(filename_to_save,'_shuffle','')
+            filename_to_save = filename_to_save.replace('_shuffle','')
 
         plt.savefig(Path(results_dir,'plots',f'{filename_to_save}.png'))
         plt.savefig(Path(results_dir,'plots',f'{filename_to_save}.svg'))
