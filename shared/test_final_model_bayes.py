@@ -159,57 +159,52 @@ save_dir = Path(str(data_dir).replace('data','results'))
 results_test = pd.DataFrame()
 
 for scoring in scoring_metrics:
-    for task,model_type in itertools.product(tasks,model_types):
-        filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')
-        best_models = pd.read_csv(Path(results_dir,filename))
+    filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')
+    best_models = pd.read_csv(Path(results_dir,filename))
 
-        dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
-        
-        for dimension in dimensions:
-            print(task,dimension,model_type)
-            for y_label in y_labels:
-                try:
-                    trained_model = pickle.load(open(Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl'),'rb'))
-                    trained_scaler = pickle.load(open(Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'scaler_{model_type}.pkl'),'rb'))
-                    trained_imputer = pickle.load(open(Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'imputer_{model_type}.pkl'),'rb'))
-                except:
-                    continue
-                
-                best_model_dev = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label) & (best_models['model_type'] == model_type)]
+    for r, row in best_models.iterrows():
+        task = row['task']
+        dimension = row['dimension']
+        model_type = row['model_type']
+        random_seed_test = row['random_seed_test']
+        y_label = row['y_label']
 
-                print(y_label)
-                path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
+        print(task,dimension,model_type,y_label)
+        try:
+            trained_model = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl'),'rb'))
+            trained_scaler = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'scaler_{model_type}.pkl'),'rb'))
+            trained_imputer = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'imputer_{model_type}.pkl'),'rb'))
+        except:
+            continue
+    
+        path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
 
-                if not path_to_results.exists():
-                    continue
-                
-                random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
-                
-                for random_seed_test in random_seeds_test:
-                    X_train = pickle.load(open(Path(path_to_results,random_seed_test,'X_train.pkl'),'rb'))
-                    y_train = pickle.load(open(Path(path_to_results,random_seed_test,'y_train.pkl'),'rb'))
-                    IDs_train = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_train.pkl'),'rb'))
+        X_train = pickle.load(open(Path(path_to_results,random_seed_test,'X_train.pkl'),'rb'))
+        y_train = pickle.load(open(Path(path_to_results,random_seed_test,'y_train.pkl'),'rb'))
+        IDs_train = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_train.pkl'),'rb'))
 
-                    X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
-                    y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
-                    IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
-                    params = trained_model.get_params()
-                    features = trained_model.feature_names_in_
+        X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
+        y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
+        IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
+        params = trained_model.get_params()
+        features = trained_model.feature_names_in_
 
-                    metrics_names = list(set(metrics_names_) - set(['roc_auc','accuracy','f1','recall','precision'])) if cmatrix is not None or len(np.unique(y_train)) > 2 else metrics_names_
+        metrics_names = list(set(metrics_names_) - set(['roc_auc','accuracy','f1','recall','precision'])) if cmatrix is not None or len(np.unique(y_train)) > 2 else metrics_names_
 
-                    result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_models_bootstrap(type(trained_model),params,features,type(trained_scaler),type(trained_imputer),None,None,X_train,y_train,X_test,y_test,metrics_names,IDs_test,n_boot_train,n_boot_test,problem_type,threshold=None,cmatrix=cmatrix)
-                    result_append.update({'task':task,'dimension':dimension,'y_label':y_label,'model_type':model_type,'random_seed':random_seed_test})
-                    for metric in metrics_names:
-                        try:
-                            result_append.update({f'{metric}_dev':f"{best_model_dev[best_model_dev['metric'] == metric]['mean'].values[0]}, {best_model_dev[best_model_dev['metric'] == metric]['95_ci'].values[0]}"})
-                        except:
-                            continue
-                    if results_test.empty:
-                        results_test = pd.DataFrame(result_append,index=[0])
-                    else:
-                        results_test = pd.concat([results_test,pd.DataFrame(result_append,index=[0])],ignore_index=True)
-    results_test.to_csv(Path(results_dir,f'best_models_{scoring}_test.csv'))
+        result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_models_bootstrap(type(trained_model),params,features,type(trained_scaler),type(trained_imputer),None,None,X_train,y_train,X_test,y_test,metrics_names,IDs_test,n_boot_train,n_boot_test,problem_type,threshold=None,cmatrix=cmatrix)
+        result_append.update({'task':task,'dimension':dimension,'y_label':y_label,'model_type':model_type,'random_seed':random_seed_test})
+        for metric in metrics_names:
+            try:
+                result_append.update({f'{metric}_dev':row[metric]})
+            except:
+                continue
+        if results_test.empty:
+            results_test = pd.DataFrame(result_append,index=[0])
+        else:
+            results_test = pd.concat([results_test,pd.DataFrame(result_append,index=[0])],ignore_index=True)
+    results_test.to_csv(Path(results_dir,f'best_models_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_test.csv'.replace('__','_') if feature_selection else
+                             f'best_models_{kfold_folder}_{scoring}_{stat_folder}_test.csv'.replace('__','_')))
+    
 #outputs_filename = f'outputs_test_{model_name}.pkl'
 #with open(Path(file.parent,outputs_filename),'wb') as f:
 #    pickle.dump(outputst,f)

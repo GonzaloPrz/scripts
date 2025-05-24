@@ -39,14 +39,14 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='GERO_Ivo',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
+    parser.add_argument('--project_name', default='MCI_classifier_unbalanced',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='mean_std', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
     parser.add_argument('--n_folds', type=int, default=5, help='Number of folds for cross validation')
-    parser.add_argument('--n_iter', type=int, default=10, help='Number of hyperparameter iterations')
-    parser.add_argument('--n_iter_features', type=int, default=10, help='Number of feature sets to try and select from')
+    parser.add_argument('--n_iter', type=int, default=100, help='Number of hyperparameter iterations')
+    parser.add_argument('--n_iter_features', type=int, default=0, help='Number of feature sets to try and select from')
     parser.add_argument('--feature_sample_ratio', type=float, default=0.5, help='Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set')
     parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')

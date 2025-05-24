@@ -7,8 +7,8 @@ from scipy.stats import ttest_ind,ttest_rel,mannwhitneyu, wilcoxon
 import numpy as np
 
 # Load the dataset
-datafile = 'matched_data.csv'
 project_name = 'MCI_classifier'
+datafile = 'matched_data_group.csv'
 output = 'target'
 subsets = ['biomarkers']
 

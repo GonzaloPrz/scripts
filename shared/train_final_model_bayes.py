@@ -9,7 +9,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from xgboost import XGBClassifier, XGBRegressor
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import StratifiedKFold, KFold
+from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut, LeavePOut
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.impute import KNNImputer
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
@@ -117,7 +117,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
         random_seeds.append('')
         
         for random_seed in random_seeds:
-            if Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl').exists() and not overwrite:
+            if Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl').exists() and not overwrite:
                 print('Model already exists')
                 continue
             
@@ -128,23 +128,33 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             X_train = pickle.load(open(Path(path_to_results,random_seed,'X_train.pkl'),'rb'))
             y_train = pickle.load(open(Path(path_to_results,random_seed,'y_train.pkl'),'rb'))
 
-            CV = (StratifiedKFold(n_splits=int(n_folds), shuffle=True)
-                        if config['stratify'] and problem_type == 'clf'
-                        else KFold(n_splits=n_folds, shuffle=True))  
-            
-            hyperp['knnc']['n_neighbors'] = (1,int(X_train.shape[0]*(1-1/n_folds)-1))
-            hyperp['knnr']['n_neighbors'] = (1,int(X_train.shape[0]*(1-1/n_folds)-1))
+            if n_folds == -1:
+                CV = LeaveOneOut()
+                n_max = X_train.shape[0] - 1
+            elif n_folds == 0:
+                CV = LeavePOut(2)
+                n_folds = X_train.shape[0] -2 
+            else:
+                CV = (StratifiedKFold(n_splits=int(n_folds), shuffle=True)
+                            if config['stratify'] and problem_type == 'clf'
+                            else KFold(n_splits=n_folds, shuffle=True))  
+                n_max = int(X_train.shape[0]*(1-n_folds))
+                
+            hyperp['knnc']['n_neighbors'] = (1,n_max)
+            hyperp['knnr']['n_neighbors'] = (1,n_max)
 
             model_class = models_dict[problem_type][model_type]
             scaler = StandardScaler if scaler_name == 'StandardScaler' else MinMaxScaler
             imputer = KNNImputer
             if cmatrix is None:
                 cmatrix = CostMatrix.zero_one_costs(K=len(np.unique(y_train)))
-            best_features = utils.rfe(utils.Model(model_class(probability=True) if model_class == SVC else model_class(),scaler,imputer,None,None),X_train,y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold) if feature_selection else X_train.columns
+            best_features = utils.rfe(utils.Model(model_class(probability=True) if model_class == SVC else model_class(),scaler,imputer,None,None),X_train,y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold)[0] if feature_selection else X_train.columns
             
-            
-            best_params, best_score = utils.tuning(model_class,scaler,imputer,X_train,y_train,hyperp[model_type],CV,init_points=int(config['init_points']),n_iter=n_iter,scoring=scoring,problem_type=problem_type,cmatrix=cmatrix,priors=None,threshold=threshold,calmethod=None,calparams=None)
-            
+            if int(config["n_iter"]):
+                best_params, best_score = utils.tuning(model_class,scaler,imputer,X_train[best_features],y_train,hyperp[model_type],CV,init_points=int(config['init_points']),n_iter=n_iter,scoring=scoring,problem_type=problem_type,cmatrix=cmatrix,priors=None,threshold=threshold,calmethod=None,calparams=None)
+            else: 
+                best_params = model_class().get_params()
+
             if model_type == 'clf' and model_class == SVC:
                 if 'probability' in best_params:
                     del best_params['probability']
@@ -155,9 +165,9 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             
             model.train(X_train[best_features],y_train)
 
-            Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring).mkdir(exist_ok=True,parents=True)
-            pickle.dump(model.model,open(Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl'),'wb'))
-            pickle.dump(model.scaler,open(Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'scaler_{model_type}.pkl'),'wb'))
-            pickle.dump(model.imputer,open(Path(results_dir,f'final_models_{scoring}_bayes',task,dimension,y_label,scoring,f'imputer_{model_type}.pkl'),'wb'))
+            Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring).mkdir(exist_ok=True,parents=True)
+            pickle.dump(model.model,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl'),'wb'))
+            pickle.dump(model.scaler,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'scaler_{model_type}.pkl'),'wb'))
+            pickle.dump(model.imputer,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'imputer_{model_type}.pkl'),'wb'))
             
             

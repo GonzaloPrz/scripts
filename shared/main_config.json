@@ -94,18 +94,18 @@
             "MOTOR-LIBRE"
         ],
         "MCI_classifier_unbalanced": [
-            "nps",
             "fas",
             "animales",
             "fas__animales",
-            "grandmean"
+            "grandmean",
+            "bio"
         ],
         "MCI_classifier": [
-            "nps",
             "fas",
             "animales",
             "fas__animales",
-            "grandmean"
+            "grandmean",
+            "bio"
         ],
         "Proyecto_Ivo": [
             "cog",
@@ -133,9 +133,7 @@
             "fugu"
                 ],
         "ad_mci_hc_ct": [
-            "routine",
-            "image-description",
-            "routine__image-description"
+            "pleasant-memory"
         ],
         "ad_mci_hc_chile": [
             "fugu"
@@ -209,7 +207,7 @@
         "arequipa": 0,
         "mci_hc_fugu": 0.3,
         "ad_mci_hc": 0.13,
-        "ad_mci_hc_ct": 0,
+        "ad_mci_hc_ct": 0.2,
         "ad_mci_hc_chile": 0.25,
         "ad_mci_hc_group_as_feature": 0,
         "GERO_Ivo": 0,
@@ -231,53 +229,60 @@
         ],
         "MCI_classifier_unbalanced": {
             "fas":[
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
             ],
             "animales":[
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
             ],
             "fas__animales":
-            ["psycholinguistic",
-            "talking_intervals"
+            [
+            "word_properties",
+            "speech_timing"
             ],
             "grandmean":
-            ["psycholinguistic",
-            "talking_intervals"
+            [
+            "word_properties",
+            "speech_timing"
             ],
             "nps":
             ["digits",
             "memory",
-            "moca",
              "TMT"
+            ],
+            "bio":
+            [
+                "bio"
             ]
         },
         "MCI_classifier": {
             "fas":[
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
             ],
             "animales":[
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
             ],
             "fas__animales":
             [
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
             ],
             "grandmean":
             [
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
             ],
             "nps":
-            [
-            "digits",
+            ["digits",
             "memory",
-            "moca",
              "TMT"
+            ],
+            "bio":
+            [
+                "bio"
             ]
         },
         "Proyecto_Ivo": {
@@ -291,13 +296,11 @@
                 "properties",
                 "timing",
                 "properties__timing"
-                
             ],
             "Animales__P": [
                 "properties",
                 "timing",
                 "properties__timing"
-               
             ],
             "cog": [
                 "neuropsico_digits__neuropsico_tmt",
@@ -324,12 +327,15 @@
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "mci_hc_fugu":[
-            "talking_intervals_mfa",
-            "talking-intervals"
+            "pitch",
+            "talking-intervals",
+            "voice-quality"
         ],
         "ad_mci_hc":{
             "fugu":[
-                "talking-intervals"
+                "pitch",
+                "talking-intervals",
+                "voice-quality"
                 ]
             },
         "ad_mci_hc_ct":{
@@ -342,6 +348,10 @@
                 "word_properties"
                 ],
             "routine__image-description":[                
+                "talking_intervals",
+                "word_properties"
+                ],
+            "pleasant-memory":[                
                 "talking_intervals",
                 "word_properties"
                 ]
@@ -410,9 +420,9 @@
         "Proyecto_Ivo": "all_data.csv",
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
-        "mci_hc_fugu": "data_mfa_matched_group.csv",
+        "mci_hc_fugu": "data_matched_group.csv",
         "ad_mci_hc": "data_matched_group.csv",
-        "ad_mci_hc_ct": "data_matched_group_routine_image.csv",
+        "ad_mci_hc_ct": "data_matched_group_pleasant_memory.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
         "ad_mci_hc_group_as_feature": "data_matched_group.csv",
         "GeroApathy_reg": "all_data_agradable.csv",
@@ -456,12 +466,12 @@
     },
     "scoring_metrics": {
         "MCI_classifier_unbalanced": "roc_auc_score",
-        "MCI_classifier": "roc_auc_score",
+        "MCI_classifier": ["roc_auc_score"],
         "tell_classifier": "norm_expected_cost",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
         "arequipa": "roc_auc",
-        "mci_hc_fugu": ["norm_cross_entropy","norm_expected_cost"],
+        "mci_hc_fugu": "norm_cross_entropy",
         "ad_mci_hc": "norm_cross_entropy",
         "ad_mci_hc_ct": "norm_expected_cost",
         "ad_mci_hc_chile": "norm_cross_entropy",

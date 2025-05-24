@@ -51,12 +51,12 @@ models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
-conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model_type','metric','mean','95_ci'])
+conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model_type','random_seed_test'] + metrics_names)
 
 for scoring in scoring_metrics:
     
-    if (Path(results_dir,f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')).exists()) and (not overwrite):
-        continue
+    #if (Path(results_dir,f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')).exists()) and (not overwrite):
+    #    continue
 
     for task,model,y_label in itertools.product(tasks,models,y_labels):    
 
@@ -98,9 +98,15 @@ for scoring in scoring_metrics:
                     metrics_, _ = utils.get_metrics_bootstrap(outputs[r], y_dev[r], IDs_dev[r], metrics_names,n_boot=n_boot,cmatrix=cmatrix,priors=None,threshold=None,problem_type=problem_type)
                     for metric in metrics_names:
                         metrics[metric][r,:] = metrics_[metric]
+                
+                metrics_ci = {}
+                conf_int_metrics_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':model,'random_seed_test':random_seed}
+                
                 for metric in metrics_names:
                     mean, ci = np.nanmean(metrics[metric].squeeze()).round(3), (np.nanpercentile(metrics[metric].squeeze(),2.5).round(3),np.nanpercentile(metrics[metric].squeeze(),97.5).round(3))
-                    conf_int_metrics.loc[len(conf_int_metrics.index),:] = [task,dimension,y_label,model,metric,mean,f'[{ci[0]},{ci[1]}]']   
+                    metrics_ci[metric] = f'{mean}, ({ci[0]}, {ci[1]})'    
+                conf_int_metrics_append.update(metrics_ci)
+                conf_int_metrics.loc[len(conf_int_metrics.index),:] = conf_int_metrics_append
 
                 pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_best_{model}.pkl'),'wb'))
                 pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap.pkl'),'wb'))

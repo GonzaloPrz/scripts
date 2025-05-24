@@ -24,7 +24,7 @@ for target_var in target_vars:
     fact_vars = ['sex','handedness']
     cont_vars = ['education','age']
 
-    data = pd.read_csv(Path(Path.home(),'data',project_name,'original_data.csv'))
+    data = pd.read_csv(Path(Path.home(),'data',project_name,'data_matched_group.csv'))
 
     data.dropna(subset=[target_var],inplace=True)
     for fact_var in fact_vars:

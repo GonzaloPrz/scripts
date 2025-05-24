@@ -26,34 +26,36 @@
     "test_size": 0.0,
     "data_file": "data_matched_unbalanced_group.csv",
     "tasks": [
-        "nps",
         "fas",
         "animales",
         "fas__animales",
-        "grandmean"
+        "grandmean",
+        "bio"
     ],
     "single_dimensions": {
         "fas": [
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
         ],
         "animales": [
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
         ],
         "fas__animales": [
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
         ],
         "grandmean": [
-            "psycholinguistic",
-            "talking_intervals"
+            "word_properties",
+            "speech_timing"
         ],
         "nps": [
             "digits",
             "memory",
-            "moca",
             "TMT"
+        ],
+        "bio": [
+            "bio"
         ]
     },
     "scoring_metrics": "roc_auc_score",
@@ -62,11 +64,11 @@
         "group"
     ],
     "avoid_stats": [
-        "median",
         "max",
         "min",
         "skewness",
-        "kurtosis"
+        "kurtosis",
+        "median"
     ],
     "stat_folder": "mean_std",
     "random_seeds_train": [

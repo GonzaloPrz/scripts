@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from sklearn.model_selection import StratifiedKFold, KFold
+from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut, LeavePOut
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
@@ -29,7 +29,7 @@ def parse_args():
         description='Train models with hyperparameter optimization and feature selection'
     )
     parser.add_argument('--project_name', default='MCI_classifier',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='mean_std', help='Stats to be considered (default = all)')
+    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--n_iter', type=int, default=0, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--init_points', type=int, default=0, help='Number of random initial points to test during Bayesian optimization')
-    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
+    parser.add_argument('--n_seeds_train',type=int,default=1,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
+    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
 
@@ -125,6 +125,7 @@ config['problem_type'] = problem_type
 config['y_labels'] = y_labels
 config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
+config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 
 config['random_seeds_train'] = [int(3**x) for x in np.arange(1, config['n_seeds_train']+1)]
 config['random_seeds_test'] = [int(3**x) for x in np.arange(1, config['n_seeds_test']+1)] if config['test_size'] > 0 else ['']
@@ -144,7 +145,7 @@ else:
     calmethod = None
     calparams = None
 
-models_dict = {'clf':{'svc':SVC,
+models_dict = {'clf':{#'svc':SVC,
                     'lr':LR,
                     #'knnc':KNNC,
                     'xgb':xgboost},
@@ -225,7 +226,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             #Perform random permutations of the labels
             y = np.random.permutation(y)
     
-        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__')))]
+        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and all(f'_{x}' not in col for x in config['avoid_stats'] + ['query', 'timestamp'])]
         
         data = data[all_features + [y_label,config['id_col']]]
         
@@ -256,13 +257,31 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
 
             random_seeds_test = config['random_seeds_test']
             
-            CV_outer = (StratifiedKFold(n_splits=int(n_folds_outer), shuffle=True)
-                        if config['stratify'] and problem_type == 'clf'
-                        else KFold(n_splits=n_folds_outer, shuffle=True))  
-            
-            CV_inner = (StratifiedKFold(n_splits=int(n_folds_inner), shuffle=True)
-                        if config['stratify'] and problem_type == 'clf'
-                        else KFold(n_splits=n_folds_inner, shuffle=True))            
+            if n_folds_outer == -1:
+                CV_outer = LeaveOneOut()
+                n_folds_outer = int(data.shape[0]*(1-config["test_size"]))
+                config["kfold_folder"] = 'loocv'
+
+            elif n_folds_outer == 0:
+                CV_outer = CV_inner = LeavePOut(2)
+                n_folds_outer = int(data.shape[0]*(1-config["test_size"])/2)
+                config["kfold_folder"] = 'l2ocv'
+            else:
+                CV_outer = (StratifiedKFold(n_splits=int(n_folds_outer), shuffle=True)
+                            if config['stratify'] and problem_type == 'clf'
+                            else KFold(n_splits=n_folds_outer, shuffle=True))  
+                                            
+            if n_folds_inner == 0:
+                CV_inner = LeavePOut(2)
+                n_folds_inner = int(data.shape[0]*(1-config["test_size"])*(1-n_folds_outer)/2)
+            elif n_folds_inner == -1:
+                CV_inner = LeaveOneOut()
+                n_foldS_inner = int(data.shape[0]*(1-config["test_size"])*(1-n_folds_outer))
+            else:
+                CV_inner = (StratifiedKFold(n_splits=int(n_folds_inner), shuffle=True)
+                            if config['stratify'] and problem_type == 'clf'
+                            else KFold(n_splits=n_folds_inner, shuffle=True))            
+
             subfolders = [
                 task, dimension, config['scaler_name'],
                 config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
@@ -294,8 +313,8 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                     X_train_, y_train_, ID_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True)
                     X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
 
-                hyperp['knnc']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)**2-1))
-                hyperp['knnr']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)**2-1))
+                hyperp['knnc']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)*(1-1/n_folds_inner)-1))
+                hyperp['knnr']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)*(1-1/n_folds_inner)-1))
 
                 # Check for data leakage.
                 assert set(ID_train_).isdisjoint(set(ID_test_)), 'Data leakage detected between train and test sets!'
