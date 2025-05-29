@@ -98,7 +98,6 @@
             "animales",
             "fas__animales",
             "grandmean",
-            "valid_responses",
             "nps"
         ],
         "MCI_classifier": [
@@ -106,7 +105,6 @@
             "animales",
             "fas__animales",
             "grandmean",
-            "valid_responses",
             "nps"
         ],
         "Proyecto_Ivo": [
@@ -135,7 +133,10 @@
             "fugu"
                 ],
         "ad_mci_hc_ct": [
-            "image-description__routine"
+            "image-description__routine",
+            "image-description",
+            "routine",
+            "image-description__pleasant-memory__routine"
         ],
         "ad_mci_hc_chile": [
             "fugu"
@@ -233,26 +234,22 @@
             "fas":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
-            ],
+            "speech_timing"
+                    ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "nps":
             [
@@ -270,26 +267,22 @@
             "fas":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "nps":
             [
@@ -438,7 +431,7 @@
         "arequipa": "data_matched_group.csv",
         "mci_hc_fugu": "data_matched_group.csv",
         "ad_mci_hc": "data_matched_group.csv",
-        "ad_mci_hc_ct": "data_matched_group_routine_image.csv",
+        "ad_mci_hc_ct": "data_image_pleasant_memory_routine_matched_group.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
         "ad_mci_hc_group_as_feature": "data_matched_group.csv",
         "GeroApathy_reg": "all_data_agradable.csv",

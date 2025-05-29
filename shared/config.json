@@ -9,8 +9,8 @@
     "n_folds_inner": 10.0,
     "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 100.0,
-    "n_seeds_train": 10.0,
+    "init_points": 200.0,
+    "n_seeds_train": 1.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -19,7 +19,7 @@
     "n_boot_train": 0.0,
     "filter_outliers": false,
     "early_fusion": true,
-    "overwrite": true,
+    "overwrite": false,
     "parallel": true,
     "n_seeds_test": 0,
     "test_size": 0.0,
@@ -29,29 +29,24 @@
         "animales",
         "fas__animales",
         "grandmean",
-        "valid_responses",
         "nps"
     ],
     "single_dimensions": {
         "fas": [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
         ],
         "animales": [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
         ],
         "fas__animales": [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
         ],
         "grandmean": [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
         ],
         "nps": [
             "digits",
@@ -71,24 +66,15 @@
         "group"
     ],
     "avoid_stats": [
-        "skewness",
-        "kurtosis",
-        "max",
         "median",
+        "skewness",
+        "max",
+        "kurtosis",
         "min"
     ],
     "stat_folder": "mean_std",
     "random_seeds_train": [
-        3,
-        9,
-        27,
-        81,
-        243,
-        729,
-        2187,
-        6561,
-        19683,
-        59049
+        3
     ],
     "random_seeds_test": [
         ""
