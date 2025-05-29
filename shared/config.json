@@ -1,16 +1,16 @@
 {
-    "project_name": "MCI_classifier",
+    "project_name": "MCI_classifier_unbalanced",
     "stats": "mean_std",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 0.0,
+    "n_folds_outer": 10.0,
     "n_folds_inner": 10.0,
-    "n_iter": 100.0,
+    "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 10.0,
-    "n_seeds_train": 1.0,
+    "init_points": 100.0,
+    "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -19,11 +19,11 @@
     "n_boot_train": 0.0,
     "filter_outliers": false,
     "early_fusion": true,
-    "overwrite": false,
+    "overwrite": true,
     "parallel": true,
-    "n_seeds_test": 1.0,
+    "n_seeds_test": 0,
     "test_size": 0.0,
-    "data_file": "data_matched_group.csv",
+    "data_file": "data_matched_unbalanced_group.csv",
     "tasks": [
         "fas",
         "animales",
@@ -71,15 +71,24 @@
         "group"
     ],
     "avoid_stats": [
-        "median",
-        "min",
+        "skewness",
         "kurtosis",
         "max",
-        "skewness"
+        "median",
+        "min"
     ],
     "stat_folder": "mean_std",
     "random_seeds_train": [
-        3
+        3,
+        9,
+        27,
+        81,
+        243,
+        729,
+        2187,
+        6561,
+        19683,
+        59049
     ],
     "random_seeds_test": [
         ""
@@ -87,6 +96,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "l2ocv",
-    "kfold_inner": "10_folds"
+    "kfold_folder": "10_folds_10_folds"
 }
