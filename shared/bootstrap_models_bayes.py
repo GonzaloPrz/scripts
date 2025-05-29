@@ -5,6 +5,7 @@ from expected_cost.utils import *
 import itertools
 import sys,json
 import numpy as np
+from scipy.stats import bootstrap
 
 from expected_cost.ec import CostMatrix
 
@@ -59,7 +60,10 @@ for scoring in scoring_metrics:
     #    continue
 
     for task,model,y_label in itertools.product(tasks,models,y_labels):    
-
+        
+        if Path(results_dir,task).exists() == False:
+            continue
+        
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
         for dimension in dimensions:
@@ -84,33 +88,51 @@ for scoring in scoring_metrics:
 
                 IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'))
 
-                metrics_names = main_config["metrics_names"][problem_type]
-                metrics_names = metrics_names if cmatrix == None and outputs.shape[-1] == 2 else list(set(metrics_names) - set(['roc_auc','f1','recall']))
+                if (cmatrix is not None) or (np.unique(y_dev).shape[0] > 2): 
+                    metrics_names_ = list(set(metrics_names) - set(["accuracy","roc_auc","f1","precision","recall"])) 
+                else:
+                    metrics_names_ = metrics_names
 
-                outputs_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2])) if outputs.ndim == 3 else np.empty((n_boot,outputs.shape[0],outputs.shape[1]))
-                y_dev_bootstrap = np.empty((n_boot,y_dev.shape[0],y_dev.shape[1]),dtype=y_dev.dtype)
-                y_pred_bootstrap = np.empty((n_boot,y_dev.shape[0],y_dev.shape[1]),dtype=y_dev.dtype)
+                metrics = dict((metric,'') for metric in metrics_names_)
+                                     
+                n_seeds, n_samples, n_outputs = outputs.shape
+                data = (np.arange(n_samples),)  # indices for the sample axis
 
-                metrics = dict((metric,np.empty((outputs.shape[0],n_boot))) for metric in metrics_names)
+                def get_metric(metric_name, indices):
+                    # indices: shape (n_bootstrap_samples,)
+                    resampled_outputs = outputs[:, indices, :].reshape(-1,outputs.shape[-1]) # Preserve all seeds and output dim
+                    resampled_y_dev = y_dev[:, indices].ravel()       # Same indices for y_dev
 
-                for r in range(outputs.shape[0]):
-
-                    metrics_, _ = utils.get_metrics_bootstrap(outputs[r], y_dev[r], IDs_dev[r], metrics_names,n_boot=n_boot,cmatrix=cmatrix,priors=None,threshold=None,problem_type=problem_type)
-                    for metric in metrics_names:
-                        metrics[metric][r,:] = metrics_[metric]
+                    try:
+                        if problem_type == 'clf':
+                            metric, _ = utils.get_metrics_clf(resampled_outputs, resampled_y_dev, [metric_name], cmatrix=cmatrix, priors=None, threshold=None)
+                        else:
+                            metric = utils.get_metrics_reg(resampled_outputs, resampled_y_dev, [metric_name])
+                        return metric[metric_name]
+                    except Exception as e:
+                        print(f"Error calculating metric {metric_name} for indices {indices}: {e}")
+                        return np.nan
                 
-                metrics_ci = {}
-                conf_int_metrics_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':model,'random_seed_test':random_seed}
-                
-                for metric in metrics_names:
-                    mean, ci = np.nanmean(metrics[metric].squeeze()).round(3), (np.nanpercentile(metrics[metric].squeeze(),2.5).round(3),np.nanpercentile(metrics[metric].squeeze(),97.5).round(3))
-                    metrics_ci[metric] = f'{mean}, ({ci[0]}, {ci[1]})'    
-                conf_int_metrics_append.update(metrics_ci)
+                conf_int_metrics_append = {'task': task, 'dimension': dimension, 'y_label': y_label, 'model_type': model, 'random_seed_test': random_seed}
+                metrics_results = {}
+
+                for metric in metrics_names_:
+                    res = bootstrap(
+                        data, 
+                        lambda idx: get_metric(metric, idx),
+                        vectorized=False,         # get_metric works on one index set at a time
+                        paired=False,             # Single array of indices
+                        n_resamples=1000,
+                        confidence_level=0.95,
+                        method='bca',
+                        random_state=42
+                    )
+                    ci_low, ci_high = res.confidence_interval.low, res.confidence_interval.high
+                    estimate = get_metric(metric, np.arange(n_samples))  # Full sample
+                    metrics_results[metric] = {'estimate': estimate, 'CI': (ci_low, ci_high)}
+                    
+                    conf_int_metrics_append.update({metric: f'{np.round(estimate,3)}, ({np.round(ci_low,3)}, {np.round(ci_high,3)})'})
+                  
                 conf_int_metrics.loc[len(conf_int_metrics.index),:] = conf_int_metrics_append
-
-                pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_best_{model}.pkl'),'wb'))
-                pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap.pkl'),'wb'))
-                pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
-                pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
 
     conf_int_metrics.to_csv(Path(results_dir,f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')),index=False)

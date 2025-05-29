@@ -117,10 +117,13 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
         random_seeds.append('')
         
         for random_seed in random_seeds:
-            if Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl').exists() and not overwrite:
+            if Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'model_{model_type}.pkl').exists() and not overwrite:
                 print('Model already exists')
                 continue
             
+            if not Path(path_to_results,random_seed,f'all_models_{model_type}.csv').exists():
+                continue
+
             all_models = pd.read_csv(Path(path_to_results,random_seed,f'all_models_{model_type}.csv'))
             
             features = [col for col in all_models.columns if f'{task}__' in col]
@@ -132,13 +135,16 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 CV = LeaveOneOut()
                 n_max = X_train.shape[0] - 1
             elif n_folds == 0:
-                CV = LeavePOut(2)
-                n_folds = X_train.shape[0] -2 
+                n_folds = np.floor(X_train.shape[0]/np.unique(y_train).shape[0])
+                n_max = X_train.shape[0] - np.unique(y_train).shape[0]
+                CV = (StratifiedKFold(n_splits=int(n_folds), shuffle=True)
+                            if config['stratify'] and problem_type == 'clf'
+                            else KFold(n_splits=n_folds, shuffle=True))  
             else:
                 CV = (StratifiedKFold(n_splits=int(n_folds), shuffle=True)
                             if config['stratify'] and problem_type == 'clf'
                             else KFold(n_splits=n_folds, shuffle=True))  
-                n_max = int(X_train.shape[0]*(1-n_folds))
+                n_max = int(X_train.shape[0]*(1-1/n_folds))
                 
             hyperp['knnc']['n_neighbors'] = (1,n_max)
             hyperp['knnr']['n_neighbors'] = (1,n_max)
@@ -165,9 +171,9 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             
             model.train(X_train[best_features],y_train)
 
-            Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring).mkdir(exist_ok=True,parents=True)
-            pickle.dump(model.model,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl'),'wb'))
-            pickle.dump(model.scaler,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'scaler_{model_type}.pkl'),'wb'))
-            pickle.dump(model.imputer,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'imputer_{model_type}.pkl'),'wb'))
+            Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder).mkdir(exist_ok=True,parents=True)
+            pickle.dump(model.model,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'model_{model_type}.pkl'),'wb'))
+            pickle.dump(model.scaler,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'scaler_{model_type}.pkl'),'wb'))
+            pickle.dump(model.imputer,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'imputer_{model_type}.pkl'),'wb'))
             
             

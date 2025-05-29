@@ -98,14 +98,16 @@
             "animales",
             "fas__animales",
             "grandmean",
-            "bio"
+            "valid_responses",
+            "nps"
         ],
         "MCI_classifier": [
             "fas",
             "animales",
             "fas__animales",
             "grandmean",
-            "bio"
+            "valid_responses",
+            "nps"
         ],
         "Proyecto_Ivo": [
             "cog",
@@ -133,7 +135,7 @@
             "fugu"
                 ],
         "ad_mci_hc_ct": [
-            "pleasant-memory"
+            "image-description__routine"
         ],
         "ad_mci_hc_chile": [
             "fugu"
@@ -207,7 +209,7 @@
         "arequipa": 0,
         "mci_hc_fugu": 0.3,
         "ad_mci_hc": 0.13,
-        "ad_mci_hc_ct": 0.2,
+        "ad_mci_hc_ct": 0,
         "ad_mci_hc_chile": 0.25,
         "ad_mci_hc_group_as_feature": 0,
         "GERO_Ivo": 0,
@@ -228,28 +230,36 @@
             "talking-intervals"
         ],
         "MCI_classifier_unbalanced": {
-            "fas":[
+            "fas":
+            [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
-            "animales":[
+            "animales":
+            [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "nps":
-            ["digits",
+            [
+            "digits",
             "memory",
-             "TMT"
+            "TMT",
+            "mmse"
             ],
             "bio":
             [
@@ -257,28 +267,36 @@
             ]
         },
         "MCI_classifier": {
-            "fas":[
+            "fas":
+            [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
-            "animales":[
+            "animales":
+            [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "nps":
-            ["digits",
+            [
+            "digits",
             "memory",
-             "TMT"
+             "TMT",
+             "mmse"
             ],
             "bio":
             [
@@ -327,15 +345,11 @@
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "mci_hc_fugu":[
-            "pitch",
-            "talking-intervals",
-            "voice-quality"
+            "talking-intervals"
         ],
         "ad_mci_hc":{
             "fugu":[
-                "pitch",
-                "talking-intervals",
-                "voice-quality"
+                "talking-intervals"
                 ]
             },
         "ad_mci_hc_ct":{
@@ -347,14 +361,16 @@
                 "talking_intervals",
                 "word_properties"
                 ],
-            "routine__image-description":[                
+            "image-description__routine":[                
                 "talking_intervals",
                 "word_properties"
                 ],
             "pleasant-memory":[                
                 "talking_intervals",
                 "word_properties"
-                ]
+                ],
+            "image-description__pleasant-memory__routine":
+            ["speech_timing","word_properties"]
             },
         "ad_mci_hc_chile":{
             "fugu":[
@@ -422,7 +438,7 @@
         "arequipa": "data_matched_group.csv",
         "mci_hc_fugu": "data_matched_group.csv",
         "ad_mci_hc": "data_matched_group.csv",
-        "ad_mci_hc_ct": "data_matched_group_pleasant_memory.csv",
+        "ad_mci_hc_ct": "data_matched_group_routine_image.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
         "ad_mci_hc_group_as_feature": "data_matched_group.csv",
         "GeroApathy_reg": "all_data_agradable.csv",
@@ -465,8 +481,8 @@
         "tea_tomi_chu":[null]
     },
     "scoring_metrics": {
-        "MCI_classifier_unbalanced": "roc_auc_score",
-        "MCI_classifier": ["roc_auc_score"],
+        "MCI_classifier_unbalanced": "roc_auc",
+        "MCI_classifier": ["roc_auc"],
         "tell_classifier": "norm_expected_cost",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
@@ -509,7 +525,7 @@
         "tea_tomi_chu":"clf"
     },
     "metrics_names": {
-        "clf": ["roc_auc","accuracy","recall","f1","norm_cross_entropy","norm_expected_cost"],
+        "clf": ["roc_auc","accuracy","f1","recall","norm_expected_cost","norm_cross_entropy"],
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "models": {

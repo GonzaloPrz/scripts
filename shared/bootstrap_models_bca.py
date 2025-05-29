@@ -6,6 +6,8 @@ import itertools
 from joblib import Parallel, delayed
 import sys,os,json
 
+from pingouin import compute_bootci 
+
 from expected_cost.ec import CostMatrix
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
@@ -128,21 +130,25 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,[scori
             
             metrics = dict((metric,np.zeros((outputs.shape[0],outputs.shape[1],outputs.shape[2],int(config["n_boot"])))) for metric in metrics_names)
             
-            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(utils.compute_metrics)(j,model_index,r, outputs, y_dev, IDs_dev, metrics_names, int(config["n_boot"]), problem_type,cmatrix=cmatrix,priors=None,threshold=all_models.loc[model_index,'threshold'] if 'threshold' in all_models.columns else None,bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
+            all_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(utils.compute_metrics)(j,model_index,r, outputs, y_dev, IDs_dev, metrics_names, n_boot, problem_type,cmatrix=cmatrix,priors=None,threshold=all_models.loc[model_index,'threshold'] if 'threshold' in all_models.columns else None,bayesian=bayesian) for j,model_index,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
             # Update the metrics array with the computed results
-            for j,model_index,r, metrics_result,_ in all_results:
+            for j,model_index,r, metrics_ci in all_results:
                 for metric in metrics_names:
-                    metrics[metric][j,model_index,r,:] = metrics_result[metric]
+                    all_models.loc[model_index,f'{metric}_mean'] = metrics_ci[metric][0]
+                    all_models.loc[model_index,f'{metric}_inf'] = metrics_ci[metric][1][0]
+                    all_models.loc[model_index,f'{metric}_sup'] = metrics_ci[metric][1][1]
 
-            if len(all_results) == 0:
-                continue
+            #if len(all_results) == 0:
+            #    continue
             # Update the summary statistics in all_models
-            for model_index in range(outputs.shape[1]):
-                for metric in metrics_names:
-                    all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][:,model_index,:].flatten()).round(5)
-                    all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][:,model_index,:].flatten(), 2.5).round(5)
-                    all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][:,model_index,:].flatten(), 97.5).round(5)
-            if bayesian:
-                Path(path,random_seed,'bayesian').mkdir(exist_ok=True)
+            #for model_index in range(outputs.shape[1]):
+            #    for metric in metrics_names:
+            #        all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][:,model_index,:].flatten()).round(5)
+            #        #Compute BCa bootstrap confidence intervals
+            #        ci = compute_bootci(metrics[metric][:,model_index,:].flatten(),method='bca',n_boot=1)
+            #        all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][:,model_index,:].flatten(), 2.5).round(5)
+            #        all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][:,model_index,:].flatten(), 97.5).round(5)
+            #if bayesian:
+            #    Path(path,random_seed,'bayesian').mkdir(exist_ok=True)
                 
             all_models.to_csv(Path(path,random_seed,'bayesian' if bayesian else '',filename_to_save))

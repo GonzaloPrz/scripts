@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut, LeavePOut
+from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
@@ -28,27 +28,27 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='MCI_classifier',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
+    parser.add_argument('--project_name', default='ad_mci_hc_ct',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='mean_std', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
-    parser.add_argument('--n_iter', type=int, default=0, help='Number of hyperparameter iterations')
+    parser.add_argument('--n_folds_outer', type=int, default=10, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=int, default=0, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_iter', type=int, default=100, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
-    parser.add_argument('--init_points', type=int, default=0, help='Number of random initial points to test during Bayesian optimization')
-    parser.add_argument('--n_seeds_train',type=int,default=1,help='Number of seeds for cross-validation training')
+    parser.add_argument('--init_points', type=int, default=20, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
-    parser.add_argument('--n_boot',type=int,default=200,help='Number of bootstrap iterations')
+    parser.add_argument('--n_boot',type=int,default=5000,help='Number of bootstrap iterations')
     parser.add_argument('--n_boot_train',type=int,default=0,help='Number of bootstrap iterations for training')
-    parser.add_argument('--n_boot_test',type=int,default=2000,help='Number of bootstrap iterations for testing')
+    parser.add_argument('--n_boot_test',type=int,default=5000,help='Number of bootstrap iterations for testing')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
+    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
 
@@ -125,18 +125,10 @@ config['problem_type'] = problem_type
 config['y_labels'] = y_labels
 config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
-config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 
 config['random_seeds_train'] = [int(3**x) for x in np.arange(1, config['n_seeds_train']+1)]
 config['random_seeds_test'] = [int(3**x) for x in np.arange(1, config['n_seeds_test']+1)] if config['test_size'] > 0 else ['']
 config['random_seeds_shuffle'] = [float(3**x) for x in np.arange(1, config['n_seeds_shuffle']+1)] if config['shuffle_labels'] else ['']
-
-if config['n_folds_outer'] == 0:
-    config['kfold_folder'] = 'l2ocv'
-elif config['n_folds_outer'] == -1:
-    config['kfold_folder'] = 'loocv'
-else:
-    config['kfold_folder'] = f'{int(config["n_folds_outer"])}_folds'
 
 if config['calibrate']:
     calmethod = AffineCalLogLoss
@@ -145,10 +137,11 @@ else:
     calmethod = None
     calparams = None
 
-models_dict = {'clf':{#'svc':SVC,
+models_dict = {'clf':{'svc':SVC,
                     'lr':LR,
-                    #'knnc':KNNC,
-                    'xgb':xgboost},
+                    'knnc':KNNC,
+                    #'xgb':xgboost
+                    },
                 
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
@@ -175,10 +168,6 @@ hyperp = {'lr':{'C':(1e-4,100)},
                     'gamma':(1e-4,1e4)}
             }
 
-                
-with open(Path(__file__).parent/'config.json', 'w') as f:
-    json.dump(config, f, indent=4)
-
 for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
     dimensions = list()
     if isinstance(single_dimensions,dict):
@@ -186,16 +175,10 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
     else:
         single_dimensions_ = single_dimensions
 
-    if isinstance(single_dimensions_,list):
-        if config["early_fusion"]:
-            for ndim in range(len(single_dimensions_)):
-                for dimension in itertools.combinations(single_dimensions_,ndim+1):
-                    dimensions.append('__'.join(dimension))
-        else:
-            dimensions = single_dimensions_
-    
-    else:
-        dimensions = single_dimensions[task]
+    if isinstance(single_dimensions_,list) and config["early_fusion"]:
+        for ndim in range(len(single_dimensions_)):
+            for dimension in itertools.combinations(single_dimensions_,ndim+1):
+                dimensions.append('__'.join(dimension))
 
     for dimension in dimensions:
         print(task,dimension)
@@ -226,7 +209,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             #Perform random permutations of the labels
             y = np.random.permutation(y)
     
-        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and all(f'_{x}' not in col for x in config['avoid_stats'] + ['query', 'timestamp'])]
+        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and isinstance(data.loc[0,col],(int,float)) and 'timestamp' not in col]
         
         data = data[all_features + [y_label,config['id_col']]]
         
@@ -239,53 +222,60 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
         for model_key, model_class in models_dict[problem_type].items():        
             print(model_key)
             
-            held_out = config['n_iter'] > 0 or bool(config['feature_selection'])
+            held_out = float(config["test_size"]) > 0
             n_folds_outer = int(config['n_folds_outer'])
             n_folds_inner = int(config['n_folds_inner'])
+
             if held_out:
-                if n_folds_outer== 0:
-                    n_folds_outer= int((data.shape[0]*(1 - config['test_size'])) / 2)
-                elif n_folds_outer== -1:
-                    n_folds_outer= int(data.shape[0]*(1 - config['test_size']))
-                n_seeds_test = config['n_seeds_test']
-            else:
-                if n_folds_outer== 0:
-                    n_folds_outer= int(data.shape[0]/2)
-                elif n_folds_outer== -1:
-                    n_folds_outer= data.shape[0]
-                n_seeds_test = 1
+                n_samples_dev = int(data.shape[0] * (1 - config['test_size']))
 
-            random_seeds_test = config['random_seeds_test']
-            
-            if n_folds_outer == -1:
+            else:
+                n_samples_dev = data.shape[0]
+                random_seeds_test = ['']
+                config["n_seeds_test"] = 0
+                config["random_seeds_test"] = ['']
+
+            if n_folds_outer== 0:
+                n_folds_outer= int(n_samples_dev / np.unique(y).shape[0])
+                CV_outer = (StratifiedKFold(n_splits=n_folds_outer, shuffle=True)
+                            if config['stratify'] and problem_type == 'clf' 
+                            else KFold(n_splits=n_folds_outer, shuffle=True))
+                config["kfold_folder"] = f'l{np.unique(y).shape[0]}out'
+                n_samples_outer = n_samples_dev - np.unique(y).shape[0]
+            elif n_folds_outer== -1:
                 CV_outer = LeaveOneOut()
-                n_folds_outer = int(data.shape[0]*(1-config["test_size"]))
+                n_samples_outer = n_samples_dev - 1
                 config["kfold_folder"] = 'loocv'
-
-            elif n_folds_outer == 0:
-                CV_outer = CV_inner = LeavePOut(2)
-                n_folds_outer = int(data.shape[0]*(1-config["test_size"])/2)
-                config["kfold_folder"] = 'l2ocv'
             else:
-                CV_outer = (StratifiedKFold(n_splits=int(n_folds_outer), shuffle=True)
+                CV_outer = (StratifiedKFold(n_splits=n_folds_outer, shuffle=True)
                             if config['stratify'] and problem_type == 'clf'
-                            else KFold(n_splits=n_folds_outer, shuffle=True))  
-                                            
+                            else KFold(n_splits=n_folds_outer, shuffle=True))
+                n_samples_outer = int(n_samples_dev*(1-1/n_folds_outer))
+                config['kfold_folder'] = f'{n_folds_outer}_folds' 
+
             if n_folds_inner == 0:
-                CV_inner = LeavePOut(2)
-                n_folds_inner = int(data.shape[0]*(1-config["test_size"])*(1-n_folds_outer)/2)
+                n_folds_inner = int(n_samples_outer / np.unique(y).shape[0])
+                CV_inner = (StratifiedKFold(n_splits=n_folds_inner, shuffle=True)
+                            if config['stratify'] and problem_type == 'clf'
+                            else KFold(n_splits=n_folds_inner, shuffle=True))
+                config["kfold_folder"] += f'_l{np.unique(y).shape[0]}ocv'
+                n_max = n_samples_outer - np.unique(y).shape[0]
             elif n_folds_inner == -1:
                 CV_inner = LeaveOneOut()
-                n_foldS_inner = int(data.shape[0]*(1-config["test_size"])*(1-n_folds_outer))
+                config["kfold_folder"] += '_loocv'
+                n_max = n_samples_outer - 1
+            
             else:
-                CV_inner = (StratifiedKFold(n_splits=int(n_folds_inner), shuffle=True)
+                CV_inner = (StratifiedKFold(n_splits=n_folds_inner, shuffle=True)
                             if config['stratify'] and problem_type == 'clf'
-                            else KFold(n_splits=n_folds_inner, shuffle=True))            
-
+                            else KFold(n_splits=n_folds_inner, shuffle=True))
+                n_max = int(n_samples_outer*(1-1/n_folds_inner))
+                config["kfold_folder"] += f'_{n_folds_inner}_folds'
+            
             subfolders = [
                 task, dimension, config['scaler_name'],
                 config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
-                'hyp_opt' if int(config['n_iter']) > 0 else '','feature_selection' if bool(config['feature_selection']) else '',
+                'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                 'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
                 'shuffle' if config['shuffle_labels'] else ''
             ]
@@ -313,12 +303,15 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                     X_train_, y_train_, ID_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True)
                     X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
 
-                hyperp['knnc']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)*(1-1/n_folds_inner)-1))
-                hyperp['knnr']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)*(1-1/n_folds_inner)-1))
+                hyperp['knnc']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)**2-1))
+                hyperp['knnr']['n_neighbors'] = (1,int(X_train_.shape[0]*(1-test_size)*(1-1/n_folds_outer)**2-1))
 
                 # Check for data leakage.
                 assert set(ID_train_).isdisjoint(set(ID_test_)), 'Data leakage detected between train and test sets!'
                 
+                with open(Path(__file__).parent/'config.json', 'w') as f:
+                    json.dump(config, f, indent=4)
+
                 if (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'all_models_{model_key}.csv').exists() and config['calibrate'] == False) or (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'cal_outputs_{model_key}.pkl').exists() and config['calibrate']):
                     if not bool(config['overwrite']):
                         print(f'Results already exist for {task} - {y_label} - {model_key}. Skipping...')
@@ -342,7 +335,6 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                                                                                      problem_type=problem_type,
                                                                                      cmatrix=cmatrix,priors=None,
                                                                                      threshold=thresholds,
-                                                                                     feature_selection=bool(config['feature_selection']),
                                                                                      parallel=config['parallel'],
                                                                                      calmethod=calmethod,
                                                                                      calparams=calparams)
@@ -369,6 +361,6 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                 for fname, obj in result_files.items():
                     with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', fname), 'wb') as f:
                         pickle.dump(obj, f)
-
+                
                 with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', 'config.json'), 'w') as f:
                     json.dump(config, f, indent=4)

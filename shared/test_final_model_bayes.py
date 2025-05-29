@@ -28,24 +28,17 @@ from expected_cost.ec import *
 from expected_cost.calibration import calibration_train_on_heldout
 from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
 
+from scipy.stats import bootstrap
+
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 import utils
 
-def test_models_bootstrap(model_class,params,features,scaler,imputer,calmethod,calparams,X_dev,y_dev,X_test,y_test,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False,calibrate=False):
-    result_append = {}
-    outputs_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
-    if problem_type == 'reg':
-        outputs_bootstrap = outputs_bootstrap.squeeze(axis=-1)
-
-    y_true_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
-    y_pred_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
-    IDs_test_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)), dtype=object)
+def test_models_bootstrap(model_class,params,features,scaler,imputer,calmethod,calparams,X_dev,y_dev,X_test,y_test,metrics_names,problem_type,threshold=None,cmatrix=None,priors=None,calibrate=False):
+    conf_int_results = {}
 
     if cmatrix is not None or len(np.unique(y_dev)) > 2:
         metrics_names = list(set(metrics_names) - set(['roc_auc','accuracy','f1','recall','precision']))
-
-    metrics_test_bootstrap = {metric: np.empty((np.max((1,boot_train)),np.max((1,boot_test)))) for metric in metrics_names}
 
     if not isinstance(X_dev,pd.DataFrame):
         X_dev = pd.DataFrame(X_dev.squeeze(),columns=features)
@@ -61,54 +54,59 @@ def test_models_bootstrap(model_class,params,features,scaler,imputer,calmethod,c
     if 'probability' in params.keys():
         params['probability'] = True
 
-    outputs = np.empty((np.max((1,boot_train)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
+    outputs = utils.test_model(model_class,params,scaler,imputer, X_dev[features], y_dev, X_test[features], problem_type=problem_type)
+        
+    if calibrate:
+        model = utils.Model(model_class(**params),scaler,imputer,calmethod,calparams)
+        model.train(X_dev[features], y_dev)
+        outputs_dev = model.eval(X_dev[features],problem_type)
     
-    if problem_type == 'reg':
-        outputs = outputs.squeeze(axis=-1)
-
-    for b_train in range(np.max((1,boot_train))):
-        boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
-        outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev[boot_index_train], X_test[features], problem_type=problem_type)
+        outputs,_ = model.calibrate(outputs,None,outputs_dev,y_dev)
         
-        if calibrate:
-            model = utils.Model(model_class(**params),scaler,imputer,calmethod,calparams)
-            model.train(X_dev.loc[boot_index_train,features], y_dev)
-            outputs_dev = model.eval(X_dev.loc[boot_index_train,features],problem_type)
+    def get_metric(metric_name, indices):
+        # indices: shape (n_bootstrap_samples,)
         
-            outputs[b_train,:],_ = model.calibrate(outputs[b_train,:],None,outputs_dev,y_dev)
-        
-        for b_test in range(np.max((1,boot_test))):
-            if bayesian:
-                weights = np.random.dirichlet(np.ones(y_test.shape[0]))
-            else:
-                weights = None
+        resampled_outputs = outputs[indices, :] # Preserve all seeds and output dim
+        resampled_y = y_test[indices].ravel()       # Same indices for y_dev
+        b = 0
+        while np.unique(resampled_y).shape[0] < np.unique(y_test).shape[0]:
+            indices = resample(range(len(y_test)), replace=True, n_samples=len(indices), random_state=b)
+            resampled_outputs = outputs[indices, :]
+            resampled_y = y_test[indices].ravel()
+            b += 1
 
-            boot_index = resample(range(outputs.shape[1]), n_samples=outputs.shape[1], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
-            while len(np.unique(y_test[boot_index])) < len(np.unique(y_dev)):
-                boot_index = resample(range(outputs.shape[1]), n_samples=outputs.shape[1], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test*boot_test + b_test)
-            outputs_bootstrap[b_train,b_test] = outputs[b_train,boot_index]
-
+        try:
             if problem_type == 'clf':
-                metrics_test, y_pred = utils.get_metrics_clf(outputs[b_train,boot_index], y_test[boot_index], metrics_names, cmatrix, priors,threshold,weights)
-                y_pred_bootstrap[b_train,b_test,:] = y_pred
+                metric, _ = utils.get_metrics_clf(resampled_outputs, resampled_y, [metric_name], cmatrix=cmatrix, priors=priors, threshold=threshold)
             else:
-                metrics_test = utils.get_metrics_reg(outputs[b_train,boot_index], y_test[boot_index], metrics_names)
-                y_pred_bootstrap[b_train,b_test] = outputs[b_train,boot_index]
-                
-            y_true_bootstrap[b_train,b_test] = y_test[boot_index]
-            IDs_test_bootstrap[b_train,b_test] = IDs_test.squeeze()[boot_index]
+                metric = utils.get_metrics_reg(resampled_outputs, resampled_y, [metric_name])
+            return metric[metric_name]
+        except Exception as e:
+            print(f"Error calculating metric {metric_name} for indices {indices}: {e}")
+            return 
 
-            for metric in metrics_names:
-                try:
-                    metrics_test_bootstrap[metric][b_train,b_test] = metrics_test[metric]
-                except:
-                    continue
+    n_samples = X_test.shape[0]
+
+    data = (np.arange(n_samples),)  # indices for the sample axis
+    metrics_results = {}
     for metric in metrics_names:
-        mean, inf, sup = utils.conf_int_95(metrics_test_bootstrap[metric].flatten())
-
-        result_append.update({f'{metric}_test':f"{np.round(mean,3)} [{np.round(inf,3)},{np.round(sup,3)}]"})
-        
-    return result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
+        res = bootstrap(
+                data, 
+                lambda idx: get_metric(metric, idx),
+                vectorized=False,         # get_metric works on one index set at a time
+                paired=False,             # Single array of indices
+                n_resamples=n_boot_test,
+                confidence_level=0.95,
+                method='bca',
+                random_state=42
+                )
+        ci_low, ci_high = res.confidence_interval.low, res.confidence_interval.high
+        estimate = get_metric(metric, np.arange(n_samples))  # Full sample
+        metrics_results[metric] = {'estimate': estimate, 'CI': (ci_low, ci_high)}
+                    
+        conf_int_results.update({metric: f'{np.round(estimate,3)}, ({np.round(ci_low,3)}, {np.round(ci_high,3)})'})
+                  
+    return conf_int_results
 
 late_fusion = False
 
@@ -167,13 +165,16 @@ for scoring in scoring_metrics:
         dimension = row['dimension']
         model_type = row['model_type']
         random_seed_test = row['random_seed_test']
+        if str(random_seed_test) == 'nan':
+            random_seed_test = ''
+            
         y_label = row['y_label']
 
         print(task,dimension,model_type,y_label)
         try:
-            trained_model = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'model_{model_type}.pkl'),'rb'))
-            trained_scaler = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'scaler_{model_type}.pkl'),'rb'))
-            trained_imputer = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,f'imputer_{model_type}.pkl'),'rb'))
+            trained_model = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'model_{model_type}.pkl'),'rb'))
+            trained_scaler = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'scaler_{model_type}.pkl'),'rb'))
+            trained_imputer = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'imputer_{model_type}.pkl'),'rb'))
         except:
             continue
     
@@ -190,9 +191,11 @@ for scoring in scoring_metrics:
         features = trained_model.feature_names_in_
 
         metrics_names = list(set(metrics_names_) - set(['roc_auc','accuracy','f1','recall','precision'])) if cmatrix is not None or len(np.unique(y_train)) > 2 else metrics_names_
+        
+        result_append = test_models_bootstrap(type(trained_model),params,features,type(trained_scaler),type(trained_imputer),None,None,X_train,y_train,X_test,y_test,metrics_names,problem_type,threshold=None,cmatrix=cmatrix)
+        
+        result_append.update({'task':task,'dimension':dimension,'y_label':y_label,'model_type':model_type,'random_seed_test':random_seed_test})
 
-        result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap = test_models_bootstrap(type(trained_model),params,features,type(trained_scaler),type(trained_imputer),None,None,X_train,y_train,X_test,y_test,metrics_names,IDs_test,n_boot_train,n_boot_test,problem_type,threshold=None,cmatrix=cmatrix)
-        result_append.update({'task':task,'dimension':dimension,'y_label':y_label,'model_type':model_type,'random_seed':random_seed_test})
         for metric in metrics_names:
             try:
                 result_append.update({f'{metric}_dev':row[metric]})
@@ -204,9 +207,3 @@ for scoring in scoring_metrics:
             results_test = pd.concat([results_test,pd.DataFrame(result_append,index=[0])],ignore_index=True)
     results_test.to_csv(Path(results_dir,f'best_models_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_test.csv'.replace('__','_') if feature_selection else
                              f'best_models_{kfold_folder}_{scoring}_{stat_folder}_test.csv'.replace('__','_')))
-    
-#outputs_filename = f'outputs_test_{model_name}.pkl'
-#with open(Path(file.parent,outputs_filename),'wb') as f:
-#    pickle.dump(outputst,f)
-
-
