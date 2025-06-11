@@ -41,12 +41,12 @@ def _calculate_metric_diffs(indices, outputs1, y_dev1, outputs2, y_dev2, metrics
     return np.array([metrics1[m] - metrics2[m] for m in metrics])
 
 tasks_list = [
-              ['Animales__P','AAL'],
+              ['Animales__P','brain'],
               ['Animales__P','cog']
 
 ]
 dimensions_list = [
-                   ['properties','norm_AAL'],
+                   ['properties','norm_brain_lit'],
                    ['properties','neuropsico_digits__neuropsico_tmt']
 ]
 
@@ -59,12 +59,9 @@ shuffle_labels = config['shuffle_labels']
 avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = True if config['n_iter_features'] > 0 else False
-config["feature_selection"] = feature_selection
+feature_selection = config['feature_selection']
 filter_outliers = config['filter_outliers']
-n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
-early_fusion = bool(config["early_fusion"])
 problem_type = config["problem_type"]
 
 home = Path(os.environ.get("HOME", Path.home()))
@@ -85,25 +82,37 @@ cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_con
 diff_ci = pd.DataFrame()
 
 for scoring in scoring_metrics:
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
+    extremo = 1 if 'norm' in scoring else 0
+    ascending = True if extremo == 1 else False
+
+    best_models_file = f'metrics_{kfold_folder}_{scoring}_{config["bootstrap_method"]}_{stat_folder}_hyp_opt_feature_selection_dev.csv'.replace('__','_')
+    if not hyp_opt:
+        best_models_file = best_models_file.replace('_hyp_opt','')
+    
+    if not feature_selection:
+        best_models_file = best_models_file.replace('_feature_selection','')
     
     best_models = pd.read_csv(Path(results_dir,best_models_file))
+    scoring_col = f'{scoring}_extremo'
+    best_models[scoring_col] = best_models[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
+    best_models = best_models[best_models[scoring_col].astype(str) != 'nan'].reset_index(drop=True)
+    
     all_results = pd.DataFrame()
 
     for tasks, dimensions in zip(tasks_list, dimensions_list):
         for y_label in y_labels:
 
             # Find best models for each task/dimension
-            best1 = best_models[(best_models.task == tasks[0]) & (best_models.dimension == dimensions[0]) & (best_models.y_label == y_label)]
-            best2 = best_models[(best_models.task == tasks[1]) & (best_models.dimension == dimensions[1]) & (best_models.y_label == y_label)]
+            best1 = best_models[(best_models.task == tasks[0]) & (best_models.dimension == dimensions[0]) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
+            best2 = best_models[(best_models.task == tasks[1]) & (best_models.dimension == dimensions[1]) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
 
             if best1.empty or best2.empty:
                 print(f"Skipping: No best model found for combination {tasks}, {dimensions}, {y_label}")
                 continue
 
             # Load data for both models
-            outputs1, y_dev1 = utils._load_data(results_dir, tasks[0], dimensions[0], y_label, best1.model_type.values[0], '', config)
-            outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type.values[0], '', config)
+            outputs1, y_dev1 = utils._load_data(results_dir, tasks[0], dimensions[0], y_label, best1.model_type, '', config, bayes=True, scoring=scoring)
+            outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
 
             # Ensure the datasets are comparable
             assert y_dev1.shape == y_dev2.shape, "y_dev shapes must match for paired comparison!"
@@ -113,7 +122,7 @@ for scoring in scoring_metrics:
 
             # Define the statistic function with data baked in
             stat_func = lambda indices: _calculate_metric_diffs(
-                indices, outputs1[:,best1.model_index,:], y_dev1, outputs2[:,best2.model_index,:], y_dev2, 
+                indices, outputs1, y_dev1, outputs2, y_dev2, 
                 metrics_names, problem_type, cmatrix
             )
 
@@ -165,7 +174,7 @@ for scoring in scoring_metrics:
             all_results.loc[len(all_results.index),:] = result_row
 
     # --- Save Final Results ---
-    output_filename = Path(results_dir, f'ic_diff_{scoring}.csv') # Assumes one scoring metric for filename
+    output_filename = Path(results_dir, f'ic_diff_{scoring}_bayes.csv') # Assumes one scoring metric for filename
     all_results.to_csv(output_filename, index=False)
     print(f"Confidence interval differences saved to {output_filename}")
     

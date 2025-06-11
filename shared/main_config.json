@@ -133,10 +133,7 @@
             "fugu"
                 ],
         "ad_mci_hc_ct": [
-            "image-description__routine",
-            "image-description",
-            "routine",
-            "image-description__pleasant-memory__routine"
+            "routine"
         ],
         "ad_mci_hc_chile": [
             "fugu"
@@ -209,7 +206,7 @@
         "GeroApathy": 0.3,
         "arequipa": 0,
         "mci_hc_fugu": 0.3,
-        "ad_mci_hc": 0.13,
+        "ad_mci_hc": 0.14,
         "ad_mci_hc_ct": 0,
         "ad_mci_hc_chile": 0.25,
         "ad_mci_hc_group_as_feature": 0,
@@ -234,22 +231,26 @@
             "fas":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
                     ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "nps":
             [
@@ -267,22 +268,26 @@
             "fas":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "nps":
             [
@@ -342,24 +347,25 @@
         ],
         "ad_mci_hc":{
             "fugu":[
+                "text",
                 "talking-intervals"
                 ]
             },
         "ad_mci_hc_ct":{
             "routine":[                
-                "talking_intervals",
+                "speech_timing",
                 "word_properties"
                 ],
-            "image-description":[
-                "talking_intervals",
+            "image_description":[
+                "speech_timing",
                 "word_properties"
                 ],
             "image-description__routine":[                
-                "talking_intervals",
+                "speech_timing",
                 "word_properties"
                 ],
             "pleasant-memory":[                
-                "talking_intervals",
+                "speech_timing",
                 "word_properties"
                 ],
             "image-description__pleasant-memory__routine":
@@ -430,8 +436,8 @@
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
         "mci_hc_fugu": "data_matched_group.csv",
-        "ad_mci_hc": "data_matched_group.csv",
-        "ad_mci_hc_ct": "data_image_pleasant_memory_routine_matched_group.csv",
+        "ad_mci_hc": "all_data_matched_group_sentence_similarity_spanish_es.csv",
+        "ad_mci_hc_ct": "data_routine_matched_group.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
         "ad_mci_hc_group_as_feature": "data_matched_group.csv",
         "GeroApathy_reg": "all_data_agradable.csv",
@@ -482,7 +488,7 @@
         "arequipa": "roc_auc",
         "mci_hc_fugu": "norm_cross_entropy",
         "ad_mci_hc": "norm_cross_entropy",
-        "ad_mci_hc_ct": "norm_expected_cost",
+        "ad_mci_hc_ct": ["norm_cross_entropy","norm_expected_cost"],
         "ad_mci_hc_chile": "norm_cross_entropy",
         "ad_mci_hc_group_as_feature": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",

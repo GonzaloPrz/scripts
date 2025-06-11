@@ -56,7 +56,7 @@ results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path
 
 for scoring in scoring_metrics:
     scoring = scoring.replace('_score','')
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffle.csv'.replace('__','_')
+    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle.csv'.replace('__','_')
 
     if not feature_selection:
         best_models_file = best_models_file.replace('_feature_selection','')
@@ -88,10 +88,10 @@ for scoring in scoring_metrics:
         model_name = best_model['model_type'].values[0]
         model_index = best_model['model_index'].values[0]
 
-        with open(Path(path,random_seed,'bayesian' if bayesian else '','y_dev.pkl'),'rb') as f:
+        with open(Path(path,random_seed,'y_dev.pkl'),'rb') as f:
             y_dev = np.array(pickle.load(f),dtype=int)
         
-        with open(Path(path,random_seed,'bayesian' if bayesian else '',f'outputs_{model_name}.pkl'),'rb') as f:
+        with open(Path(path,random_seed,f'outputs_{model_name}.pkl'),'rb') as f:
             outputs_dev = pickle.load(f)
         
         _, y_pred_dev = utils.get_metrics_clf(outputs_dev.squeeze()[model_index], y_dev, [], cmatrix,)
@@ -101,10 +101,10 @@ for scoring in scoring_metrics:
         except:
             continue
 
-        if Path(path,random_seed,'bayesian' if bayesian else '','y_test.pkl').exists():
+        if Path(path,random_seed,'y_test.pkl').exists():
             with open(Path(path,random_seed,'bayesian' if bayesian else '','y_test.pkl'),'rb') as f:
                 y_test = np.array(pickle.load(f),dtype=int)
-            with open(Path(path,random_seed,'bayesian' if bayesian else '',f'outputs_test_{model_name}.pkl'),'rb') as f:
+            with open(Path(path,random_seed,f'outputs_test_{model_name}.pkl'),'rb') as f:
                 outputs_test = pickle.load(f)
             _, y_pred_test = utils.get_metrics_clf(outputs_test.squeeze()[model_index], y_test, [], cmatrix)
             cmatrix_test = confusion_matrix(y_test.flatten(), y_pred_test.flatten(),normalize='all')
@@ -120,7 +120,7 @@ for scoring in scoring_metrics:
         #Plot confusion matrix and save as fig
         
         fig.suptitle(f'{task} - {dimension} - {y_label} - {model_name} - {random_seed}')
-        plt.savefig(Path(path,random_seed,f'confusion_matrix_{model_name}.png'))
+        plt.savefig(Path(path,random_seed,f'confusion_matrix_{model_name}_{config["bootstrap_method"]}.png'))
 
 
                 

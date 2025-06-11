@@ -28,13 +28,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='MCI_classifier_unbalanced',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='mean_std', help='Stats to be considered (default = all)')
+    parser.add_argument('--project_name', default='Proyecto_Ivo',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=10, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=int, default=10, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=int, default=3, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=int, default=11, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--init_points', type=int, default=100, help='Number of random initial points to test during Bayesian optimization')
@@ -42,15 +42,16 @@ def parse_args():
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
-    parser.add_argument('--n_boot',type=int,default=5000,help='Number of bootstrap iterations')
+    parser.add_argument('--n_boot',type=int,default=1000,help='Number of bootstrap iterations')
     parser.add_argument('--n_boot_train',type=int,default=0,help='Number of bootstrap iterations for training')
-    parser.add_argument('--n_boot_test',type=int,default=5000,help='Number of bootstrap iterations for testing')
+    parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap iterations for testing')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
+    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
+    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
+    parser.add_argument('--bootstrap_method',type=str,default='percentile',help='Bootstrap method [bca, percentile, basic]')
 
     return parser.parse_args()
 
@@ -79,7 +80,8 @@ def load_configuration(args):
         early_fusion = bool(args.early_fusion),
         overwrite = bool(args.overwrite),
         parallel = bool(args.parallel),
-        n_seeds_test = float(args.n_seeds_test) if args.n_folds_outer!= -1 else float(0)
+        n_seeds_test = float(args.n_seeds_test) if args.n_folds_outer!= -1 else float(0),
+        bootstrap_method = args.bootstrap_method
     )
 
     return config
@@ -140,7 +142,7 @@ else:
 models_dict = {'clf':{'svc':SVC,
                     'lr':LR,
                     'knnc':KNNC,
-                    #'xgb':xgboost
+                    'xgb':xgboost
                     },
                 
                 'reg':{'lasso':Lasso,
@@ -157,7 +159,7 @@ hyperp = {'lr':{'C':(1e-4,100)},
                  'gamma':(1e-4,1e4)},
             'knnc':{'n_neighbors':(1,40)},
             'xgb':{'max_depth':(1,10),
-                   'n_estimators':(1,2000),
+                   'n_estimators':(1,1000),
                    'learning_rate':(1e-4,1)},
             'lasso':{'alpha':(1e-4,1e4)},
             'ridge':{'alpha':(1e-4,1e4)},
@@ -179,6 +181,10 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
         for ndim in range(len(single_dimensions_)):
             for dimension in itertools.combinations(single_dimensions_,ndim+1):
                 dimensions.append('__'.join(dimension))
+    elif isinstance(single_dimensions_,list) and not config["early_fusion"]:
+        dimensions = single_dimensions_
+    else:
+        dimensions = [single_dimensions_]
 
     for dimension in dimensions:
         print(task,dimension)
@@ -188,6 +194,8 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
         else:
             data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
         
+        data[y_label] = data[y_label].map({"HC":0,"MCI":1,"AD":2,0:0,1:1,2:2})
+
         if problem_type == 'reg' and config['filter_outliers']:
             data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
 
@@ -209,9 +217,12 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             #Perform random permutations of the labels
             y = np.random.permutation(y)
     
-        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and isinstance(data.loc[0,col],(int,float)) and 'timestamp' not in col
-                        and all(f'_{x}' not in col for x in config['avoid_stats'])]
-        
+
+        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
+
+        if len(config["avoid_stats"]) > 0:
+            all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
+            
         data = data[all_features + [y_label,config['id_col']]]
         
         features = all_features
@@ -229,7 +240,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
 
             if held_out:
                 n_samples_dev = int(data.shape[0] * (1 - config['test_size']))
-
+                random_seeds_test = config['random_seeds_test']
             else:
                 n_samples_dev = data.shape[0]
                 random_seeds_test = ['']
@@ -273,6 +284,9 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                 n_max = int(n_samples_outer*(1-1/n_folds_inner))
                 config["kfold_folder"] += f'_{n_folds_inner}_folds'
             
+            with open(Path(__file__).parent/'config.json', 'w') as f:
+                json.dump(config, f, indent=4)
+
             subfolders = [
                 task, dimension, config['scaler_name'],
                 config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
@@ -309,9 +323,6 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
 
                 # Check for data leakage.
                 assert set(ID_train_).isdisjoint(set(ID_test_)), 'Data leakage detected between train and test sets!'
-                
-                with open(Path(__file__).parent/'config.json', 'w') as f:
-                    json.dump(config, f, indent=4)
 
                 if (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'all_models_{model_key}.csv').exists() and config['calibrate'] == False) or (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'cal_outputs_{model_key}.pkl').exists() and config['calibrate']):
                     if not bool(config['overwrite']):

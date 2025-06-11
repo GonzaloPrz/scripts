@@ -11,8 +11,8 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 from utils import *
 
 planned_comparisons = [['Animales___properties','brain___norm_brain_lit'],
-                       ['Animales___properties','cog___neuropsico_digits__neuropsico_tmt'],
-                       ['Animales___properties','connectivity___networks']]
+                       ['Animales___properties','cog___neuropsico_digits__neuropsico_tmt']
+                       ]
 
 config = json.load(Path(Path(__file__).parent,"config.json").open())
 

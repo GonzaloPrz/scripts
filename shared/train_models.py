@@ -40,7 +40,7 @@ def parse_args():
         description='Train models with hyperparameter optimization and feature selection'
     )
     parser.add_argument('--project_name', default='MCI_classifier',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='mean_std', help='Stats to be considered (default = all)')
+    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
@@ -63,6 +63,8 @@ def parse_args():
     parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
+    parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
+
     return parser.parse_args()
 
 def load_configuration(args):
@@ -91,7 +93,8 @@ def load_configuration(args):
         n_boot_train = float(args.n_boot_train),
         overwrite = bool(args.overwrite),
         parallel = bool(args.parallel),
-        n_seeds_test = float(args.n_seeds_test) if args.n_folds != -1 else float(0)
+        n_seeds_test = float(args.n_seeds_test) if args.n_folds != -1 else float(0),
+        bootstrap_method = args.bootstrap_method
     )
 
     return config
@@ -347,7 +350,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                             feature_sets = [list(x) for x in set(tuple(x) for x in feature_sets)]
                             hyperp = hyperp.drop_duplicates()     
                         else:
-                            best_models_file_name = f"best_models_{scoring_metrics}_{config['kfold_folder']}_{config['scaler_name']}_{config['stat_folder']}_hyp_opt_feature_selection.csv".replace('__','_')
+                            best_models_file_name = f"best_models_{scoring_metrics}_{config['kfold_folder']}_{config['scaler_name']}_{config['stat_folder']}_{config['bootstrap_method']}_hyp_opt_feature_selection.csv".replace('__','_')
                             
                             if config['n_iter'] == 0:
                                 best_models_file_name = best_models_file_name.replace('hyp_opt','no_hyp_opt')

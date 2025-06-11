@@ -23,7 +23,7 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = True if config['n_iter_features'] > 0 else False
+feature_selection = bool(config['feature_selection'])
 filter_outliers = config['filter_outliers']
 test_size = float(config['test_size'])
 n_boot = int(config['n_boot'])
@@ -65,54 +65,38 @@ for scoring in scoring_metrics:
     extremo = 1 if 'norm' in scoring else 0
     ascending = True if extremo == 1 else False
     data_to_plot = pd.DataFrame()
-    best_models_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection.csv'.replace('__','_')
+    best_models_filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_dev.csv'.replace('__','_')
     best_models = pd.read_csv(Path(results_dir,best_models_filename))
+    scoring_col = f'{scoring}_extremo'
+    best_models[scoring_col] = best_models[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
+    best_models = best_models[best_models[scoring_col].astype(str) != 'nan'].reset_index(drop=True)
 
-    for r, row in best_models.iterrows():
-        task = row.task
-        dimension = row.dimension
-        y_label = row.y_label
-        model_name = row.model_type
+    tasks = best_models['task'].unique()
+    dimensions = best_models['dimension'].unique()
+    y_label = best_models['y_label'].unique()
+    random_seeds_test = best_models['random_seed_test'].unique()
+    for task,dimension,y_label,random_seed_test in itertools.product(tasks,dimensions,y_label,random_seeds_test):
+        if best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label) & (best_models['random_seed_test'].astype(str) == str(random_seed_test))].shape[0] == 0:
+            continue
+
+        best_models_ = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label) & (best_models['random_seed_test'].astype(str) == str(random_seed_test))]
+
+        model_name = best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]['model_type']
 
         data_append = pd.DataFrame()
-        Path(results_dir,'plots').mkdir(parents=True, exist_ok=True)
+        Path(results_dir,'plots','bayes').mkdir(parents=True, exist_ok=True)
 
         print(task, dimension)
-        path_to_results = Path(results_dir, task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
+        path_to_results = Path(results_dir, task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'bayes',scoring,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
 
-        if not hyp_opt:
-            best_models_filename = best_models_filename.replace('_hyp_opt','')
-        if not feature_selection:
-            best_models_filename = best_models_filename.replace('_feature_selection','')
-                            
-        file = f'all_models_{model_name}_dev_{config["bootstrap_method"]}.csv'
-        
-        if config['n_models'] != 0:
-            file = file.replace('all_models', 'best_models').replace('.csv', f'_{scoring}.csv')
-        
-        if str(row['random_seed_test']) == 'nan':
+        if str(random_seed_test) == 'nan':
             random_seed = ''
         else:
-            random_seed = row.random_seed_test
-
-        scoring_col = f'{scoring}_extremo'
-
-        df_filename = pd.read_csv(Path(path_to_results, random_seed, file))
-        df_filename[scoring_col] = df_filename[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
-
-        df_filename = df_filename.sort_values(by=scoring_col,ascending=ascending)
-
-        model_index = df_filename.index[0]
-
-        if 'threshold' in df_filename.columns:
-            threshold = df_filename['threshold'][0]
-        else:
-            threshold = None
+            random_seed = random_seed_test
                             
         outputs_filename = f'outputs_{model_name}.pkl'
-        outputs_ = pickle.load(open(Path(path_to_results, random_seed, outputs_filename), 'rb'))[:,model_index]
+        outputs_ = pickle.load(open(Path(path_to_results, random_seed, outputs_filename), 'rb'))
         y_true_ = pickle.load(open(Path(path_to_results,random_seed, f'y_dev.pkl'), 'rb'))
-        IDs_ = pickle.load(open(Path(path_to_results,random_seed, f'IDs_dev.pkl'), 'rb'))
         
         data_indices = (np.arange(y_true_.shape[-1]),)
 
@@ -182,6 +166,6 @@ for scoring in scoring_metrics:
         if not shuffle_labels:
             filename_to_save = filename_to_save.replace('_shuffle','')
 
-        plt.savefig(Path(results_dir,'plots',f'{filename_to_save}.png'))
-        plt.savefig(Path(results_dir,'plots',f'{filename_to_save}.svg'))
+        plt.savefig(Path(results_dir,'plots','bayes',f'{filename_to_save}.png'))
+        plt.savefig(Path(results_dir,'plots','bayes',f'{filename_to_save}.svg'))
         plt.close()

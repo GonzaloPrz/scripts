@@ -27,6 +27,7 @@ feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
 test_size = float(config['test_size'])
 n_boot = int(config['n_boot'])
+calibrate = bool(config["calibrate"])
 
 home = Path(os.environ.get('HOME', Path.home()))
 if 'Users/gp' in str(home):
@@ -60,15 +61,17 @@ plt.rcParams.update({
 
 if problem_type == 'clf':
     for scoring in scoring_metrics:
-        extremo = 'sup' if 'norm' in scoring else 'inf'
-        ascending = True if extremo == 'sup' else False
+        extremo = 1 if any(x in scoring for x in ['norm','error']) else 0
+        ascending = True if extremo == 1 else False
 
         best_models_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_calibrated.csv'.replace('__','_')
         if not hyp_opt:
             best_models_filename = best_models_filename.replace('_hyp_opt','')
         if not feature_selection:
             best_models_filename = best_models_filename.replace('_feature_selection','')
-    
+        if not calibrate:
+            best_models_filename = best_models_filename.replace('_calibrated','')
+
         if not Path(results_dir,best_models_filename).exists():
             continue
 
@@ -80,6 +83,10 @@ if problem_type == 'clf':
             dimension = row.dimension
             model_name = row.model_type
             random_seed = row.random_seed_test  
+            
+            if str(random_seed) == 'nan':
+                random_seed = ''
+
             path_to_results = Path(results_dir, task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
 
             Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed).mkdir(parents=True, exist_ok=True)
@@ -92,7 +99,13 @@ if problem_type == 'clf':
             if not Path(path_to_results,random_seed,file).exists():
                 continue
             
-            df_filename = pd.read_csv(Path(path_to_results, random_seed, file)).sort_values(f'{scoring}_{extremo}'.replace('_score',''), ascending=ascending)
+            scoring_col = f'{scoring}_extremo'
+
+            df_filename = pd.read_csv(Path(path_to_results, random_seed, file))
+            df_filename[scoring_col] = df_filename[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
+
+            df_filename = df_filename.sort_values(by=scoring_col,ascending=ascending)
+
             model_index = df_filename.index[0]
 
             if 'threshold' in df_filename.columns:
@@ -100,7 +113,7 @@ if problem_type == 'clf':
             else:
                 threshold = None
                 
-            if Path(path_to_results, 'shuffle', random_seed,file).exists():
+            if Path(path_to_results, 'shuffle', random_seed,file).exists() and shuffle_labels:
                 df_filename_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f'all_models_{model_name}_dev_bca.csv')).sort_values(f'{scoring}_{extremo}'.replace('_score',''), ascending=ascending)
                 model_index_shuffle = df_filename_shuffle.index[0]
                 if 'threshold' in df_filename_shuffle.columns:

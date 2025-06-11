@@ -1,61 +1,69 @@
 {
-    "project_name": "MCI_classifier_unbalanced",
-    "stats": "mean_std",
+    "project_name": "Proyecto_Ivo",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 10.0,
-    "n_folds_inner": 10.0,
+    "n_folds_outer": 3.0,
+    "n_folds_inner": 11.0,
     "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 200.0,
-    "n_seeds_train": 1.0,
+    "init_points": 100.0,
+    "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
-    "n_boot": 5000.0,
-    "n_boot_test": 5000.0,
+    "n_boot": 1000.0,
+    "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
     "filter_outliers": false,
-    "early_fusion": true,
+    "early_fusion": false,
     "overwrite": false,
     "parallel": true,
     "n_seeds_test": 0,
+    "bootstrap_method": "bca",
     "test_size": 0.0,
-    "data_file": "data_matched_unbalanced_group.csv",
+    "data_file": "all_data.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean",
-        "nps"
+        "cog",
+        "Animales__P",
+        "Animales",
+        "P",
+        "brain",
+        "AAL",
+        "connectivity"
     ],
     "single_dimensions": {
-        "fas": [
-            "word_properties",
-            "speech_timing"
+        "Animales": [
+            "properties",
+            "timing",
+            "properties__timing"
         ],
-        "animales": [
-            "word_properties",
-            "speech_timing"
+        "P": [
+            "properties",
+            "timing",
+            "properties__timing"
         ],
-        "fas__animales": [
-            "word_properties",
-            "speech_timing"
+        "Animales__P": [
+            "properties",
+            "timing",
+            "properties__timing"
         ],
-        "grandmean": [
-            "word_properties",
-            "speech_timing"
+        "cog": [
+            "neuropsico_digits__neuropsico_tmt",
+            "neuropsico_tmt",
+            "neuropsico_digits"
         ],
-        "nps": [
-            "digits",
-            "memory",
-            "TMT",
-            "mmse"
+        "brain": [
+            "norm_brain_lit"
         ],
-        "bio": [
-            "bio"
+        "AAL": [
+            "norm_AAL"
+        ],
+        "connectivity": [
+            "networks",
+            "selected_areas"
         ]
     },
     "scoring_metrics": [
@@ -63,18 +71,21 @@
     ],
     "problem_type": "clf",
     "y_labels": [
-        "group"
+        "target"
     ],
-    "avoid_stats": [
-        "median",
-        "skewness",
-        "max",
-        "kurtosis",
-        "min"
-    ],
-    "stat_folder": "mean_std",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
-        3
+        3,
+        9,
+        27,
+        81,
+        243,
+        729,
+        2187,
+        6561,
+        19683,
+        59049
     ],
     "random_seeds_test": [
         ""
@@ -82,5 +93,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "10_folds_10_folds"
+    "kfold_folder": "3_folds_11_folds"
 }

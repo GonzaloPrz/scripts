@@ -45,14 +45,11 @@ pd.options.mode.copy_on_write = True
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 for scoring in scoring_metrics:
     scoring = scoring.replace('_score','')
-    best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test','fusion'] + [f'{metric}_mean_dev' for metric in metrics_names] 
-                           + [f'{metric}_ic_dev' for metric in metrics_names] 
-                           + [f'{metric}_mean_holdout' for metric in metrics_names]
-                           + [f'{metric}_ic_holdout' for metric in metrics_names])
+    best_models = pd.DataFrame()
 
     for task in tasks:
 
-        extremo = 'sup' if any(x in scoring for x in ['error','norm']) else 'inf'
+        extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
         ascending = True if any(x in scoring for x in ['error','norm']) else False
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
@@ -88,19 +85,19 @@ for scoring in scoring_metrics:
                         if calibrate:
                             files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','test','calibrated'])] 
                             if len(files) == 0:
-                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','dev_bca','calibrated'])]
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'dev_{config["bootstrap_method"]}','calibrated'])]
                             if len(files) == 0:
                                 files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','test','calibrated'])] 
                             if len(files) == 0:
-                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','dev_bca','calibrated'])] 
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_',f'dev_{config["bootstrap_method"]}','calibrated'])] 
                         else:
                             files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','test']) and 'calibrated' not in file.stem] 
                             if len(files) == 0:
-                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','dev_bca']) and 'calibrated' not in file.stem]
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'dev_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem]
                             if len(files) == 0:
                                 files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','test']) and 'calibrated' not in file.stem] 
                             if len(files) == 0:
-                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','dev_bca']) and 'calibrated' not in file.stem] 
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_',f'dev_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem] 
                         
                         if len(files) == 0:
                             continue
@@ -111,11 +108,10 @@ for scoring in scoring_metrics:
                                 continue
 
                             df = pd.read_csv(file)
-                            #df['score'] = (df[f'sup_{scoring}_dev'] - df[f'inf_{scoring}_dev'])
-                            if f'{extremo}_{scoring}_dev' in df.columns:
-                                scoring_col = f'{extremo}_{scoring}_dev'
-                            else:
-                                scoring_col = f'{scoring}_{extremo}'
+                            
+                            scoring_col = f'{scoring}_extremo'
+                            
+                            df[scoring_col] = df[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
                             
                             df = df.sort_values(by=scoring_col,ascending=ascending)
                             
@@ -148,46 +144,16 @@ for scoring in scoring_metrics:
 
                                     best_file = file
                         
-                        for metric in metrics_names:
-                            if f'inf_{metric}_dev' in best.index:
-                                best[f'{metric}_mean_dev'] = np.round(best[f'mean_{metric}_dev'],5)
-                                best[f'{metric}_ic_dev'] = f"[{np.round(best[f'inf_{metric}_dev'],5)}, {np.round(best[f'sup_{metric}_dev'],5)}]"
-                            elif f'inf_{metric}' in best.index:
-                                best[f'{metric}_mean_dev'] = np.round(best[f'mean_{metric}'],5)
-                                best[f'{metric}_ic_dev'] = f"[{np.round(best[f'inf_{metric}'],5)}, {np.round(best[f'sup_{metric}'],5)}]"
-                            elif f'{metric}_inf' in best.index:
-                                best[f'{metric}_mean_dev'] = np.round(best[f'{metric}_mean'],5)
-                                best[f'{metric}_ic_dev'] = f"[{np.round(best[f'{metric}_inf'],5)}, {np.round(best[f'{metric}_sup'],5)}]"
-                            else:
-                                best[f'{metric}_mean_dev'] = np.nan
-                                best[f'{metric}_ic_dev'] = np.nan
-
-                            best[f'{metric}_test'] = np.nan
-                            try:
-                                mean = np.round(best[f'mean_{metric}_test'],5)
-                                inf = np.round(best[f'inf_{metric}_test'],5)
-                                sup = np.round(best[f'sup_{metric}_test'],5)
-                                best[f'{metric}_mean_holdout'] = mean
-                                best[f'{metric}_ic_holdout'] = f'[{inf}, {sup}]'
-                            except:
-                                pass
                         model_type = file
                         
                         dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':best['model_type'],'model_index':best['model_index'],'random_seed_test':random_seed_test,'fusion':fusion}
-                        dict_append.update(dict((f'{metric}_mean_dev',best[f'{metric}_mean_dev']) for metric in metrics_names))
-                        dict_append.update(dict((f'{metric}_ic_dev',best[f'{metric}_ic_dev']) for metric in metrics_names))
-                        dict_append.update(dict((f'{metric}_mean_hodlout',np.nan) for metric in metrics_names))
-                        dict_append.update(dict((f'{metric}_ic_holdout',np.nan) for metric in metrics_names))
-
-                        for metric in metrics_names:
-                            if f'{metric}_mean_holdout' not in best.index:
-                                continue
-                            dict_append[f'{metric}_mean_holdout'] = best[f'{metric}_mean_holdout']
-                            dict_append[f'{metric}_ic_holdout'] = best[f'{metric}_ic_holdout']
-                            
+                        dict_append.update(dict((f'{metric}_dev',best[metric]) for metric in metrics_names))
+                        if best_models.empty:
+                            best_models = pd.DataFrame(columns=dict_append.keys())
+                        
                         best_models.loc[len(best_models),:] = dict_append
 
-    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
 
     if not hyp_opt:
         filename_to_save = filename_to_save.replace('_hyp_opt','')
