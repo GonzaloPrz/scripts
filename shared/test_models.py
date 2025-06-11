@@ -19,6 +19,8 @@ from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from xgboost import XGBRegressor as xgboostr
 
+from scipy.stats import bootstrap
+
 from sklearn.neighbors import KNeighborsRegressor
 
 from sklearn.utils import resample 
@@ -34,96 +36,6 @@ import utils
 
 late_fusion = False
 
-def test_models_bootstrap(model_class,row,scaler,imputer,calmethod,calparams,X_dev,y_dev,X_test,y_test,all_features,y_labels,metrics_names,IDs_test,boot_train,boot_test,problem_type,threshold,cmatrix=None,priors=None,bayesian=False,calibrate=False):
-
-    results_r = row.dropna().to_dict()
-
-    outputs_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
-    if problem_type == 'reg':
-        outputs_bootstrap = outputs_bootstrap.squeeze(axis=-1)
-
-    y_true_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
-    y_pred_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)))
-    IDs_test_bootstrap = np.empty((np.max((1,boot_train)),np.max((1,boot_test)),len(y_test)), dtype=object)
-
-    if cmatrix is not None or len(np.unique(y_dev)) > 2:
-        metrics_names = list(set(metrics_names) - set(['roc_auc','accuracy','f1','recall','precision']))
-
-    metrics_test_bootstrap = {metric: np.empty((np.max((1,boot_train)),np.max((1,boot_test)))) for metric in metrics_names}
-
-    params = dict((key,value) for (key,value) in results_r.items() if not isinstance(value,dict) and all(x not in key for x in ['inf','sup','mean'] + all_features + y_labels + ['id','Unnamed: 0','threshold','idx']))
-
-    features = [col for col in all_features if col in results_r.keys() and results_r[col] == 1]
-    features_dict = {col:results_r[col] for col in all_features if col in results_r.keys()}
-
-    if not isinstance(X_dev,pd.DataFrame):
-        X_dev = pd.DataFrame(X_dev.squeeze(),columns=all_features)
-
-    if not isinstance(X_test,pd.DataFrame):
-        X_test = pd.DataFrame(X_test.squeeze(),columns=all_features)
-
-    if 'gamma' in params.keys():
-        try: 
-            params['gamma'] = float(params['gamma'])
-        except:
-            pass
-    if 'random_state' in params.keys():
-        params['random_state'] = int(params['random_state'])
-    outputs = np.empty((np.max((1,boot_train)),len(y_test),len(np.unique(y_dev)) if problem_type=='clf' else 1))
-
-    if problem_type == 'reg':
-        outputs = outputs.squeeze(axis=-1)
-
-    for b_train in range(np.max((1,boot_train))):
-        boot_index_train = resample(X_dev.index, n_samples=X_dev.shape[0], replace=True, random_state=b_train) if boot_train > 0 else X_dev.index
-        outputs[b_train,:] = utils.test_model(model_class,params,scaler,imputer, X_dev.loc[boot_index_train,features], y_dev[boot_index_train], X_test[features], problem_type=problem_type)
-        
-        if calibrate:
-            model = utils.Model(model_class(**params),scaler,imputer,calmethod,calparams)
-            model.train(X_dev.loc[boot_index_train,features], y_dev)
-            outputs_dev = model.eval(X_dev.loc[boot_index_train,features],problem_type)
-        
-            outputs[b_train,:],_ = model.calibrate(outputs[b_train,:],None,outputs_dev,y_dev)
-        
-        for b_test in range(np.max((1,boot_test))):
-            if bayesian:
-                weights = np.random.dirichlet(np.ones(y_test.shape[0]))
-            else:
-                weights = None
-
-            boot_index = resample(range(outputs.shape[1]), n_samples=outputs.shape[1], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test) if boot_test > 0 else X_test.index
-            while len(np.unique(y_test[boot_index])) < len(np.unique(y_dev)):
-                boot_index = resample(range(outputs.shape[1]), n_samples=outputs.shape[1], replace=True, random_state=b_train * np.max((1,boot_train)) + b_test*boot_test + b_test)
-            outputs_bootstrap[b_train,b_test] = outputs[b_train,boot_index]
-
-            if problem_type == 'clf':
-                metrics_test, y_pred = utils.get_metrics_clf(outputs[b_train,boot_index], y_test[boot_index], metrics_names, cmatrix, priors,threshold,weights)
-                y_pred_bootstrap[b_train,b_test,:] = y_pred
-            else:
-                metrics_test = utils.get_metrics_reg(outputs[b_train,boot_index], y_test[boot_index], metrics_names)
-                y_pred_bootstrap[b_train,b_test] = outputs[b_train,boot_index]
-                
-            y_true_bootstrap[b_train,b_test] = y_test[boot_index]
-            IDs_test_bootstrap[b_train,b_test] = IDs_test.squeeze()[boot_index]
-
-            for metric in metrics_names:
-                metrics_test_bootstrap[metric][b_train,b_test] = metrics_test[metric]
-
-    result_append = params.copy()
-    result_append.update(features_dict)
-
-    for metric in metrics_names:
-        mean, inf, sup = utils.conf_int_95(metrics_test_bootstrap[metric].flatten())
-
-        result_append[f'inf_{metric}_test'] = np.round(inf,5)
-        result_append[f'mean_{metric}_test'] = np.round(mean,5)
-        result_append[f'sup_{metric}_test'] = np.round(sup,5)
-
-        result_append[f'inf_{metric}_dev'] = np.round(results_r[f'{metric}_inf'],5)
-        result_append[f'mean_{metric}_dev'] = np.round(results_r[f'{metric}_mean'],5)
-        result_append[f'sup_{metric}_dev'] = np.round(results_r[f'{metric}_sup'],5)
-        
-    return result_append,outputs,outputs_bootstrap,y_true_bootstrap,y_pred_bootstrap,IDs_test_bootstrap
 ##---------------------------------PARAMETERS---------------------------------##
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
@@ -206,9 +118,9 @@ models_dict = {'clf':{'lr': LogisticRegression,
 }
 
 for task,scoring in itertools.product(tasks,scoring_metrics):
-    scoring = scoring.replace('_score','')
-    extremo = 'sup' if any(x in scoring for x in ['norm','error']) else 'inf'
-    ascending = True if extremo == 'sup' else False
+    
+    extremo = 1 if any(x in scoring for x in ['norm','error']) else 0
+    ascending = True if extremo == 1 else False
 
     dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
 
@@ -255,39 +167,86 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
                     
-                    if f'{extremo}_{scoring}' in results_dev.columns:
-                        scoring_col = f'{extremo}_{scoring}'
-                    elif f'{extremo}_{scoring}_dev' in results_dev.columns:
-                        scoring_col = f'{extremo}_{scoring}_dev'
-                    else:
-                        scoring_col = f'{scoring}_{extremo}'
-
-                    results_dev = results_dev.sort_values(by=scoring_col.replace('_score',''),ascending=ascending)
-                    
-                    all_features = [col for col in results_dev.columns if any([dim in col for dim in dimension.split('__')])]
-                    if 'threshold' not in results_dev.columns:
-                        results_dev['threshold'] = thresholds[0]
-
-                    if len(all_features) == 0:
-                        continue
+                    all_features = [col for col in results_dev.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) or col =='group']
                     
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_dev)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
                     if Path(file.parent,f'{filename_to_save}_test.csv').exists() and overwrite == False:
                         print(f"Testing already done")
                         continue
+                            
+                    def parallel_process(index):
+                        
+                        features = [col for col in all_features if results_dev.loc[index,col].values[0] == 1]
+                        params = [col for col in results_dev.columns if all(x not in col for x in  all_features + metrics_names + [y_label,config["id_col"],'Unnamed: 0','threshold','index',f'{scoring}_extremo','bootstrap_method'])]
 
-                    results = Parallel(n_jobs=-1 if parallel else 1)(delayed(test_models_bootstrap)(models_dict[problem_type][model_name],results_dev.loc[r,:],scaler,imputer,calmethod,calparams,X_dev,y_dev,
-                                                                                X_test,y_test,all_features,y_labels,metrics_names,IDs_test,n_boot_train,
-                                                                                n_boot_test,problem_type,threshold=results_dev.loc[r,'threshold'],cmatrix=cmatrix,calibrate=calibrate) 
-                                                                                for r in results_dev.index)
-                    
-                    results_test = pd.concat([pd.DataFrame(result[0],index=[0]) for result in results])
-                    results_test['idx'] = results_dev['Unnamed: 0'].values
+                        params_dict = {param:results_dev.loc[index,param].values[0] for param in params if str(results_dev.loc[index,param].values[0]) != 'nan'}
 
-                    outputs_test = np.stack([result[1] for result in results],axis=0)
+                        if 'gamma' in params_dict.keys():
+                            try: 
+                                params_dict['gamma'] = float(params_dict['gamma'])
+                            except:
+                                pass
+
+                        if 'random_state' in params_dict.keys():
+                            params_dict['random_state'] = int(params_dict['random_state'])
+                        
+                        outputs = utils.test_model(models_dict[model_name],params,scaler,imputer, X_dev[features], y_dev, X_test[features], problem_type=problem_type)
+
+                        # Prepare data for bootstrap: a tuple of index arrays to resample
+                        data_indices = (np.arange(y_test.shape[-1]),)
+
+                        # Define the statistic function with data baked in
+                        stat_func = lambda indices: utils._calculate_metrics(
+                            indices, outputs[:,index], y_test, 
+                            metrics_names, problem_type, cmatrix
+                        )
+
+                        # 1. Calculate the point estimate (the actual difference on the full dataset)
+                        point_estimates = stat_func(data_indices[0])
+
+                        # 2. Calculate the bootstrap confidence interval
+                        try:
+                            # Try the more accurate BCa method first
+                            res = bootstrap(
+                                data_indices,
+                                stat_func,
+                                n_resamples=n_boot_test, # Use configured n_boot
+                                method=config["bootstrap_method"],
+                                vectorized=False,
+                                random_state=42
+                            )
+                            bootstrap_method = config["bootstrap_method"]
+
+                        except ValueError as e:
+                            # If BCa fails (e.g., due to degenerate samples), fall back to percentile
+                            print(f"WARNING: {config['bootstrap_method']} method failed for {tasks}/{dimensions}/{y_label}. Falling back to 'percentile'. Error: {e}")
+                            res = bootstrap(
+                                data_indices,
+                                stat_func,
+                                n_resamples=n_boot_test,
+                                method='percentile',
+                                vectorized=False,
+                                random_state=42
+                            )
+                            bootstrap_method = 'percentile'
+
+                        result_row = dict(results_dev.iloc[index])
+                        result_row.update({'bootstrap_method':bootstrap_method})
+                        for i, metric in enumerate(metrics_names):
+                            est = point_estimates[i]
+                            ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
+                            result_row.update({f'{metric}_holdout': f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"})
+                        
+                        return result_row
                     
-                    results_test.to_csv(Path(file.parent,f'{filename_to_save}_test.csv'))
+                    parallel_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(parallel_process)(index) for index in np.arange(n_models))
+                    all_results = pd.concat((pd.DataFrame(result[1],index=[0]) for result in parallel_results),ignore_index=True)
+                    
+                    all_results.to_csv(Path(path_to_results,random_seed_test,filename_to_save))
+                    
+                    outputs_test = np.stack([result[1] for result in parallel_results],axis=0)
+                    
                     outputs_filename = f'cal_outputs_test_{model_name}.pkl' if calibrate else f'outputs_test_{model_name}.pkl'
                     with open(Path(file.parent,outputs_filename),'wb') as f:
                         pickle.dump(outputs_test,f)

@@ -96,7 +96,7 @@ for scoring in scoring_metrics:
             
             print(task,model_type,y_label,dimension)
             
-            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,"bayes",scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "")
+            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,"bayes",scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","shuffle" if shuffle_labels else "")
 
             if not path.exists():
                 continue
@@ -175,12 +175,13 @@ for scoring in scoring_metrics:
     # --- Save Final Results ---
     if all_results:
         ci_df = pd.DataFrame(all_results)
-        output_filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_dev.csv'.replace('__','_')
+        output_filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_dev.csv'.replace('__','_')
         if not hyp_opt:
             output_filename = output_filename.replace('_hyp_opt','')
-
         if not feature_selection:
             output_filename = output_filename.replace('_feature_selection','')
+        if not shuffle_labels:
+            output_filename = output_filename.replace('_shuffle','')
 
         ci_df.to_csv(Path(results_dir,output_filename), index=False)
         print(f"Confidence intervals saved to {output_filename}")
