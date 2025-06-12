@@ -48,6 +48,7 @@ feature_selection = config['feature_selection']
 filter_outliers = config['filter_outliers']
 n_boot_test = int(config['n_boot_test'])
 n_boot_train = int(config['n_boot_train'])
+calibrate = bool(config["calibrate"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -84,7 +85,15 @@ save_dir = Path(str(data_dir).replace('data','results'))
 results_test = pd.DataFrame()
 
 for scoring in scoring_metrics:
-    filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_feature_selection_dev.csv'.replace('__','_') if feature_selection else f'metrics_{kfold_folder}_{scoring}_{stat_folder}_dev.csv'.replace('__','_')
+    filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+
+    if not hyp_opt:
+        filename = filename.replace("_hyp_opt","")
+    if not feature_selection:
+        filename = filename.replace("_feature_selection","")
+    if not shuffle_labels:
+        filename = filename.replace("_shuffle","")
+
     best_models = pd.read_csv(Path(results_dir,filename))
 
     for r, row in best_models.iterrows():
@@ -99,9 +108,9 @@ for scoring in scoring_metrics:
 
         print(task,dimension,model_type,y_label)
         try:
-            trained_model = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'model_{model_type}.pkl'),'rb'))
-            trained_scaler = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'scaler_{model_type}.pkl'),'rb'))
-            trained_imputer = pickle.load(open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,f'imputer_{model_type}.pkl'),'rb'))
+            trained_model = pickle.load(open(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl'),'rb'))
+            trained_scaler = pickle.load(open(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'rb'))
+            trained_imputer = pickle.load(open(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'rb'))
         except:
             continue
     
@@ -116,17 +125,23 @@ for scoring in scoring_metrics:
         IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
         params = trained_model.get_params()
         features = trained_model.feature_names_in_
+        
+        if 'probability' in params.keys():
+            params['probability'] = True
 
         metrics_names = list(set(metrics_names_) - set(['roc_auc','f1','recall','precision'])) if cmatrix is not None or len(np.unique(y_train)) > 2 else metrics_names_
         
-        outputs = trained_model.eval(X_test[features])
+        model = utils.Model(type(trained_model)(**params),type(trained_scaler),type(trained_imputer))
+        model.train(X_train[features],y_train)
+
+        outputs = model.eval(X_test[features])
 
         # Prepare data for bootstrap: a tuple of index arrays to resample
         data_indices = (np.arange(y_test.shape[-1]),)
 
         # Define the statistic function with data baked in
         stat_func = lambda indices: utils._calculate_metrics(
-            indices, outputs, y_test, 
+            indices, outputs, y_test.values, 
             metrics_names, problem_type, cmatrix
         )
 
@@ -159,13 +174,13 @@ for scoring in scoring_metrics:
             )
             bootstrap_method = 'percentile'
 
-            row.update({'bootstrap_method':bootstrap_method})
-            for i, metric in enumerate(metrics_names):
-                est = point_estimates[i]
-                ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
-                row.update({f'{metric}_holdout': f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"})
-
-    filename_to_save = f'best_models_{kfold_folder}_{scoring}_{stat_folder}_hyp_opt_feature_selection_shuffle_test.csv'
+        best_models.loc[r,'bootstrap_method_holdout'] = bootstrap_method
+        for i, metric in enumerate(metrics_names):
+            est = point_estimates[i]
+            ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
+            best_models.loc[r,f'{metric}_holdout'] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
+        
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated_test.csv'.replace('__','_')
 
     if not hyp_opt:
         filename_to_save = filename_to_save.replace('_hyp_opt','')
@@ -175,6 +190,8 @@ for scoring in scoring_metrics:
     
     if not shuffle_labels:
         filename_to_save = filename_to_save.replace('_shuffle','')
-        
-    best_models.to_csv(Path(results_dir,filename_to_save),ignore_axis=True)
+    
+    if not calibrate:
+        filename_to_save = filename_to_save.replace('_calibrated','')
+    best_models.to_csv(Path(results_dir,filename_to_save))
         

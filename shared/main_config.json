@@ -133,7 +133,13 @@
             "fugu"
                 ],
         "ad_mci_hc_ct": [
-            "routine"
+            "image_description",
+            "pleasant_memory",
+            "routine",
+            "image_description__pleasant_memory",
+            "pleasant_memory__routine",
+            "image_description__routine",
+            "image_description__pleasant_memory__routine"
         ],
         "ad_mci_hc_chile": [
             "fugu"
@@ -347,8 +353,11 @@
         ],
         "ad_mci_hc":{
             "fugu":[
-                "text",
-                "talking-intervals"
+                "talking-intervals",
+                "text_cross_enc",
+                "text_hiiamsid",
+                "talkng-intervals__text_cross_enc",
+                "talking-intervals__text_hiiamsid"
                 ]
             },
         "ad_mci_hc_ct":{
@@ -360,16 +369,18 @@
                 "speech_timing",
                 "word_properties"
                 ],
-            "image-description__routine":[                
+            "image_description__routine":[                
                 "speech_timing",
                 "word_properties"
                 ],
-            "pleasant-memory":[                
+            "pleasant_memory":[                
                 "speech_timing",
                 "word_properties"
                 ],
-            "image-description__pleasant-memory__routine":
-            ["speech_timing","word_properties"]
+            "image_description__pleasant_memory__routine":
+            ["speech_timing",
+            "word_properties"
+            ]
             },
         "ad_mci_hc_chile":{
             "fugu":[
@@ -436,8 +447,8 @@
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
         "mci_hc_fugu": "data_matched_group.csv",
-        "ad_mci_hc": "all_data_matched_group_sentence_similarity_spanish_es.csv",
-        "ad_mci_hc_ct": "data_routine_matched_group.csv",
+        "ad_mci_hc": "all_data_matched_group.csv",
+        "ad_mci_hc_ct": "data_matched_image_pleasant_memory_routine_group.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
         "ad_mci_hc_group_as_feature": "data_matched_group.csv",
         "GeroApathy_reg": "all_data_agradable.csv",
@@ -488,7 +499,7 @@
         "arequipa": "roc_auc",
         "mci_hc_fugu": "norm_cross_entropy",
         "ad_mci_hc": "norm_cross_entropy",
-        "ad_mci_hc_ct": ["norm_cross_entropy","norm_expected_cost"],
+        "ad_mci_hc_ct": ["norm_cross_entropy"],
         "ad_mci_hc_chile": "norm_cross_entropy",
         "ad_mci_hc_group_as_feature": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",

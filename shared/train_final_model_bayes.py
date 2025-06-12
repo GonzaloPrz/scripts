@@ -102,13 +102,17 @@ results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path
 for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     if str(threshold) == 'None':
         threshold = None
-    filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_dev.csv'.replace('__','_')
+    filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
 
     if not hyp_opt:
         filename = filename.replace('_hyp_opt','')
     if not feature_selection:
         filename = filename.replace('_feature_selection','')
-        
+    if not shuffle_labels:
+        filename = filename.replace('_shuffled','')
+    if not calibrate:
+        filename = filename.replace('_calibrated','')
+
     best_models = pd.read_csv(Path(results_dir,filename))
 
     for r, row in best_models.iterrows():
@@ -118,14 +122,14 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
         model_type = row.model_type
 
         print(task,dimension,y_label,model_type)
-        path_to_results = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '')
+        path_to_results = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
         random_seeds = [folder.name for folder in path_to_results.iterdir() if 'random_seed' in folder.name]
         random_seeds.append('')
         
         for random_seed in random_seeds:
-            #if Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,config["bootstrap_method"],f'model_{model_type}.pkl').exists() and not overwrite:
-            #    print('Model already exists')
-            #    continue
+            if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],f'model_{model_type}.pkl').exists() and not overwrite:
+                print('Model already exists')
+                continue
             
             if not Path(path_to_results,random_seed,f'all_models_{model_type}.csv').exists():
                 continue
@@ -184,26 +188,26 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             if not calibrate:
                 feature_importance_file = feature_importance_file.replace('_calibrated','')
 
-            Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '').mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '').mkdir(parents=True,exist_ok=True)
             
             if hasattr(model.model,'feature_importance'):
                 feature_importance = model.model.feature_importance
                 feature_importance = pd.DataFrame({'feature':best_features,'importance':feature_importance}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                feature_importance.to_csv(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',feature_importance_file),index=False)
             elif hasattr(model.model,'coef_'):
                 feature_importance = np.abs(model.model.coef_[0])
                 coef = pd.DataFrame({'feature':best_features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
-                coef.to_csv(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                coef.to_csv(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',feature_importance_file),index=False)
             elif hasattr(model.model,'get_booster'):
 
                 feature_importance = pd.DataFrame({'feature':best_features,'importance':model.model.feature_importances_}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                feature_importance.to_csv(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',feature_importance_file),index=False)
             else:
                 print(task,dimension,f'No feature importance available for {model_type}')
 
-            Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,config["bootstrap_method"]).mkdir(exist_ok=True,parents=True)
-            pickle.dump(model.model,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,config["bootstrap_method"],f'model_{model_type}.pkl'),'wb'))
-            pickle.dump(model.scaler,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,config["bootstrap_method"],f'scaler_{model_type}.pkl'),'wb'))
-            pickle.dump(model.imputer,open(Path(results_dir,f'final_models_bayes',task,dimension,y_label,scoring,kfold_folder,config["bootstrap_method"],f'imputer_{model_type}.pkl'),'wb'))
+            pickle.dump(model.model,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl'),'wb'))
+            pickle.dump(model.scaler,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'wb'))
+            pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'wb'))
             
             

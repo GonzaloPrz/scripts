@@ -24,6 +24,8 @@ stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
+calibrate = bool(config["calibrate"])
+
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
@@ -45,6 +47,7 @@ single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
+
 if not isinstance(scoring_metrics,list):
     scoring_metrics = [scoring_metrics]
     
@@ -55,8 +58,8 @@ cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_con
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 
 for scoring in scoring_metrics:
-    scoring = scoring.replace('_score','')
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle.csv'.replace('__','_')
+
+    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated.csv'.replace('__','_')
 
     if not feature_selection:
         best_models_file = best_models_file.replace('_feature_selection','')
@@ -64,7 +67,8 @@ for scoring in scoring_metrics:
         best_models_file = best_models_file.replace('_shuffle','')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','')
-
+    if not calibrate:
+        best_models_file = best_models_file.replace('_calibrated','')
     best_models = pd.read_csv(Path(results_dir,best_models_file))
 
     tasks = best_models['task'].unique()
@@ -77,32 +81,34 @@ for scoring in scoring_metrics:
         y_label = row.y_label
         random_seed = row.random_seed_test
 
-        print(task,dimension)
-        best_model = best_models[(best_models['task'] == task) & (best_models['y_label'] == y_label) & (best_models['dimension'] == dimension)]
-
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
-        
         if str(random_seed) == 'nan':
             random_seed = ''
-        
+
+        print(task,dimension)
+        best_model = best_models[(best_models['task'] == task) & (best_models['y_label'] == y_label) & (best_models['dimension'] == dimension)]
         model_name = best_model['model_type'].values[0]
-        model_index = best_model['model_index'].values[0]
+
+        if 'model_index' in best_model.columns:
+            model_index = best_model['model_index'].values[0]
+            bayes = False
+        
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes' if bayes else '', 'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
 
         with open(Path(path,random_seed,'y_dev.pkl'),'rb') as f:
             y_dev = np.array(pickle.load(f),dtype=int)
-        
-        with open(Path(path,random_seed,f'outputs_{model_name}.pkl'),'rb') as f:
-            outputs_dev = pickle.load(f)
-        
-        _, y_pred_dev = utils.get_metrics_clf(outputs_dev.squeeze()[model_index], y_dev, [], cmatrix,)
 
+        with open(Path(path,random_seed,f'outputs_{model_name}.pkl'),'rb') as f:
+                outputs_dev = pickle.load(f)
+
+        _, y_pred_dev = utils.get_metrics_clf(outputs_dev.squeeze()[model_index], y_dev, [], cmatrix) if not bayes else utils.get_metrics_clf(outputs_dev.squeeze()[model_index], y_dev, [], cmatrix)
+            
         try:
             cmatrix_dev = confusion_matrix(y_dev.flatten(), y_pred_dev.flatten(),normalize='all')
         except:
             continue
 
         if Path(path,random_seed,'y_test.pkl').exists():
-            with open(Path(path,random_seed,'bayesian' if bayesian else '','y_test.pkl'),'rb') as f:
+            with open(Path(path,random_seed,'y_test.pkl'),'rb') as f:
                 y_test = np.array(pickle.load(f),dtype=int)
             with open(Path(path,random_seed,f'outputs_test_{model_name}.pkl'),'rb') as f:
                 outputs_test = pickle.load(f)

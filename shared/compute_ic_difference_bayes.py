@@ -41,13 +41,13 @@ def _calculate_metric_diffs(indices, outputs1, y_dev1, outputs2, y_dev2, metrics
     return np.array([metrics1[m] - metrics2[m] for m in metrics])
 
 tasks_list = [
-              ['Animales__P','brain'],
-              ['Animales__P','cog']
+              ['Animales','brain'],
+              ['Animales','cog']
 
 ]
 dimensions_list = [
                    ['properties','norm_brain_lit'],
-                   ['properties','neuropsico_digits__neuropsico_tmt']
+                   ['properties','neuropsico_digits']
 ]
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
@@ -63,6 +63,7 @@ feature_selection = config['feature_selection']
 filter_outliers = config['filter_outliers']
 n_boot = int(config["n_boot"])
 problem_type = config["problem_type"]
+calibrate = bool(config["calibrate"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -85,12 +86,15 @@ for scoring in scoring_metrics:
     extremo = 1 if 'norm' in scoring else 0
     ascending = True if extremo == 1 else False
 
-    best_models_file = f'metrics_{kfold_folder}_{scoring}_{config["bootstrap_method"]}_{stat_folder}_hyp_opt_feature_selection_dev.csv'.replace('__','_')
+    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','')
-    
     if not feature_selection:
         best_models_file = best_models_file.replace('_feature_selection','')
+    if not shuffle_labels:
+        best_models_file = best_models_file.replace('_shuffled','')
+    if not calibrate:
+        best_models_file = best_models_file.replace('_calibrated','')
     
     best_models = pd.read_csv(Path(results_dir,best_models_file))
     scoring_col = f'{scoring}_extremo'

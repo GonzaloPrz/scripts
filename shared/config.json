@@ -22,7 +22,7 @@
     "overwrite": false,
     "parallel": true,
     "n_seeds_test": 0,
-    "bootstrap_method": "percentile",
+    "bootstrap_method": "bca",
     "test_size": 0.0,
     "data_file": "all_data.csv",
     "tasks": [

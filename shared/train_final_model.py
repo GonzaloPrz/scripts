@@ -192,17 +192,17 @@ for scoring in scoring_metrics:
             if not calibrate:
                 feature_importance_file = feature_importance_file.replace('_calibrated','')
 
-            Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
-            Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
             
-            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl'),'wb') as f:
                 pickle.dump(trained_model,f)
-            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'scaler.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'scaler.pkl'),'wb') as f:
                 pickle.dump(scaler,f)
-            with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'imputer.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'imputer.pkl'),'wb') as f:
                 pickle.dump(imputer,f)
             if calibrate:
-                with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'calmodel.pkl'),'wb') as f:
+                with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'calmodel.pkl'),'wb') as f:
                     pickle.dump(calmodel,f)
             
             if model_type == 'svc':
@@ -235,15 +235,15 @@ for scoring in scoring_metrics:
                     "ytick.labelsize": 12
                 })
                 
-                Path(results_dir,f'plots_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+                Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
                 IDs = pickle.load(open(Path(path_to_data,'IDs_dev.pkl'),'rb'))
 
                 predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
                 predictions = predictions.drop_duplicates('ID')
 
-                with open(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.pkl'),'wb') as f:
+                with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.pkl'),'wb') as f:
                     pickle.dump(predictions,f)
-                predictions.to_csv(Path(results_dir,f'final_model_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.csv'),index=False)
+                predictions.to_csv(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.csv'),index=False)
                 
                 r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
 
@@ -254,15 +254,6 @@ for scoring in scoring_metrics:
                     line_kws={'color': 'darkred', 'linewidth': 2}
                 )
 
-                # Línea de identidad (y = x)
-                #min_val = min(predictions['y_true'].min(), predictions['y_pred'].min())
-                #max_val = max(predictions['y_true'].max(), predictions['y_pred'].max())
-                #plt.plot([min_val, max_val], [min_val, max_val], linestyle='--', color='gray', linewidth=1)
-
-                #plt.xlim(min_val - 0.05 * abs(min_val), max_val + 0.05 * abs(max_val))
-                #plt.ylim(min_val - 0.05 * abs(min_val), max_val + 0.05 * abs(max_val))
-
-                # Etiquetas y título
                 plt.xlabel('True Value')
                 plt.ylabel('Predicted Value')
                 plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
@@ -278,10 +269,10 @@ for scoring in scoring_metrics:
                 # Guardar resultado y cerrar
                 pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
 
-                save_path = Path(results_dir, f'plots_{scoring}', task, dimension, y_label,
+                save_path = Path(results_dir, f'plots', task, dimension, y_label,
                                 stat_folder, scoring,
                                 'hyp_opt' if hyp_opt else '',
-                                'feature_selection' if feature_selection else '',
+                                'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
                                 f'{task}_{y_label}_{dimension}_{model_type}.png')
                 save_path.parent.mkdir(parents=True, exist_ok=True)
 
