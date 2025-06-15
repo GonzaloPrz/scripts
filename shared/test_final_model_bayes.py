@@ -92,7 +92,9 @@ for scoring in scoring_metrics:
     if not feature_selection:
         filename = filename.replace("_feature_selection","")
     if not shuffle_labels:
-        filename = filename.replace("_shuffle","")
+        filename = filename.replace("_shuffled","")
+    if not calibrate:
+        filename = filename.replace("_calibrated","")
 
     best_models = pd.read_csv(Path(results_dir,filename))
 

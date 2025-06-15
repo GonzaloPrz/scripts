@@ -14,6 +14,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.impute import KNNImputer
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.naive_bayes import GaussianNB
+from statsmodels.stats.multitest import multipletests
 
 from expected_cost.calibration import calibration_train_on_test
 from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
@@ -29,7 +30,7 @@ from expected_cost.ec import CostMatrix
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 project_name = config["project_name"]
 scaler_name = config['scaler_name']
-n_folds = config['n_folds_inner']
+n_folds = int(config['n_folds_inner'])
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 avoid_stats = config["avoid_stats"]
@@ -69,7 +70,7 @@ models_dict = {
             'lr': LogisticRegression,
             'svc': SVC,
             'knnc': KNeighborsClassifier,
-            'xgb': XGBClassifier,
+            #'xgb': XGBClassifier,
             'nb':GaussianNB
         },
         'reg': {
@@ -98,6 +99,9 @@ hyperp = {'lr':{'C':(1e-4,100)},
             }
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
+pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
+
+correction = 'fdr_bh'
 
 for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     if str(threshold) == 'None':
@@ -140,6 +144,8 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             
             X_train = pickle.load(open(Path(path_to_results,random_seed,'X_train.pkl'),'rb'))
             y_train = pickle.load(open(Path(path_to_results,random_seed,'y_train.pkl'),'rb'))
+            y_dev = pickle.load(open(Path(path_to_results,random_seed,'y_dev.pkl'),'rb'))
+            outputs_dev = pickle.load(open(Path(path_to_results,random_seed,f'outputs_{model_type}.pkl'),'rb'))
 
             if n_folds == -1:
                 CV = LeaveOneOut()
@@ -164,10 +170,9 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             imputer = KNNImputer
             if cmatrix is None:
                 cmatrix = CostMatrix.zero_one_costs(K=len(np.unique(y_train)))
-            best_features = utils.rfe(utils.Model(model_class(probability=True) if model_class == SVC else model_class(),scaler,imputer,None,None),X_train,y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold)[0] if feature_selection else X_train.columns
             
             if int(config["n_iter"]):
-                best_params, best_score = utils.tuning(model_class,scaler,imputer,X_train[best_features],y_train,hyperp[model_type],CV,init_points=int(config['init_points']),n_iter=n_iter,scoring=scoring,problem_type=problem_type,cmatrix=cmatrix,priors=None,threshold=threshold,calmethod=None,calparams=None)
+                best_params, best_score = utils.tuning(model_class,scaler,imputer,X_train,y_train,hyperp[model_type],CV,init_points=int(config['init_points']),n_iter=n_iter,scoring=scoring,problem_type=problem_type,cmatrix=cmatrix,priors=None,threshold=threshold,calmethod=None,calparams=None)
             else: 
                 best_params = model_class().get_params()
 
@@ -178,6 +183,8 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 model = utils.Model(model_class(**best_params),scaler,imputer)
             else:
                 model = utils.Model(model_class(**best_params),scaler,imputer)
+            
+            best_features = utils.rfe(utils.Model(model_class(**best_params),scaler,imputer,None,None),X_train,y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold)[0] if feature_selection else X_train.columns
             
             model.train(X_train[best_features],y_train)
 
@@ -210,4 +217,73 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             pickle.dump(model.scaler,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'wb'))
             pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'wb'))
             
-            
+            if problem_type == 'reg':
+                sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
+                plt.rcParams.update({
+                    "font.family": "DejaVu Sans",
+                    "axes.titlesize": 16,
+                    "axes.labelsize": 14,
+                    "xtick.labelsize": 12,
+                    "ytick.labelsize": 12
+                })
+                
+                Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+                IDs = pickle.load(open(Path(path_to_results,'IDs_dev.pkl'),'rb'))
+
+                predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
+                predictions = predictions.drop_duplicates('ID')
+
+                with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'predictions_dev.pkl'),'wb') as f:
+                    pickle.dump(predictions,f)
+                predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'predictions_dev.csv'),index=False)
+                
+                r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+
+                plt.figure(figsize=(8, 6))
+                sns.regplot(
+                    x='y_true', y='y_pred', data=predictions,
+                    scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
+                    line_kws={'color': 'darkred', 'linewidth': 2}
+                )
+
+                plt.xlabel('True Value')
+                plt.ylabel('Predicted Value')
+                plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
+
+                # Añadir estadística en esquina superior izquierda
+                plt.text(0.05, 0.95,
+                        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
+                        fontsize=12,
+                        transform=plt.gca().transAxes,
+                        verticalalignment='top',
+                        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+                # Guardar resultado y cerrar
+                pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
+
+                save_path = Path(results_dir, f'plots', task, dimension, y_label,
+                                stat_folder, scoring,
+                                'hyp_opt' if hyp_opt else '',
+                                'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
+                                f'{task}_{y_label}_{dimension}_{model_type}.png')
+                save_path.parent.mkdir(parents=True, exist_ok=True)
+
+                plt.tight_layout()
+                plt.savefig(save_path, dpi=300)
+                plt.close()
+
+    if problem_type == 'reg':
+        pearsons_results_file = f'pearons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
+        if not hyp_opt:
+            pearsons_results_file = pearsons_results_file.replace('_hyp_opt','')
+        if not feature_selection:
+            pearsons_results_file = pearsons_results_file.replace('_feature_selection','')
+        if not shuffle_labels:
+            pearsons_results_file = pearsons_results_file.replace('_shuffled','')
+
+        p_vals = pearsons_results['p_value'].values
+        reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
+        pearsons_results['p_value_corrected'] = p_vals_corrected
+        pearsons_results['correction_method'] = correction
+
+        pearsons_results.to_csv(Path(results_dir,pearsons_results_file),index=False)

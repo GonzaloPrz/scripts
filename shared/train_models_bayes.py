@@ -8,6 +8,7 @@ from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
+from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from sklearn.impute import KNNImputer
@@ -28,13 +29,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='Proyecto_Ivo',type=str,help='Project name')
+    parser.add_argument('--project_name', default='ad_mci_hc_ct',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=3, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=int, default=11, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=int, default=6, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=int, default=7, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--init_points', type=int, default=100, help='Number of random initial points to test during Bayesian optimization')
@@ -47,11 +48,11 @@ def parse_args():
     parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap iterations for testing')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
+    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
     parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
-    parser.add_argument('--bootstrap_method',type=str,default='percentile',help='Bootstrap method [bca, percentile, basic]')
+    parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
 
     return parser.parse_args()
 
@@ -159,8 +160,8 @@ hyperp = {'lr':{'C':(1e-4,100)},
                  'gamma':(1e-4,1e4)},
             'knnc':{'n_neighbors':(1,40)},
             'xgb':{'max_depth':(1,10),
-                   'n_estimators':(1,1000),
-                   'learning_rate':(1e-4,1)},
+                   'n_estimators':(1,500),
+                   'learning_rate':(1e-3,1)},
             'lasso':{'alpha':(1e-4,1e4)},
             'ridge':{'alpha':(1e-4,1e4)},
             'elastic':{'alpha':(1e-4,1e4),
@@ -194,7 +195,8 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
         else:
             data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
         
-        data[y_label] = data[y_label].map({"HC":0,"MCI":1,"AD":2,0:0,1:1,2:2})
+        if problem_type == 'clf':
+            data[y_label] = data[y_label].map({"HC":0,"MCI":1,"AD":2,0:0,1:1,2:2})
 
         if problem_type == 'reg' and config['filter_outliers']:
             data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
@@ -296,7 +298,6 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             ]
 
             path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
-            path_to_save.mkdir(parents=True, exist_ok=True)
 
             for random_seed_test in random_seeds_test:
                 if test_size > 0:

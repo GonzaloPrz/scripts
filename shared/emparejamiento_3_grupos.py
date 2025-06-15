@@ -16,11 +16,10 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 
 target_vars = ['group']
 
-filenames = ['combinada__ad_mci_hc__image_pleasant_memory__features.csv',
-             'combinada__ad_mci_hc__image_routine__features.csv',
-             'combinada__ad_mci_hc__pleasant_memory_routine__features.csv',
+filenames = [
              'combinada__ad_mci_hc__image_pleasant_memory_routine__features.csv'
-             ]
+            ]
+
 for filename in filenames:
     task = filename.split('__')[2]
 
@@ -37,20 +36,17 @@ for filename in filenames:
 
         data = pd.read_csv(Path(data_dir,filename))
 
-        data.dropna(subset=[target_var] + matching_vars,inplace=True)
+        data.dropna(subset=[target_var] ,inplace=True)
         for fact_var in fact_vars:
             data[fact_var] = data   [fact_var].astype('category').cat.codes
     
-        caliper =  0.43
-        #data['group'] = data['group'].map({'AD': 1, 'HC':0})
+        caliper = 0.55
 
         matched_data = perform_three_way_matching(data, output_var,matching_vars,fact_vars,treatment_values=('AD','MCI','HC'),caliper=caliper)
         matched_data = matched_data.drop_duplicates(subset='id')
 
         # Save tables and matched data
         table_before = TableOne(data,list(set(vars) - set([output_var,'id'])),fact_vars,groupby=output_var, pval=True, nonnormal=[])
-
-        #print(table_before)
 
         table = TableOne(matched_data,list(set(vars) - set([output_var,'id'])),fact_vars,groupby=output_var, pval=True, nonnormal=[])
         print(table_before)

@@ -310,24 +310,20 @@
         "Proyecto_Ivo": {
             "Animales": [
                 "properties",
-                "timing",
-                "properties__timing"
-                
+                "timing"
             ],
             "P": [
                 "properties",
-                "timing",
-                "properties__timing"
+                "timing"
             ],
             "Animales__P": [
                 "properties",
-                "timing",
-                "properties__timing"
+                "timing"
             ],
             "cog": [
-                "neuropsico_digits__neuropsico_tmt",
-                "neuropsico_tmt",
-                "neuropsico_digits"
+                "neuropsico_digits",
+                "neuropsico_mmse",
+                "neuropsico_tmt"
             ],
             "brain": [
                 "norm_brain_lit"
@@ -336,8 +332,7 @@
                 "norm_AAL"
             ],
             "connectivity": [
-                "networks",
-                "selected_areas"
+                "networks"
             ]
         },
         "GeroApathy": [
@@ -373,7 +368,15 @@
                 "speech_timing",
                 "word_properties"
                 ],
+            "image_description__pleasant_memory":[                
+                "speech_timing",
+                "word_properties"
+                ],
             "pleasant_memory":[                
+                "speech_timing",
+                "word_properties"
+                ],
+            "pleasant_memory__routine":[                
                 "speech_timing",
                 "word_properties"
                 ],
@@ -492,14 +495,14 @@
     },
     "scoring_metrics": {
         "MCI_classifier_unbalanced": "roc_auc",
-        "MCI_classifier": ["roc_auc"],
+        "MCI_classifier": "roc_auc",
         "tell_classifier": "norm_expected_cost",
         "Proyecto_Ivo": "roc_auc",
         "GeroApathy": "norm_cross_entropy",
         "arequipa": "roc_auc",
         "mci_hc_fugu": "norm_cross_entropy",
         "ad_mci_hc": "norm_cross_entropy",
-        "ad_mci_hc_ct": ["norm_cross_entropy"],
+        "ad_mci_hc_ct": "norm_expected_cost",
         "ad_mci_hc_chile": "norm_cross_entropy",
         "ad_mci_hc_group_as_feature": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",
@@ -547,7 +550,7 @@
         "arequipa": ["lr","svc","knnc","xgb"],
         "mci_hc_fugu": ["lr","xgb","nb"],
         "ad_mci_hc": ["lr","svc","xgb","knnc"],
-        "ad_mci_hc_ct": ["lr","svc","xgb","knnc"],
+        "ad_mci_hc_ct": ["lr","svc","xgb","knnc","nb"],
         "ad_mci_hc_chile": ["lr","svc","xgb","knnc"],
         "ad_mci_hc_group_as_feature": ["lr","svc","xgb","knnc"],
         "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
@@ -575,6 +578,7 @@
         "ad_mci_hc_chile":null,
         "ad_mci_hc_group_as_feature":null,
         "Proyecto_Ivo":null,
+        "GERO_Ivo": null,
         "GERO_females":null,
         "tea_tomi_chu":null
     }

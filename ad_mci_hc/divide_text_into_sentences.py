@@ -15,6 +15,7 @@ def segmentar_oraciones_stanza(texto):
 
 data_dir = Path(Path.home(),'data','ad_mci_hc') if '/Users/gp' in str(Path.home()) else Path('D','CNC_Audio','gonza','data','ad_mci_hc')
 
+textos = pd.read_csv()
 # Ejemplo de uso
 texto = """El cocinero pidió un pescado lo llevó para cocinarlo lo puso en la tabla para prepararlo para la cocción 
 el pez se asustó tanto que salió volando era un pez globo salió volando volando se fue por el living 

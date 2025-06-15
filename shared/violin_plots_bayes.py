@@ -147,11 +147,11 @@ for scoring in scoring_metrics:
             data_to_plot = pd.concat((data_to_plot,data_append),axis=0)
     #        data_to_plot.to_csv(Path(results_dir,filename_to_save), index=False)
     data_to_plot = data_to_plot[((data_to_plot["task"] == "Animales__P") & (data_to_plot["dimension"] == "properties")) |
-                                ((data_to_plot["task"] == "cog") & (data_to_plot["dimension"] == "neuropsico_digits__neuropsico_tmt")) |
+                                ((data_to_plot["task"] == "cog") & (data_to_plot["dimension"] == "neuropsico_digits")) |
                                 ((data_to_plot["task"] == "brain") & (data_to_plot["dimension"] == "norm_brain_lit")) 
                                 ]
     
-    data_to_plot["dimension"] = data_to_plot["dimension"].map({"properties":"Speech","neuropsico_digits__neuropsico_tmt": "Cognitive","norm_brain_lit":"Brain"})
+    data_to_plot["dimension"] = data_to_plot["dimension"].map({"properties":"Speech","neuropsico_digits": "Cognitive","norm_brain_lit":"Brain"})
     for metric in metrics_names:
         plt.figure()
         sns.violinplot(data=data_to_plot,x='dimension',y=metric, color="#1f77b4",)
