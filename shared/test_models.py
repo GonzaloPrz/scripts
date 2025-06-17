@@ -49,7 +49,7 @@ stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = config['n_iter_features'] > 0
 filter_outliers = config['filter_outliers']
-n_models = int(config["n_models"])
+n_models_ = int(config["n_models"])
 early_fusion = bool(config["early_fusion"])
 bayesian = bool(config["bayesian"])
 n_boot_test = int(config["n_boot_test"])
@@ -167,7 +167,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
 
-                    n_models = int(n_models*results_dev.shape[0]) if n_models else results_dev.shape[0]
+                    n_models = int(n_models_*results_dev.shape[0]) if n_models_ else results_dev.shape[0]
                     all_features = [col for col in results_dev.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) or col =='group']
                     
                     if not isinstance(X_dev,pd.DataFrame):
