@@ -8,7 +8,7 @@ import seaborn as sns
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from xgboost import XGBClassifier, XGBRegressor
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut, LeavePOut
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.impute import KNNImputer
@@ -35,9 +35,9 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
-hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = config['feature_selection']
-filter_outliers = config['filter_outliers']
+hyp_opt = config['n_iter'] > 0
+feature_selection = bool(config['feature_selection'])
+filter_outliers = bool(config['filter_outliers'])
 calibrate = bool(config["calibrate"])
 n_iter = int(config["n_iter"])
 init_points = int(config["init_points"])
@@ -76,9 +76,10 @@ models_dict = {
         'reg': {
             'lasso': Lasso,
             'ridge': Ridge,
-            'elastic': ElasticNet,
-            'svr': SVR,
-            'xgb': XGBRegressor
+            #'elastic': ElasticNet,
+            #'svr': SVR,
+            'knnr': KNeighborsRegressor,
+            #'xgb': XGBRegressor
         }
     }
 
@@ -230,7 +231,10 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
                 IDs = pickle.load(open(Path(path_to_results,'IDs_dev.pkl'),'rb'))
 
-                predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
+                try:
+                    predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
+                except:
+                    continue
                 predictions = predictions.drop_duplicates('ID')
 
                 with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'predictions_dev.pkl'),'wb') as f:
@@ -262,7 +266,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
 
                 save_path = Path(results_dir, f'plots', task, dimension, y_label,
-                                stat_folder, scoring,
+                                stat_folder, scoring,config["bootstrap_method"],
                                 'hyp_opt' if hyp_opt else '',
                                 'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
                                 f'{task}_{y_label}_{dimension}_{model_type}.png')

@@ -21,16 +21,15 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
-hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = True if config['n_iter_features'] > 0 else False
-filter_outliers = config['filter_outliers']
+hyp_opt = bool(config['n_iter'])
+feature_selection = bool(config['n_iter_features'])
+filter_outliers = bool(config['filter_outliers'])
 calibrate = bool(config["calibrate"])
 
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
 early_fusion = bool(config["early_fusion"])
 id_col = config['id_col']
-bayesian = config['bayesian']
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -92,7 +91,7 @@ for scoring in scoring_metrics:
             model_index = best_model['model_index'].values[0]
             bayes = False
         
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes' if bayes else '', 'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes' if bayes else '',scoring if bayes else '', 'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
 
         with open(Path(path,random_seed,'y_dev.pkl'),'rb') as f:
             y_dev = np.array(pickle.load(f),dtype=int)

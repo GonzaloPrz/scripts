@@ -36,11 +36,13 @@
         "speech_timing"
     ],
     "scoring_metrics": [
-        "mean_absolute_error"
+        "r2"
     ],
     "problem_type": "reg",
     "y_labels": [
-        "MMSE_Total_Score",
+        "norm_vol_bilateral_HIP",
+        "GM_norm",
+        "norm_vol_mask_AD",
         "ACEIII_Total_Score",
         "IFS_Total_Score",
         "MoCA_Total_Boni_3"
@@ -60,5 +62,6 @@
     "random_seeds_shuffle": [
         ""
     ],
+    "bayes": true,
     "kfold_folder": "5_folds_5_folds"
 }

@@ -7,5 +7,8 @@ python "C:\Users\CNC Audio\gonza\scripts\shared\train_models_bayes.py" %*
 python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bayes.py"
 python "C:\Users\CNC Audio\gonza\scripts\shared\train_final_model_bayes.py"
 python "C:\Users\CNC Audio\gonza\scripts\shared\test_final_model_bayes.py"
+python "C:\Users\CNC Audio\gonza\scripts\shared\plot_scores.py"
+python "C:\Users\CNC Audio\gonza\scripts\shared\plot_confusion_matrix.py"
+
 :: Display used parameters for logging
 echo Pipeline executed with arguments: %*

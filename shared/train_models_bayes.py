@@ -29,17 +29,17 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='ad_mci_hc_ct',type=str,help='Project name')
+    parser.add_argument('--project_name', default='GERO_Ivo',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=6, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=int, default=7, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
-    parser.add_argument('--init_points', type=int, default=100, help='Number of random initial points to test during Bayesian optimization')
-    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
+    parser.add_argument('--init_points', type=int, default=50, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_seeds_train',type=int,default=5,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -132,6 +132,7 @@ config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
 config['random_seeds_train'] = [int(3**x) for x in np.arange(1, config['n_seeds_train']+1)]
 config['random_seeds_test'] = [int(3**x) for x in np.arange(1, config['n_seeds_test']+1)] if config['test_size'] > 0 else ['']
 config['random_seeds_shuffle'] = [float(3**x) for x in np.arange(1, config['n_seeds_shuffle']+1)] if config['shuffle_labels'] else ['']
+config['bayes'] = True
 
 if config['calibrate']:
     calmethod = AffineCalLogLoss
@@ -148,9 +149,9 @@ models_dict = {'clf':{'svc':SVC,
                 
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
-                    'elastic':ElasticNet,
+                    #'elastic':ElasticNet,
                     'knnr':KNNR,
-                    'svr':SVR,
+                    #'svr':SVR,
                     'xgb':xgboostr
                     }
 }
@@ -219,14 +220,13 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             #Perform random permutations of the labels
             y = np.random.permutation(y)
     
-
         all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
 
         if len(config["avoid_stats"]) > 0:
             all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
             
         data = data[all_features + [y_label,config['id_col']]]
-        
+        data.dropna(subset=y_label,inplace=True)
         features = all_features
         
         ID = data.pop(config['id_col'])

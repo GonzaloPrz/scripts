@@ -23,8 +23,8 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = True if config['n_iter_features'] > 0 else False
-filter_outliers = config['filter_outliers']
+feature_selection = bool(config['feature_selection'])
+filter_outliers = bool(config['filter_outliers'])
 test_size = float(config['test_size'])
 n_boot = int(config['n_boot'])
 calibrate = bool(config["calibrate"])
@@ -64,7 +64,7 @@ if problem_type == 'clf':
         extremo = 1 if any(x in scoring for x in ['norm','error']) else 0
         ascending = True if extremo == 1 else False
 
-        best_models_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_hyp_opt_feature_selection_calibrated.csv'.replace('__','_')
+        best_models_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{config["bootstrap_method"]}_{stat_folder}_hyp_opt_feature_selection_alibrated.csv'.replace('__','_')
         if not hyp_opt:
             best_models_filename = best_models_filename.replace('_hyp_opt','')
         if not feature_selection:
@@ -77,6 +77,8 @@ if problem_type == 'clf':
 
         best_models = pd.read_csv(Path(results_dir,best_models_filename))
 
+        bayes = not 'model_index' in best_models.columns
+        
         for r,row in best_models.iterrows():
             task = row.task
             y_label = row.y_label
@@ -87,46 +89,55 @@ if problem_type == 'clf':
             if str(random_seed) == 'nan':
                 random_seed = ''
 
-            path_to_results = Path(results_dir, task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
+            path_to_results = Path(results_dir, task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
 
-            Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed).mkdir(parents=True, exist_ok=True)
+            Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'bayes' if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed).mkdir(parents=True, exist_ok=True)
             
-            file = f'all_models_{model_name}_dev_bca.csv'
+            if not bayes:
+                file = f'all_models_{model_name}_dev_bca.csv'
 
-            if config['n_models'] != 0:
-                file = file.replace('all_models', 'best_models').replace('.csv', f'_{scoring}.csv')
-            
-            if not Path(path_to_results,random_seed,file).exists():
-                continue
-            
-            scoring_col = f'{scoring}_extremo'
-
-            df_filename = pd.read_csv(Path(path_to_results, random_seed, file))
-            df_filename[scoring_col] = df_filename[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
-
-            df_filename = df_filename.sort_values(by=scoring_col,ascending=ascending)
-
-            model_index = df_filename.index[0]
-
-            if 'threshold' in df_filename.columns:
-                threshold = df_filename['threshold'][0]
-            else:
-                threshold = None
+                if config['n_models'] != 0:
+                    file = file.replace('all_models', 'best_models').replace('.csv', f'_{scoring}.csv')
                 
-            if Path(path_to_results, 'shuffle', random_seed,file).exists() and shuffle_labels:
-                df_filename_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f'all_models_{model_name}_dev_bca.csv')).sort_values(f'{scoring}_{extremo}'.replace('_score',''), ascending=ascending)
-                model_index_shuffle = df_filename_shuffle.index[0]
-                if 'threshold' in df_filename_shuffle.columns:
-                    threshold_shuffle = df_filename_shuffle['threshold'][0]
+                if not Path(path_to_results,random_seed,file).exists():
+                    continue
+                
+                scoring_col = f'{scoring}_extremo'
+
+                df_filename = pd.read_csv(Path(path_to_results, random_seed, file))
+                df_filename[scoring_col] = df_filename[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
+
+                df_filename = df_filename.sort_values(by=scoring_col,ascending=ascending)
+
+                model_index = df_filename.index[0]
+
+                if 'threshold' in df_filename.columns:
+                    threshold = df_filename['threshold'][0]
                 else:
-                    threshold_shuffle = None
+                    threshold = None
                 
+                if Path(path_to_results, 'shuffle', random_seed,file).exists() and shuffle_labels:
+                    df_filename_shuffle = pd.read_csv(Path(path_to_results, 'shuffle', random_seed, f'all_models_{model_name}_dev_bca.csv')).sort_values(f'{scoring}_{extremo}'.replace('_score',''), ascending=ascending)
+                    model_index_shuffle = df_filename_shuffle.index[0]
+                    if 'threshold' in df_filename_shuffle.columns:
+                        threshold_shuffle = df_filename_shuffle['threshold'][0]
+                    else:
+                        threshold_shuffle = None
+                    
             outputs_filename = f'cal_outputs_{model_name}.pkl' if calibrate else f'outputs_{model_name}.pkl'
             
+            if not bayes:
+                outputs_ = pickle.load(open(Path(path_to_results, random_seed, outputs_filename), 'rb'))[:,model_index]
+            else:
+                outputs_ = pickle.load(open(Path(path_to_results, random_seed, outputs_filename), 'rb'))
+
             ax = None
 
             if Path(path_to_results,random_seed,outputs_filename.replace('outputs','outputs_test')).exists():
-                outputs_test = pickle.load(open(Path(path_to_results,random_seed,outputs_filename.replace('outputs','outputs_test')), 'rb'))[model_index]
+                if not bayes:
+                    outputs_test = pickle.load(open(Path(path_to_results,random_seed,outputs_filename.replace('outputs','outputs_test')), 'rb'))[model_index]
+                else:
+                    outputs_test = pickle.load(open(Path(path_to_results,random_seed,outputs_filename.replace('outputs','outputs_test')), 'rb'))
                 #Add missing dimensions: model_index, j
                 y_test = pickle.load(open(Path(path_to_results,random_seed,f'y_test.pkl'), 'rb'))
                 IDs_test = pickle.load(open(Path(path_to_results,random_seed,f'IDs_test.pkl'), 'rb'))
@@ -137,18 +148,14 @@ if problem_type == 'clf':
 
                 scores = np.concatenate([outputs_test[r] for r in range(outputs_test.shape[0])])
                 
-                plot_hists(y_test, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost_test.png'), nbins=50, group_by='score', style='--', label_prefix='test ', axs=None)
+                plot_hists(y_test, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost_test.png'), nbins=50, group_by='score', style='--', label_prefix='test ', axs=None)
             
-            outputs_ = pickle.load(open(Path(path_to_results, random_seed, outputs_filename), 'rb'))[:,model_index]
-
-            #Add missing dimensions: model_index, j
-            outputs_ =outputs_[:,np.newaxis, ...]
-            
+            #Add missing dimensions: model_index, j            
             y_true_ = pickle.load(open(Path(path_to_results,random_seed, f'y_dev.pkl'), 'rb'))
             IDs = pickle.load(open(Path(path_to_results,random_seed, f'IDs_dev.pkl'), 'rb'))
             
-            scores = np.concatenate([outputs_[0,0,r] for r in range(outputs_.shape[2])])
+            scores = np.concatenate([outputs_[0,r] for r in range(outputs_.shape[1])])
             y_true = np.concatenate([y_true_[0,r] for r in range(y_true_.shape[1])])
             
-            plot_hists(y_true, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost.png'), nbins=50, group_by='score', style='-', label_prefix='dev ', axs=ax)
+            plot_hists(y_true, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost.png'), nbins=50, group_by='score', style='-', label_prefix='dev ', axs=ax)
             

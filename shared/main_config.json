@@ -46,7 +46,9 @@
             "MiniSea_minisea_total"
         ],
         "GERO_Ivo": [
-            "MMSE_Total_Score",
+            "norm_vol_bilateral_HIP",
+            "GM_norm",
+            "norm_vol_mask_AD",
             "ACEIII_Total_Score",
             "IFS_Total_Score",
             "MoCA_Total_Boni_3"
@@ -506,7 +508,7 @@
         "ad_mci_hc_chile": "norm_cross_entropy",
         "ad_mci_hc_group_as_feature": "norm_cross_entropy",
         "GeroApathy_reg": "mean_absolute_error",
-        "GERO_Ivo": "mean_absolute_error",
+        "GERO_Ivo": "r2",
         "MPLS": "r2_score",
         "AKU_outliers_as_nan": "r2_score",
         "arequipa_reg": "mean_absolute_error",
@@ -554,7 +556,7 @@
         "ad_mci_hc_chile": ["lr","svc","xgb","knnc"],
         "ad_mci_hc_group_as_feature": ["lr","svc","xgb","knnc"],
         "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
-        "GERO_Ivo": ["lasso","ridge","elastic","svr","xgb"],
+        "GERO_Ivo": ["lasso","ridge","knnr","xgb"],
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
         "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],

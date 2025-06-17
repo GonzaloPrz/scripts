@@ -82,18 +82,29 @@ metrics_names = main_config["metrics_names"][main_config["problem_type"][project
 tasks = main_config["tasks"][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
-diff_ci = pd.DataFrame()
-
 for scoring in scoring_metrics:
-    all_results = []
+    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    if not hyp_opt:
+            output_filename = output_filename.replace('_hyp_opt','')
+    if not feature_selection:
+        output_filename = output_filename.replace('_feature_selection','')
+    if not shuffle_labels:
+        output_filename = output_filename.replace('_shuffled','')
+    if not calibrate:
+        output_filename = output_filename.replace('_calibrated','')
 
+    if (Path(results_dir,output_filename).exists()) & (not overwrite):
+        all_results = pd.read_csv(Path(results_dir,output_filename))
+    else:
+        all_results = pd.DataFrame()
+    
     for task, model_type, y_label in itertools.product(tasks,models,y_labels):
         if not Path(results_dir,task).exists():
             continue
-
+        
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
-            
+
             print(task,model_type,y_label,dimension)
             
             path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,"bayes",scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","shuffle" if shuffle_labels else "")
@@ -107,6 +118,12 @@ for scoring in scoring_metrics:
                 random_seeds = ['']
 
             for random_seed in random_seeds:
+                
+                if not overwrite and all_results.shape[0] > 0:
+                    row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
+                    if len(row) > 0:
+                        continue
+
                 if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                     continue
 
@@ -168,25 +185,11 @@ for scoring in scoring_metrics:
                 for i, metric in enumerate(metrics_names_):
                     est = point_estimates[i]
                     ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
-                    result_row[metric] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
+                    result_row[metric] = f"{est:.5f}, ({ci_low:.5f}, {ci_high:.5f})"
                 
-                all_results.append(result_row)
+                if all_results.empty:
+                    all_results = pd.DataFrame(result_row,index=[0])
+                else:
+                    all_results.loc[all_results.shape[0],:] = result_row
 
-    # --- Save Final Results ---
-    if all_results:
-        ci_df = pd.DataFrame(all_results)
-        output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
-
-        if not hyp_opt:
-            output_filename = output_filename.replace('_hyp_opt','')
-        if not feature_selection:
-            output_filename = output_filename.replace('_feature_selection','')
-        if not shuffle_labels:
-            output_filename = output_filename.replace('_shuffled','')
-        if not calibrate:
-            output_filename = output_filename.replace('_calibrated','')
-
-        ci_df.to_csv(Path(results_dir,output_filename), index=False)
-        print(f"Confidence intervals saved to {output_filename}")
-    else:
-        print("No results were generated.")
+                all_results.to_csv(Path(results_dir,output_filename),index=False)
