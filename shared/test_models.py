@@ -157,7 +157,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     if file.suffix != '.csv':
                         continue
 
-                    filename_to_save = f'all_models_{model_name}_calibrated.csv'
+                    filename_to_save = f'all_models_{model_name}_test_calibrated.csv'
                     if config["n_models"] != 0:
                         filename_to_save = filename_to_save.replace('all_models',f'best_models_{scoring}')
                     if not calibrate:
