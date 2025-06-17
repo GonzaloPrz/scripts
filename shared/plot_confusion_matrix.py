@@ -19,17 +19,11 @@ project_name = config["project_name"]
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
-avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = bool(config['n_iter'])
-feature_selection = bool(config['n_iter_features'])
+feature_selection = bool(config['feature_selection'])
 filter_outliers = bool(config['filter_outliers'])
 calibrate = bool(config["calibrate"])
-
-n_models = int(config["n_models"])
-n_boot = int(config["n_boot"])
-early_fusion = bool(config["early_fusion"])
-id_col = config['id_col']
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -42,8 +36,6 @@ main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 y_labels = main_config['y_labels'][project_name]
 tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
-single_dimensions = main_config['single_dimensions'][project_name]
-data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
 
@@ -87,19 +79,23 @@ for scoring in scoring_metrics:
         best_model = best_models[(best_models['task'] == task) & (best_models['y_label'] == y_label) & (best_models['dimension'] == dimension)]
         model_name = best_model['model_type'].values[0]
 
-        if 'model_index' in best_model.columns:
-            model_index = best_model['model_index'].values[0]
-            bayes = False
-        
+        bayes = 'model_index' not in best_models.columns
+
         path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes' if bayes else '',scoring if bayes else '', 'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
 
         with open(Path(path,random_seed,'y_dev.pkl'),'rb') as f:
             y_dev = np.array(pickle.load(f),dtype=int)
 
         with open(Path(path,random_seed,f'outputs_{model_name}.pkl'),'rb') as f:
-                outputs_dev = pickle.load(f)
-
-        _, y_pred_dev = utils.get_metrics_clf(outputs_dev.squeeze()[model_index], y_dev, [], cmatrix) if not bayes else utils.get_metrics_clf(outputs_dev.squeeze()[model_index], y_dev, [], cmatrix)
+            outputs_dev = pickle.load(f)
+        
+        if not bayes:
+            model_index = best_model['model_index'].values[0]
+            outputs = outputs_dev.squeeze()[model_index]
+        else:
+            outputs = outputs_dev.squeeze()
+            
+        _, y_pred_dev = utils.get_metrics_clf(outputs, y_dev, [], cmatrix) if not bayes else utils.get_metrics_clf(outputs, y_dev, [], cmatrix)
             
         try:
             cmatrix_dev = confusion_matrix(y_dev.flatten(), y_pred_dev.flatten(),normalize='all')
@@ -110,8 +106,12 @@ for scoring in scoring_metrics:
             with open(Path(path,random_seed,'y_test.pkl'),'rb') as f:
                 y_test = np.array(pickle.load(f),dtype=int)
             with open(Path(path,random_seed,f'outputs_test_{model_name}.pkl'),'rb') as f:
-                outputs_test = pickle.load(f)
-            _, y_pred_test = utils.get_metrics_clf(outputs_test.squeeze()[model_index], y_test, [], cmatrix)
+                outputs_test_ = pickle.load(f)
+                if not bayes:
+                    outputs_test = outputs_test_.squeeze()[model_index]
+                else:
+                    outputS_test = outputs_test_.squeeze()
+            _, y_pred_test = utils.get_metrics_clf(outputs_test, y_test, [], cmatrix)
             cmatrix_test = confusion_matrix(y_test.flatten(), y_pred_test.flatten(),normalize='all')
             fig, ax = plt.subplots(1,2,figsize=(10,5))
             ConfusionMatrixDisplay(cmatrix_dev).plot(ax=ax[0])

@@ -5,25 +5,26 @@
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 5.0,
-    "n_folds_inner": 5.0,
-    "n_iter": 15.0,
-    "feature_selection": true,
-    "init_points": 50.0,
+    "n_folds": 5.0,
+    "n_iter": 10.0,
+    "n_iter_features": 10.0,
+    "feature_sample_ratio": 0.5,
     "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
+    "n_models": 0.0,
     "n_boot": 1000.0,
-    "n_boot_test": 1000.0,
-    "n_boot_train": 0.0,
+    "bayesian": false,
     "filter_outliers": false,
     "early_fusion": true,
+    "n_boot_test": 1000.0,
+    "n_boot_train": 0.0,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 0,
+    "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
-    "test_size": 0.0,
+    "test_size": 0.3,
     "data_file": "all_data.csv",
     "tasks": [
         "fas",
@@ -35,9 +36,7 @@
         "psycholinguistic",
         "speech_timing"
     ],
-    "scoring_metrics": [
-        "r2"
-    ],
+    "scoring_metrics": "r2",
     "problem_type": "reg",
     "y_labels": [
         "norm_vol_bilateral_HIP",
@@ -50,18 +49,17 @@
     "avoid_stats": [],
     "stat_folder": "",
     "random_seeds_train": [
-        3,
-        9,
-        27,
-        81,
-        243
+        3.0,
+        9.0,
+        27.0,
+        81.0,
+        243.0
     ],
     "random_seeds_test": [
-        ""
+        3.0
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "bayes": true,
-    "kfold_folder": "5_folds_5_folds"
+    "kfold_folder": "5_folds"
 }

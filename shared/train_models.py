@@ -53,7 +53,7 @@ def parse_args():
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
     parser.add_argument('--n_models',type=float,default=0,help='Number of hyperparameter combinatios to try and select from  to train')
-    parser.add_argument('--n_boot',type=int,default=500,help='')
+    parser.add_argument('--n_boot',type=int,default=1000,help='')
     parser.add_argument('--bayesian',type=int,default=0,help='Whether to calculate bayesian credible intervals or bootstrap confidence intervals')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
@@ -167,7 +167,7 @@ models_dict = {
         'reg': {
             'lasso': Lasso,
             'ridge': Ridge,
-            'elastic': ElasticNet,
+            #'elastic': ElasticNet,
             'svr': SVR,
             'xgb': xgboostr
         }
@@ -181,7 +181,7 @@ hp_ranges = {
         'lr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))]},
         'svc': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'gamma': ['scale', 'auto'], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'probability': [True]},
         'knnc': {'n_neighbors': [x for x in range(1, 21)]},
-        'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,9),range(1,3))], 'max_depth': [1, 2, 3, 4], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
+        'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,6),range(1,3))], 'max_depth': [1, 2, 3, 4], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
         'nb': {'priors':[None]},
         'ridge': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
                   'tol': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 

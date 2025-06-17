@@ -79,7 +79,7 @@ models_dict = {
             #'elastic': ElasticNet,
             #'svr': SVR,
             'knnr': KNeighborsRegressor,
-            #'xgb': XGBRegressor
+            'xgb': XGBRegressor
         }
     }
 
@@ -132,7 +132,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
         random_seeds.append('')
         
         for random_seed in random_seeds:
-            if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],f'model_{model_type}.pkl').exists() and not overwrite:
+            if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl').exists() and not overwrite:
                 print('Model already exists')
                 continue
             
@@ -213,7 +213,6 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 feature_importance.to_csv(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',feature_importance_file),index=False)
             else:
                 print(task,dimension,f'No feature importance available for {model_type}')
-
             pickle.dump(model.model,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl'),'wb'))
             pickle.dump(model.scaler,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'wb'))
             pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'wb'))
@@ -284,6 +283,9 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             pearsons_results_file = pearsons_results_file.replace('_feature_selection','')
         if not shuffle_labels:
             pearsons_results_file = pearsons_results_file.replace('_shuffled','')
+
+        if Path(results_dir,pearsons_results_file).exists() and not overwrite:
+            continue
 
         p_vals = pearsons_results['p_value'].values
         reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)

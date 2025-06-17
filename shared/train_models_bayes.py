@@ -49,7 +49,7 @@ def parse_args():
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
+    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
@@ -152,7 +152,7 @@ models_dict = {'clf':{'svc':SVC,
                     #'elastic':ElasticNet,
                     'knnr':KNNR,
                     #'svr':SVR,
-                    'xgb':xgboostr
+                    #'xgb':xgboostr
                     }
 }
 
@@ -192,15 +192,15 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
         print(task,dimension)
         
         if problem_type == 'clf':
-            data = pd.read_csv(Path(data_dir,data_file))
+            all_data = pd.read_csv(Path(data_dir,data_file))
         else:
-            data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
+            all_data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
         
         if problem_type == 'clf':
-            data[y_label] = data[y_label].map({"HC":0,"MCI":1,"AD":2,0:0,1:1,2:2})
+            all_data[y_label] = data[y_label].map({"HC":0,"MCI":1,"AD":2,0:0,1:1,2:2})
 
         if problem_type == 'reg' and config['filter_outliers']:
-            data = data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
+            all_data = all_data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
 
         if config['shuffle_labels'] and problem_type == 'clf':
             np.random.seed(0)
@@ -220,18 +220,25 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             #Perform random permutations of the labels
             y = np.random.permutation(y)
     
-        all_features = [col for col in data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
+        all_features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
 
         if len(config["avoid_stats"]) > 0:
             all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
             
-        data = data[all_features + [y_label,config['id_col']]]
+        data = all_data[all_features + [y_label,config['id_col']]]
         data.dropna(subset=y_label,inplace=True)
         features = all_features
         
         ID = data.pop(config['id_col'])
 
         y = data.pop(y_label)
+        
+        if (problem_type == 'reg') & ('group' in data.columns) & (config['stratify']):
+            strat_col = data.pop('group')
+        elif (problem_type == 'clf') & (config['stratify']):
+            strat_col = y
+        else:
+            strat_col = None
 
         for model_key, model_class in models_dict[problem_type].items():        
             print(model_key)
@@ -252,7 +259,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             if n_folds_outer== 0:
                 n_folds_outer= int(n_samples_dev / np.unique(y).shape[0])
                 CV_outer = (StratifiedKFold(n_splits=n_folds_outer, shuffle=True)
-                            if config['stratify'] and problem_type == 'clf' 
+                            if strat_col is not None 
                             else KFold(n_splits=n_folds_outer, shuffle=True))
                 config["kfold_folder"] = f'l{np.unique(y).shape[0]}out'
                 n_samples_outer = n_samples_dev - np.unique(y).shape[0]
@@ -262,7 +269,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                 config["kfold_folder"] = 'loocv'
             else:
                 CV_outer = (StratifiedKFold(n_splits=n_folds_outer, shuffle=True)
-                            if config['stratify'] and problem_type == 'clf'
+                            if strat_col is not None
                             else KFold(n_splits=n_folds_outer, shuffle=True))
                 n_samples_outer = int(n_samples_dev*(1-1/n_folds_outer))
                 config['kfold_folder'] = f'{n_folds_outer}_folds' 
@@ -270,7 +277,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             if n_folds_inner == 0:
                 n_folds_inner = int(n_samples_outer / np.unique(y).shape[0])
                 CV_inner = (StratifiedKFold(n_splits=n_folds_inner, shuffle=True)
-                            if config['stratify'] and problem_type == 'clf'
+                            if strat_col is not None
                             else KFold(n_splits=n_folds_inner, shuffle=True))
                 config["kfold_folder"] += f'_l{np.unique(y).shape[0]}ocv'
                 n_max = n_samples_outer - np.unique(y).shape[0]
@@ -281,7 +288,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             
             else:
                 CV_inner = (StratifiedKFold(n_splits=n_folds_inner, shuffle=True)
-                            if config['stratify'] and problem_type == 'clf'
+                            if strat_col is not None
                             else KFold(n_splits=n_folds_inner, shuffle=True))
                 n_max = int(n_samples_outer*(1-1/n_folds_inner))
                 config["kfold_folder"] += f'_{n_folds_inner}_folds'
@@ -300,13 +307,14 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
 
             for random_seed_test in random_seeds_test:
+                Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(exist_ok=True,parents=True)
                 if test_size > 0:
                     X_train_, X_test_, y_train_, y_test_, ID_train_, ID_test_ = train_test_split(
                         data, y, ID,
                         test_size=config['test_size'],
                         random_state=int(random_seed_test),
                         shuffle=True,
-                        stratify=y if (config['stratify'] and problem_type == 'clf') else None
+                        stratify=strat_col
                     )
                     # Reset indexes after split.
                     X_train_.reset_index(drop=True, inplace=True)
@@ -318,6 +326,13 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                 else:
                     X_train_, y_train_, ID_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True)
                     X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
+
+                data_train = pd.concat((X_train_,y_train_,ID_train_),axis=1)
+
+                data_test = pd.concat((X_test_,y_test_,ID_test_),axis=1)
+                
+                data_train.to_csv(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', 'data_train.csv'),index=False)
+                data_test.to_csv(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', 'data_test.csv'),index=False)
 
                 hyperp['knnc']['n_neighbors'] = (1,n_max)
                 hyperp['knnr']['n_neighbors'] = (1,n_max)
@@ -340,6 +355,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                                                                                      n_iter=int(config['n_iter']),
                                                                                      iterator_outer=CV_outer,
                                                                                      iterator_inner=CV_inner,
+                                                                                     strat_col=strat_col,
                                                                                      random_seeds_outer=config['random_seeds_train'],
                                                                                      hyperp_space=hyperp[model_key],
                                                                                      IDs=ID_train_,

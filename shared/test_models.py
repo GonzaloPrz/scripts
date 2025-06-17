@@ -47,7 +47,7 @@ calibrate = config["calibrate"]
 avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = True if config['n_iter_features'] > 0 else False
+feature_selection = config['n_iter_features'] > 0
 filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 early_fusion = bool(config["early_fusion"])
@@ -166,9 +166,15 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     print(model_name)
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
-                    
+
+                    n_models = int(n_models*results_dev.shape[0]) if n_models else results_dev.shape[0]
                     all_features = [col for col in results_dev.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) or col =='group']
                     
+                    if not isinstance(X_dev,pd.DataFrame):
+                        X_dev = pd.DataFrame(columns=all_features,data=X_dev)
+                    
+                    if not isinstance(X_test,pd.DataFrame):
+                        X_test = pd.DataFrame(columns=all_features,data=X_test)
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_dev)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
                     if Path(file.parent,f'{filename_to_save}_test.csv').exists() and overwrite == False:
@@ -177,10 +183,10 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                             
                     def parallel_process(index):
                         
-                        features = [col for col in all_features if results_dev.loc[index,col].values[0] == 1]
+                        features = [col for col in all_features if results_dev.loc[index,col]== 1]
                         params = [col for col in results_dev.columns if all(x not in col for x in  all_features + metrics_names + [y_label,config["id_col"],'Unnamed: 0','threshold','index',f'{scoring}_extremo','bootstrap_method'])]
 
-                        params_dict = {param:results_dev.loc[index,param].values[0] for param in params if str(results_dev.loc[index,param].values[0]) != 'nan'}
+                        params_dict = {param:results_dev.loc[index,param] for param in params if str(results_dev.loc[index,param]) != 'nan'}
 
                         if 'gamma' in params_dict.keys():
                             try: 
@@ -191,14 +197,14 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                         if 'random_state' in params_dict.keys():
                             params_dict['random_state'] = int(params_dict['random_state'])
                         
-                        outputs = utils.test_model(models_dict[model_name],params,scaler,imputer, X_dev[features], y_dev, X_test[features], problem_type=problem_type)
+                        outputs = utils.test_model(models_dict[problem_type][model_name],params_dict,scaler,imputer, X_dev[features], y_dev, X_test[features], problem_type=problem_type)
 
                         # Prepare data for bootstrap: a tuple of index arrays to resample
                         data_indices = (np.arange(y_test.shape[-1]),)
 
                         # Define the statistic function with data baked in
                         stat_func = lambda indices: utils._calculate_metrics(
-                            indices, outputs[:,index], y_test, 
+                            indices, outputs, y_test.values, 
                             metrics_names, problem_type, cmatrix
                         )
 
@@ -238,10 +244,10 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                             ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
                             result_row.update({f'{metric}_holdout': f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"})
                         
-                        return result_row
+                        return result_row, outputs
                     
                     parallel_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(parallel_process)(index) for index in np.arange(n_models))
-                    all_results = pd.concat((pd.DataFrame(result[1],index=[0]) for result in parallel_results),ignore_index=True)
+                    all_results = pd.concat((pd.DataFrame(result[0],index=[0]) for result in parallel_results),ignore_index=True)
                     
                     all_results.to_csv(Path(path_to_results,random_seed_test,filename_to_save))
                     

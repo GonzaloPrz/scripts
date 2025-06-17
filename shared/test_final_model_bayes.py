@@ -104,15 +104,15 @@ for scoring in scoring_metrics:
         model_type = row['model_type']
         random_seed_test = row['random_seed_test']
         if str(random_seed_test) == 'nan':
-            random_seed_test = ''
+            continue
             
         y_label = row['y_label']
 
         print(task,dimension,model_type,y_label)
         try:
-            trained_model = pickle.load(open(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl'),'rb'))
-            trained_scaler = pickle.load(open(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'rb'))
-            trained_imputer = pickle.load(open(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'rb'))
+            trained_model = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl'),'rb'))
+            trained_scaler = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'rb'))
+            trained_imputer = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'rb'))
         except:
             continue
     
@@ -136,7 +136,7 @@ for scoring in scoring_metrics:
         model = utils.Model(type(trained_model)(**params),type(trained_scaler),type(trained_imputer))
         model.train(X_train[features],y_train)
 
-        outputs = model.eval(X_test[features])
+        outputs = model.eval(X_test[features],problem_type)
 
         # Prepare data for bootstrap: a tuple of index arrays to resample
         data_indices = (np.arange(y_test.shape[-1]),)
