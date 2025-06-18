@@ -83,7 +83,7 @@ tasks = main_config["tasks"][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
 for scoring in scoring_metrics:
-    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
             output_filename = output_filename.replace('_hyp_opt','')
     if not feature_selection:
@@ -121,8 +121,8 @@ for scoring in scoring_metrics:
                 
                 if not overwrite and all_results.shape[0] > 0:
                     row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
-                    if len(row) > 0:
-                        continue
+                    #if len(row) > 0:
+                    #    continue
 
                 if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                     continue

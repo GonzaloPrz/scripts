@@ -556,7 +556,7 @@
         "ad_mci_hc_chile": ["lr","svc","xgb","knnc"],
         "ad_mci_hc_group_as_feature": ["lr","svc","xgb","knnc"],
         "GeroApathy_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
-        "GERO_Ivo": ["lasso","ridge","knnr"],
+        "GERO_Ivo": ["lasso","ridge","knnr","xgb","svr"],
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
         "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],

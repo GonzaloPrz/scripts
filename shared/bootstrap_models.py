@@ -27,8 +27,8 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
-hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = config['n_iter_features'] > 0
+hyp_opt = bool(config['n_iter'] > 0)
+feature_selection = bool(config['n_iter_features'] > 0)
 filter_outliers = config['filter_outliers']
 n_models = int(config["n_models"])
 n_boot = int(config["n_boot"])
@@ -84,9 +84,9 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,scorin
             if config['n_models'] != 0:
                 filename_to_save = filename_to_save.replace('all_models','best_models').replace('.csv',f'_{scoring}.csv')
 
-            if Path(path,random_seed,filename_to_save).exists() and overwrite == False:
-                print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
-                continue
+            #if Path(path,random_seed,filename_to_save).exists() and overwrite == False:
+            #    print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
+            #    continue
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
@@ -96,7 +96,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,scorin
             all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
             outputs = pickle.load(open(Path(path,random_seed,f'cal_outputs_{model}.pkl' if calibrate else f'outputs_{model}.pkl'),'rb')) 
             
-            y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb')).astype(int)
+            y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb'))
             
             if np.unique(y_dev).shape[0] > 2:
                 metrics_names = list(set(metrics_names_) - set(['roc_auc','presicion','recall','f1']))

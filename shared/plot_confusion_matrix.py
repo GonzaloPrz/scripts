@@ -21,7 +21,11 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 stat_folder = config['stat_folder']
 hyp_opt = bool(config['n_iter'])
-feature_selection = bool(config['feature_selection'])
+if 'feature_selection' in config.keys():
+    feature_selection = bool(config['feature_selection'])
+else:
+    feature_selection = bool(config['n_iter_features'])
+    
 filter_outliers = bool(config['filter_outliers'])
 calibrate = bool(config["calibrate"])
 

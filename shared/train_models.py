@@ -39,16 +39,16 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='MCI_classifier',type=str,help='Project name')
+    parser.add_argument('--project_name', default='GERO_Ivo',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
     parser.add_argument('--n_folds', type=int, default=5, help='Number of folds for cross validation')
     parser.add_argument('--n_iter', type=int, default=10, help='Number of hyperparameter iterations')
-    parser.add_argument('--n_iter_features', type=int, default=0, help='Number of feature sets to try and select from')
+    parser.add_argument('--n_iter_features', type=int, default=10, help='Number of feature sets to try and select from')
     parser.add_argument('--feature_sample_ratio', type=float, default=0.5, help='Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set')
-    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
+    parser.add_argument('--n_seeds_train',type=int,default=5,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -169,7 +169,8 @@ models_dict = {
             'ridge': Ridge,
             #'elastic': ElasticNet,
             'svr': SVR,
-            'xgb': xgboostr
+            'xgb': xgboostr,
+            'knnr': KNNR
         }
     }
 
@@ -180,7 +181,6 @@ with Path(Path(__file__).parent,'default_hp.json').open('rb') as f:
 hp_ranges = {
         'lr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))]},
         'svc': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'gamma': ['scale', 'auto'], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'probability': [True]},
-        'knnc': {'n_neighbors': [x for x in range(1, 21)]},
         'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,6),range(1,3))], 'max_depth': [1, 2, 3, 4], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
         'nb': {'priors':[None]},
         'ridge': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
@@ -197,7 +197,8 @@ hp_ranges = {
                     'tol': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
                   'max_iter': [5000],
                   'random_state': [42]},
-        'svr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'gamma': ['scale', 'auto']}
+        'svr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'gamma': ['scale', 'auto'],
+}
 }
 ##------------------ Main Model Training Loop ------------------##
 
@@ -265,17 +266,19 @@ for y_label, task in itertools.product(y_labels, tasks):
             held_out = (config['n_iter'] > 0 or config['n_iter_features'] > 0)
             n_folds = int(config['n_folds'])
             if held_out:
-                if n_folds == 0:
-                    n_folds = int((data.shape[0]*(1 - config['test_size'])) / 2)
-                elif n_folds == -1:
-                    n_folds = int(data.shape[0]*(1 - config['test_size']))
-                n_seeds_test = config['n_seeds_test']
+                n_samples_dev = int(data.shape[0] * (1 - config['test_size']))
             else:
-                if n_folds == 0:
-                    n_folds = int(data.shape[0]/2)
-                elif n_folds == -1:
-                    n_folds = data.shape[0]
-                n_seeds_test = 1
+                n_samples_dev = data.shape[0]
+                n_seeds_test = 0
+                
+            if n_folds == 0:
+                n_folds = int(n_samples_dev/2)
+                n_max = n_samples_dev - 2
+            elif n_folds == -1:
+                n_folds = n_samples_dev
+                n_max = n_samples_dev - 1
+            else:
+                n_max = int(n_samples_dev*(1-1/n_folds)) - 1 
 
             random_seeds_test = config['random_seeds_test']
             # Choose cross-validation iterator
@@ -294,9 +297,6 @@ for y_label, task in itertools.product(y_labels, tasks):
             ]
             path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
             path_to_save.mkdir(parents=True, exist_ok=True)
-            
-            hyperp = utils.initialize_hyperparameters(model_key, config, default_hp, hp_ranges)
-            feature_sets = utils.generate_feature_sets(features, config, data.shape)
             
             for random_seed_test in random_seeds_test:
                 Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(exist_ok=True,parents=True)
@@ -320,7 +320,12 @@ for y_label, task in itertools.product(y_labels, tasks):
                 else:
                     X_train_, y_train_, ID_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True)
                     X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
-
+                
+                hp_ranges.update({'knnc':{'n_neighbors': np.arange(1,n_max)}})
+                hp_ranges.update({'knnr':{'n_neighbors': np.arange(1,n_max)}})
+            
+                hyperp = utils.initialize_hyperparameters(model_key, config, default_hp, hp_ranges)
+                feature_sets = utils.generate_feature_sets(features, config, data.shape)
                 # If shuffling is requested, perform label shuffling before training.
                 for rss, random_seed_shuffle in enumerate(config['random_seeds_shuffle']):
                     if config['shuffle_labels']:

@@ -43,5 +43,8 @@
         "C": 1,
         "kernel": "rbf",
         "gamma": "scale"
+    },
+    "knnr": {
+        "n_neighbors": 5
     }
 }

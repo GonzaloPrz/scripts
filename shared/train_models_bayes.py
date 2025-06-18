@@ -152,7 +152,7 @@ models_dict = {'clf':{'svc':SVC,
                     #'elastic':ElasticNet,
                     'knnr':KNNR,
                     #'svr':SVR,
-                    #'xgb':xgboostr
+                    'xgb':xgboostr
                     }
 }
 
