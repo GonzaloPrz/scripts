@@ -83,19 +83,19 @@ for scoring in scoring_metrics:
                             fusion = 'single dimension'
                         
                         if calibrate:
-                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','test','calibrated'])] 
+                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'test_{config["bootstrap_method"]}','calibrated'])] 
                             if len(files) == 0:
                                 files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'dev_{config["bootstrap_method"]}','calibrated'])]
                             if len(files) == 0:
-                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','test','calibrated'])] 
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_',f'test_{config["bootstrap_method"]}','calibrated'])] 
                             if len(files) == 0:
                                 files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_',f'dev_{config["bootstrap_method"]}','calibrated'])] 
                         else:
-                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_','test']) and 'calibrated' not in file.stem] 
+                            files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'test_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem] 
                             if len(files) == 0:
                                 files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'dev_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem]
                             if len(files) == 0:
-                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_','test']) and 'calibrated' not in file.stem] 
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_',f'test_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem] 
                             if len(files) == 0:
                                 files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_',f'dev_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem] 
                         
@@ -110,9 +110,11 @@ for scoring in scoring_metrics:
                             df = pd.read_csv(file)
                             
                             scoring_col = f'{scoring}_extremo'
-                            
-                            df[scoring_col] = df[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
-                            
+                            try:                            
+                                df[scoring_col] = df[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+                            except:
+                                df[scoring_col] = df[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+
                             df = df.sort_values(by=scoring_col,ascending=ascending)
                             
                             print(f"{file.stem.split('_')[2]}:{df.iloc[0,:][scoring_col]}")
@@ -148,6 +150,10 @@ for scoring in scoring_metrics:
                         
                         dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':best['model_type'],'model_index':best['model_index'],'random_seed_test':random_seed_test,'fusion':fusion}
                         dict_append.update(dict((f'{metric}_dev',best[metric]) for metric in metrics_names))
+
+                        if all([f'{x}_holdout' in best.keys() for x in metrics_names]):
+                            dict_append.update(dict((f'{metric}_holdout',best[f'{metric}_holdout']) for metric in metrics_names))
+
                         if best_models.empty:
                             best_models = pd.DataFrame(columns=dict_append.keys())
                         

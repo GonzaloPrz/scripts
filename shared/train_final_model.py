@@ -35,8 +35,9 @@ shuffle_labels = config['shuffle_labels']
 calibrate = config['calibrate']
 avoid_stats = config['avoid_stats']
 stat_folder = config['stat_folder']
-hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = True if config['n_iter_features'] > 0 else False
+hyp_opt = bool(config['n_iter'] > 0)
+
+feature_selection = bool(config['n_iter_features'] > 0)
 filter_outliers = config['filter_outliers']
 n_models = int(config['n_models'])
 n_boot = int(config['n_boot'])
@@ -65,7 +66,6 @@ y_labels = main_config['y_labels'][project_name]
 tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
-data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
 
@@ -139,10 +139,16 @@ for scoring in scoring_metrics:
             print(model_type)
             model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_index'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
 
-            all_models = pd.read_csv(Path(path,random_seed_test,f'all_models_{model_type}_dev_bca.csv'))
+            if not Path(path,random_seed_test,f'all_models_{model_type}_dev_{config["bootstrap_method"]}.csv').exists():
+                continue
+
+            all_models = pd.read_csv(Path(path,random_seed_test,f'all_models_{model_type}_dev_{config["bootstrap_method"]}.csv'))
             scoring_col = f'{scoring}_extremo'
 
-            all_models[scoring_col] = best_models[f'{scoring}_dev'].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
+            try:
+                all_models[scoring_col] = best_models[f'{scoring}_dev'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+            except:
+                all_models[scoring_col] = best_models[f'{scoring}_score_dev'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
 
             best_model = all_models.sort_values(by=scoring_col,ascending=ascending).head(1)
 
@@ -215,15 +221,15 @@ for scoring in scoring_metrics:
             if hasattr(model.model,'feature_importance'):
                 feature_importance = model.model.feature_importance
                 feature_importance = pd.DataFrame({'feature':features,'importance':feature_importance}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                feature_importance.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
             elif hasattr(model.model,'coef_'):
                 feature_importance = np.abs(model.model.coef_[0])
                 coef = pd.DataFrame({'feature':features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
-                coef.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                coef.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
             elif hasattr(model.model,'get_booster'):
 
                 feature_importance = pd.DataFrame({'feature':features,'importance':model.model.feature_importances_}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(results_dir,f'feature_importance_{scoring}',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                feature_importance.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
             else:
                 print(task,dimension,f'No feature importance available for {model_type}')
             
@@ -272,7 +278,7 @@ for scoring in scoring_metrics:
                 pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
 
                 save_path = Path(results_dir, f'plots', task, dimension, y_label,
-                                stat_folder, scoring,
+                                stat_folder, scoring,config["bootstrap_method"],
                                 'hyp_opt' if hyp_opt else '',
                                 'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
                                 f'{task}_{y_label}_{dimension}_{model_type}.png')

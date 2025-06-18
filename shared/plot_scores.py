@@ -22,8 +22,12 @@ scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 stat_folder = config['stat_folder']
-hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = bool(config['feature_selection'])
+hyp_opt = bool(config['n_iter'] > 0)
+if 'feature_selection' in config.keys():
+    feature_selection = bool(config['feature_selection'])
+else:
+    feature_selection = bool(config['n_iter_features'] > 0)
+
 filter_outliers = bool(config['filter_outliers'])
 test_size = float(config['test_size'])
 n_boot = int(config['n_boot'])
@@ -95,6 +99,9 @@ if problem_type == 'clf':
             
             if not bayes:
                 file = f'all_models_{model_name}_dev_bca.csv'
+                
+                if not Path(path_to_results,file).exists():
+                    continue
 
                 if config['n_models'] != 0:
                     file = file.replace('all_models', 'best_models').replace('.csv', f'_{scoring}.csv')

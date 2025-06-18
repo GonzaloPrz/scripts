@@ -84,9 +84,9 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,scorin
             if config['n_models'] != 0:
                 filename_to_save = filename_to_save.replace('all_models','best_models').replace('.csv',f'_{scoring}.csv')
 
-            #if Path(path,random_seed,filename_to_save).exists() and overwrite == False:
-            #    print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
-            #    continue
+            if Path(path,random_seed,filename_to_save).exists() and overwrite == False:
+                print(f"Bootstrapping already done for {task} - {y_label} - {model} - {dimension}. Skipping...")
+                continue
             
             if not Path(path,random_seed,f'all_models_{model}.csv').exists():
                 continue
@@ -179,7 +179,7 @@ for task,model,y_label,scoring in itertools.product(tasks,models,y_labels,scorin
                 for i, metric in enumerate(metrics_names):
                     est = point_estimates[i]
                     ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
-                    result_row.update({metric: f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"})
+                    result_row.update({metric: f"{est:.5f}, ({ci_low:.5f}, {ci_high:.5f})"})
                 
                 return result_row
             

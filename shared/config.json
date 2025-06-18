@@ -1,6 +1,6 @@
 {
     "project_name": "GERO_Ivo",
-    "stats": "",
+    "stats": "mean_std_variability",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
@@ -40,14 +40,23 @@
     "problem_type": "reg",
     "y_labels": [
         "norm_vol_bilateral_HIP",
+        "percent_vol_bilateral_HIP",
         "GM_norm",
+        "GM_percent",
         "norm_vol_mask_AD",
+        "percent_vol_mask_AD",
         "ACEIII_Total_Score",
         "IFS_Total_Score",
         "MoCA_Total_Boni_3"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "median",
+        "kurtosis",
+        "skewness",
+        "max",
+        "min"
+    ],
+    "stat_folder": "mean_std_variability",
     "random_seeds_train": [
         3.0,
         9.0,

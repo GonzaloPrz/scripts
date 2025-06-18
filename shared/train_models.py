@@ -135,7 +135,7 @@ config['single_dimensions'] = single_dimensions
 config['scoring_metrics'] = scoring_metrics
 config['problem_type'] = problem_type
 config['y_labels'] = y_labels
-config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
+config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean', 'variability']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
 
 config['random_seeds_train'] = [float(3**x) for x in np.arange(1, config['n_seeds_train']+1)]

@@ -137,9 +137,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
               
             for random_seed_test in random_seeds_test:
                 if int(config["n_models"] == 0):
-                    files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev_bca','calibrated'])] if calibrate else [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev_bca']) and 'calibrated' not in file.stem]
+                    files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev',config["bootstrap_method"],'calibrated'])] if calibrate else [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev',config["bootstrap_method"]]) and 'calibrated' not in file.stem]
                 else:
-                    files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['best_models_','dev_bca','calibrated'])] if calibrate else [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['best_models_','dev_bca']) and 'calibrated' not in file.stem]
+                    files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['best_models_','dev',config["bootstrap_method"],'calibrated'])] if calibrate else [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['best_models_','dev',config["bootstrap_method"]]) and 'calibrated' not in file.stem]
                 
                 if len(files) == 0:
                     continue
@@ -157,12 +157,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     if file.suffix != '.csv':
                         continue
 
-                    filename_to_save = f'all_models_{model_name}_test_calibrated.csv'
-                    if config["n_models"] != 0:
-                        filename_to_save = filename_to_save.replace('all_models',f'best_models_{scoring}')
-                    if not calibrate:
-                        filename_to_save = filename_to_save.replace('_calibrated','')
-
+                    filename_to_save = file.name.replace('dev','test')
                     print(model_name)
                     
                     results_dev = pd.read_excel(file) if file.suffix == '.xlsx' else pd.read_csv(file)
@@ -177,7 +172,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                         X_test = pd.DataFrame(columns=all_features,data=X_test)
                     metrics_names = main_config["metrics_names"][problem_type] if len(np.unique(y_dev)) == 2 else list(set(main_config["metrics_names"][problem_type]) - set(['roc_auc','f1','recall']))
 
-                    if Path(file.parent,f'{filename_to_save}_test.csv').exists() and overwrite == False:
+                    if Path(file.parent,filename_to_save).exists() and overwrite == False:
                         print(f"Testing already done")
                         continue
                             
@@ -242,7 +237,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                         for i, metric in enumerate(metrics_names):
                             est = point_estimates[i]
                             ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
-                            result_row.update({f'{metric}_holdout': f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"})
+                            result_row.update({f'{metric}_holdout': f"{est:.5f}, ({ci_low:.5f}, {ci_high:.5f})"})
                         
                         return result_row, outputs
                     
