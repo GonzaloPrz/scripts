@@ -309,13 +309,21 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             for random_seed_test in random_seeds_test:
                 Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(exist_ok=True,parents=True)
                 if test_size > 0:
-                    X_train_, X_test_, y_train_, y_test_, ID_train_, ID_test_, strat_col_train_, strat_col_test_ = train_test_split(
-                        data, y, ID, strat_col,
+                    X_train_, X_test_, y_train_, y_test_, ID_train_, ID_test_ = train_test_split(
+                        data, y, ID,
                         test_size=config['test_size'],
                         random_state=int(random_seed_test),
                         shuffle=True,
-                        stratify=strat_col
-                    )
+                        stratify=strat_col)
+                    
+                    if strat_col is not None:
+                        strat_col_train_, strat_col_test_ = train_test_split(
+                        strat_col,
+                        test_size=config['test_size'],
+                        random_state=int(random_seed_test),
+                        shuffle=True,
+                        stratify=strat_col)
+                   
                     # Reset indexes after split.
                     X_train_.reset_index(drop=True, inplace=True)
                     X_test_.reset_index(drop=True, inplace=True)
@@ -323,11 +331,13 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                     y_test_ = y_test_.reset_index(drop=True)
                     ID_train_ = ID_train_.reset_index(drop=True)
                     ID_test_ = ID_test_.reset_index(drop=True)
-                    strat_col_train_ = strat_col_train_.reset_index(drop=True)
-                    strat_col_test_ = strat_col_test_.reset_index(drop=True)
+                    if strat_col is not None:
+                        strat_col_train_ = strat_col_train_.reset_index(drop=True)
+                    else:
+                        strat_col_train_ = None
 
                 else:
-                    X_train_, y_train_, ID_train_, strat_col_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True), strat_col.reset_index(drop=True)
+                    X_train_, y_train_, ID_train_, strat_col_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True), strat_col_train_.reset_index(drop=True)
                     X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
 
                 data_train = pd.concat((X_train_,y_train_,ID_train_),axis=1)
