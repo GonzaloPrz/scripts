@@ -15,6 +15,7 @@ from sklearn.impute import KNNImputer
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.naive_bayes import GaussianNB
 from statsmodels.stats.multitest import multipletests
+from pingouin import partial_corr
 
 from expected_cost.calibration import calibration_train_on_test
 from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
@@ -52,6 +53,7 @@ else:
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
+data_file = main_config['data_file'][project_name]
 tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
@@ -59,6 +61,9 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 thresholds = main_config['thresholds'][project_name]
+covars = main_config['covars'][project_name]
+id_col = main_config['id_col'][project_name]
+
 overwrite = bool(config["overwrite"])
 if not isinstance(scoring_metrics,list):
     scoring_metrics = [scoring_metrics]
@@ -100,9 +105,12 @@ hyperp = {'lr':{'C':(1e-4,100)},
             }
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
-pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
+data_dir = str(results_dir).replace('results','data')
+pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value','n','95_ci','covars'])
 
 correction = 'fdr_bh'
+
+covariates = pd.read_csv(Path(data_dir,data_file))[[id_col]+covars]
 
 for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     if str(threshold) == 'None':
@@ -236,11 +244,17 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                     continue
                 predictions = predictions.drop_duplicates('ID')
 
+                predictions = pd.merge(predictions,covariates,on=id_col,how='inner')
+
                 with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'predictions_dev.pkl'),'wb') as f:
                     pickle.dump(predictions,f)
                 predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'predictions_dev.csv'),index=False)
-                
-                r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+                try:
+                    n, r, ci, p = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method='pearson')
+                except:
+                    r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+                    n = predictions.shape[0]
+                    ci = np.nan
 
                 plt.figure(figsize=(8, 6))
                 sns.regplot(
@@ -262,11 +276,11 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                         bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
                 # Guardar resultado y cerrar
-                pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
+                pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p, n, ci,str(covars)]
 
                 save_path = Path(results_dir, f'plots', task, dimension, y_label,
                                 stat_folder, scoring,config["bootstrap_method"],
-                                'hyp_opt' if hyp_opt else '',
+                                'hyp_opt' if hyp_opt else '','bayes',scoring,
                                 'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
                                 f'{task}_{y_label}_{dimension}_{model_type}.png')
                 save_path.parent.mkdir(parents=True, exist_ok=True)

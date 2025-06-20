@@ -197,7 +197,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             all_data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
         
         if problem_type == 'clf':
-            all_data[y_label] = data[y_label].map({"HC":0,"MCI":1,"AD":2,0:0,1:1,2:2})
+            all_data[y_label] = all_data[y_label].map({"HC":0,"MCI":1,"AD":2,0:0,1:1,2:2})
 
         if problem_type == 'reg' and config['filter_outliers']:
             all_data = all_data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]

@@ -1,74 +1,89 @@
 {
-    "project_name": "GERO_Ivo",
-    "stats": "mean_std_variability",
+    "project_name": "Proyecto_Ivo",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 5.0,
-    "n_iter": 10.0,
-    "n_iter_features": 10.0,
-    "feature_sample_ratio": 0.5,
+    "n_folds_outer": 3.0,
+    "n_folds_inner": 11.0,
+    "n_iter": 15.0,
+    "feature_selection": true,
+    "init_points": 50.0,
     "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
-    "n_models": 0.0,
     "n_boot": 1000.0,
-    "bayesian": false,
-    "filter_outliers": false,
-    "early_fusion": true,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
-    "overwrite": false,
+    "filter_outliers": false,
+    "early_fusion": true,
+    "overwrite": true,
     "parallel": true,
-    "n_seeds_test": 1.0,
+    "n_seeds_test": 0,
     "bootstrap_method": "bca",
-    "test_size": 0.3,
+    "test_size": 0.0,
     "data_file": "all_data.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean"
+        "cog",
+        "Animales__P",
+        "Animales",
+        "P",
+        "brain",
+        "AAL",
+        "connectivity"
     ],
-    "single_dimensions": [
-        "psycholinguistic",
-        "speech_timing"
+    "single_dimensions": {
+        "Animales": [
+            "properties",
+            "timing"
+        ],
+        "P": [
+            "properties",
+            "timing"
+        ],
+        "Animales__P": [
+            "properties",
+            "timing"
+        ],
+        "cog": [
+            "neuropsico_digits",
+            "neuropsico_mmse",
+            "neuropsico_tmt"
+        ],
+        "brain": [
+            "norm_brain_lit"
+        ],
+        "AAL": [
+            "norm_AAL"
+        ],
+        "connectivity": [
+            "networks"
+        ]
+    },
+    "scoring_metrics": [
+        "roc_auc"
     ],
-    "scoring_metrics": "r2",
-    "problem_type": "reg",
+    "problem_type": "clf",
     "y_labels": [
-        "norm_vol_bilateral_HIP",
-        "percent_vol_bilateral_HIP",
-        "GM_norm",
-        "GM_percent",
-        "norm_vol_mask_AD",
-        "percent_vol_mask_AD",
-        "ACEIII_Total_Score",
-        "IFS_Total_Score",
-        "MoCA_Total_Boni_3"
+        "target"
     ],
-    "avoid_stats": [
-        "median",
-        "kurtosis",
-        "skewness",
-        "max",
-        "min"
-    ],
-    "stat_folder": "mean_std_variability",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
-        3.0,
-        9.0,
-        27.0,
-        81.0,
-        243.0
+        3,
+        9,
+        27,
+        81,
+        243
     ],
     "random_seeds_test": [
-        3.0
+        ""
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "5_folds"
+    "bayes": true,
+    "kfold_folder": "3_folds_11_folds"
 }
