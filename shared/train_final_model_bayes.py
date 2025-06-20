@@ -43,7 +43,7 @@ calibrate = bool(config["calibrate"])
 n_iter = int(config["n_iter"])
 init_points = int(config["init_points"])
 scaler_name = config['scaler_name']
-id_col = config['id_col'][project_name]
+id_col = config['id_col']
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
