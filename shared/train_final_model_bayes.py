@@ -43,6 +43,7 @@ calibrate = bool(config["calibrate"])
 n_iter = int(config["n_iter"])
 init_points = int(config["init_points"])
 scaler_name = config['scaler_name']
+id_col = config['id_col'][project_name]
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -61,8 +62,7 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 problem_type = main_config['problem_type'][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 thresholds = main_config['thresholds'][project_name]
-covars = main_config['covars'][project_name]
-id_col = main_config['id_col'][project_name]
+covars = main_config['covars'][project_name] if problem_type == 'reg' else []
 
 overwrite = bool(config["overwrite"])
 if not isinstance(scoring_metrics,list):
@@ -75,7 +75,7 @@ models_dict = {
             'lr': LogisticRegression,
             'svc': SVC,
             'knnc': KNeighborsClassifier,
-            #'xgb': XGBClassifier,
+            'xgb': XGBClassifier,
             'nb':GaussianNB
         },
         'reg': {

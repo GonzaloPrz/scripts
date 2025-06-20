@@ -1,16 +1,16 @@
 {
-    "project_name": "Proyecto_Ivo",
+    "project_name": "ad_mci_hc_ct",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 3.0,
-    "n_folds_inner": 11.0,
+    "n_folds_outer": 6.0,
+    "n_folds_inner": 7.0,
     "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 50.0,
-    "n_seeds_train": 5.0,
+    "init_points": 100.0,
+    "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -19,55 +19,57 @@
     "n_boot_train": 0.0,
     "filter_outliers": false,
     "early_fusion": true,
-    "overwrite": true,
+    "overwrite": false,
     "parallel": true,
     "n_seeds_test": 0,
     "bootstrap_method": "bca",
     "test_size": 0.0,
-    "data_file": "all_data.csv",
+    "data_file": "data_matched_image_pleasant_memory_routine_group.csv",
     "tasks": [
-        "cog",
-        "Animales__P",
-        "Animales",
-        "P",
-        "brain",
-        "AAL",
-        "connectivity"
+        "image_description",
+        "pleasant_memory",
+        "routine",
+        "image_description__pleasant_memory",
+        "pleasant_memory__routine",
+        "image_description__routine",
+        "image_description__pleasant_memory__routine"
     ],
     "single_dimensions": {
-        "Animales": [
-            "properties",
-            "timing"
+        "routine": [
+            "speech_timing",
+            "word_properties"
         ],
-        "P": [
-            "properties",
-            "timing"
+        "image_description": [
+            "speech_timing",
+            "word_properties"
         ],
-        "Animales__P": [
-            "properties",
-            "timing"
+        "image_description__routine": [
+            "speech_timing",
+            "word_properties"
         ],
-        "cog": [
-            "neuropsico_digits",
-            "neuropsico_mmse",
-            "neuropsico_tmt"
+        "image_description__pleasant_memory": [
+            "speech_timing",
+            "word_properties"
         ],
-        "brain": [
-            "norm_brain_lit"
+        "pleasant_memory": [
+            "speech_timing",
+            "word_properties"
         ],
-        "AAL": [
-            "norm_AAL"
+        "pleasant_memory__routine": [
+            "speech_timing",
+            "word_properties"
         ],
-        "connectivity": [
-            "networks"
+        "image_description__pleasant_memory__routine": [
+            "speech_timing",
+            "word_properties"
         ]
     },
     "scoring_metrics": [
-        "roc_auc"
+        "norm_expected_cost"
     ],
     "problem_type": "clf",
     "y_labels": [
-        "target"
+        "group"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -76,7 +78,12 @@
         9,
         27,
         81,
-        243
+        243,
+        729,
+        2187,
+        6561,
+        19683,
+        59049
     ],
     "random_seeds_test": [
         ""
@@ -84,6 +91,5 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "bayes": true,
-    "kfold_folder": "3_folds_11_folds"
+    "kfold_folder": "6_folds_7_folds"
 }

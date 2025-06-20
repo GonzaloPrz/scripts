@@ -54,6 +54,9 @@ results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path
 
 for scoring in scoring_metrics:
 
+    extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
+    ascending = True if any(x in scoring for x in ['error','norm']) else False
+
     best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated.csv'.replace('__','_')
 
     if not feature_selection:
@@ -81,6 +84,15 @@ for scoring in scoring_metrics:
 
         print(task,dimension)
         best_model = best_models[(best_models['task'] == task) & (best_models['y_label'] == y_label) & (best_models['dimension'] == dimension)]
+        
+        scoring_col = f'{scoring}_extremo'
+        try:                            
+            best_model[scoring_col] = best_model[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+        except:
+            best_model[scoring_col] = best_model[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+
+        best_model = best_model.sort_values(by=scoring_col,ascending=ascending)
+
         model_name = best_model['model_type'].values[0]
 
         bayes = 'model_index' not in best_models.columns
