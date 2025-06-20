@@ -83,6 +83,11 @@ tasks = main_config["tasks"][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
 for scoring in scoring_metrics:
+    scoring_col = f'{scoring}_extremo'
+
+    extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
+    ascending = any(x in scoring for x in ['error','norm'])
+
     output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
             output_filename = output_filename.replace('_hyp_opt','')
@@ -121,8 +126,8 @@ for scoring in scoring_metrics:
                 
                 if not overwrite and all_results.shape[0] > 0:
                     row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
-                    #if len(row) > 0:
-                    #    continue
+                    if len(row) > 0:
+                        continue
 
                 if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                     continue
@@ -193,3 +198,27 @@ for scoring in scoring_metrics:
                     all_results.loc[all_results.shape[0],:] = result_row
 
                 all_results.to_csv(Path(results_dir,output_filename),index=False)
+    
+    best_best_models = pd.DataFrame(columns=all_results.columns)
+    random_seeds_test = all_results['random_seed_test'].unique()
+    for task,y_label,random_seed_test in itertools.product(tasks,y_labels,random_seeds_test):
+
+        if not Path(results_dir,task).exists():
+            continue
+        
+        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+        for dimension in dimensions:
+
+            best_best_models_ = all_results[(all_results['task'] == task) & (all_results['y_label'] == y_label) & (all_results['dimension'] == dimension) & (all_results['random_seed_test'].astype(str) == str(random_seed_test))]
+
+            try:                            
+                best_best_models_[scoring_col] = best_best_models_[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+            except:
+                best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+
+            best_best_models_ = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
+
+            best_best_models.loc[best_best_models.shape[0],:] = best_best_models_
+    
+    best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)
+

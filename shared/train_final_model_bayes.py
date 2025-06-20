@@ -115,7 +115,7 @@ covariates = pd.read_csv(Path(data_dir,data_file))[[id_col]+covars]
 for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     if str(threshold) == 'None':
         threshold = None
-    filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
 
     if not hyp_opt:
         filename = filename.replace('_hyp_opt','')
@@ -185,13 +185,13 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             else: 
                 best_params = model_class().get_params()
 
-            if model_type == 'clf' and model_class == SVC:
-                if 'probability' in best_params:
-                    del best_params['probability']
-                    best_params['probability'] = True
-                model = utils.Model(model_class(**best_params),scaler,imputer)
-            else:
-                model = utils.Model(model_class(**best_params),scaler,imputer)
+            if problem_type == 'clf' and model_class == SVC:
+                best_params['probability'] = True
+            
+            if 'random_state' in best_params.keys():
+                best_params['random_state'] = 42
+
+            model = utils.Model(model_class(**best_params),scaler,imputer)
             
             best_features = utils.rfe(utils.Model(model_class(**best_params),scaler,imputer,None,None),X_train,y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold)[0] if feature_selection else X_train.columns
             

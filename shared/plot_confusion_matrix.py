@@ -67,11 +67,10 @@ for scoring in scoring_metrics:
         best_models_file = best_models_file.replace('_hyp_opt','')
     if not calibrate:
         best_models_file = best_models_file.replace('_calibrated','')
-    best_models = pd.read_csv(Path(results_dir,best_models_file))
-
-    tasks = best_models['task'].unique()
-    y_labels = best_models['y_label'].unique()
-    dimensions = best_models['dimension'].unique()  
+    try:
+        best_models = pd.read_csv(Path(results_dir,best_models_file))
+    except:
+        best_models = pd.read_csv(Path(results_dir,best_models_file.replace('.csv','_bayes.csv')))
     
     for r,row in best_models.iterrows():
         task = row.task

@@ -44,13 +44,12 @@ pd.options.mode.copy_on_write = True
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 for scoring in scoring_metrics:
-    scoring = scoring.replace('_score','')
     best_models = pd.DataFrame()
 
     for task in tasks:
 
         extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
-        ascending = True if any(x in scoring for x in ['error','norm']) else False
+        ascending = any(x in scoring for x in ['error','norm'])
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 

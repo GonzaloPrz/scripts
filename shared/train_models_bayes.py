@@ -29,13 +29,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='GERO_Ivo',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
+    parser.add_argument('--project_name', default='ad_mci_hc',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='mean_std', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=int, default=10, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=int, default=10, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--init_points', type=int, default=50, help='Number of random initial points to test during Bayesian optimization')
@@ -50,7 +50,7 @@ def parse_args():
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
     parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
-    parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
+    parser.add_argument('--parallel',type=int,default=0,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
 
@@ -309,8 +309,8 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
             for random_seed_test in random_seeds_test:
                 Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(exist_ok=True,parents=True)
                 if test_size > 0:
-                    X_train_, X_test_, y_train_, y_test_, ID_train_, ID_test_ = train_test_split(
-                        data, y, ID,
+                    X_train_, X_test_, y_train_, y_test_, ID_train_, ID_test_, strat_col_train_, strat_col_test_ = train_test_split(
+                        data, y, ID, strat_col,
                         test_size=config['test_size'],
                         random_state=int(random_seed_test),
                         shuffle=True,
@@ -323,8 +323,11 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                     y_test_ = y_test_.reset_index(drop=True)
                     ID_train_ = ID_train_.reset_index(drop=True)
                     ID_test_ = ID_test_.reset_index(drop=True)
+                    strat_col_train_ = strat_col_train_.reset_index(drop=True)
+                    strat_col_test_ = strat_col_test_.reset_index(drop=True)
+
                 else:
-                    X_train_, y_train_, ID_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True)
+                    X_train_, y_train_, ID_train_, strat_col_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True), strat_col.reset_index(drop=True)
                     X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
 
                 data_train = pd.concat((X_train_,y_train_,ID_train_),axis=1)
@@ -355,7 +358,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                                                                                      n_iter=int(config['n_iter']),
                                                                                      iterator_outer=CV_outer,
                                                                                      iterator_inner=CV_inner,
-                                                                                     strat_col=strat_col,
+                                                                                     strat_col=strat_col_train_,
                                                                                      random_seeds_outer=config['random_seeds_train'],
                                                                                      hyperp_space=hyperp[model_key],
                                                                                      IDs=ID_train_,

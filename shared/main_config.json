@@ -354,10 +354,7 @@
         "ad_mci_hc":{
             "fugu":[
                 "talking-intervals",
-                "text_cross_enc",
-                "text_hiiamsid",
-                "talkng-intervals__text_cross_enc",
-                "talking-intervals__text_hiiamsid"
+                "text"
                 ]
             },
         "ad_mci_hc_ct":{

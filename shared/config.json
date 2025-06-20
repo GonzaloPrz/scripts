@@ -1,16 +1,16 @@
 {
-    "project_name": "ad_mci_hc_ct",
-    "stats": "",
+    "project_name": "ad_mci_hc",
+    "stats": "mean_std",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 6.0,
-    "n_folds_inner": 7.0,
+    "n_folds_outer": 10.0,
+    "n_folds_inner": 10.0,
     "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 100.0,
-    "n_seeds_train": 10.0,
+    "init_points": 50.0,
+    "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -19,77 +19,49 @@
     "n_boot_train": 0.0,
     "filter_outliers": false,
     "early_fusion": true,
-    "overwrite": false,
+    "overwrite": true,
     "parallel": true,
-    "n_seeds_test": 0,
+    "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
-    "test_size": 0.0,
-    "data_file": "data_matched_image_pleasant_memory_routine_group.csv",
+    "test_size": 0.14,
+    "data_file": "all_data_matched_group.csv",
     "tasks": [
-        "image_description",
-        "pleasant_memory",
-        "routine",
-        "image_description__pleasant_memory",
-        "pleasant_memory__routine",
-        "image_description__routine",
-        "image_description__pleasant_memory__routine"
+        "fugu"
     ],
     "single_dimensions": {
-        "routine": [
-            "speech_timing",
-            "word_properties"
-        ],
-        "image_description": [
-            "speech_timing",
-            "word_properties"
-        ],
-        "image_description__routine": [
-            "speech_timing",
-            "word_properties"
-        ],
-        "image_description__pleasant_memory": [
-            "speech_timing",
-            "word_properties"
-        ],
-        "pleasant_memory": [
-            "speech_timing",
-            "word_properties"
-        ],
-        "pleasant_memory__routine": [
-            "speech_timing",
-            "word_properties"
-        ],
-        "image_description__pleasant_memory__routine": [
-            "speech_timing",
-            "word_properties"
+        "fugu": [
+            "talking-intervals",
+            "text"
         ]
     },
     "scoring_metrics": [
-        "norm_expected_cost"
+        "norm_cross_entropy"
     ],
     "problem_type": "clf",
     "y_labels": [
         "group"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "median",
+        "min",
+        "max",
+        "skewness",
+        "kurtosis"
+    ],
+    "stat_folder": "mean_std",
     "random_seeds_train": [
         3,
         9,
         27,
         81,
-        243,
-        729,
-        2187,
-        6561,
-        19683,
-        59049
+        243
     ],
     "random_seeds_test": [
-        ""
+        3
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "6_folds_7_folds"
+    "bayes": true,
+    "kfold_folder": "10_folds_10_folds"
 }

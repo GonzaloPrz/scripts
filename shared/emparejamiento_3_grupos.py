@@ -10,19 +10,21 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from matching_module import *
 
-project_name = 'ad_mci_hc_ct'
+project_name = 'ad_mci_hc'
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 
 target_vars = ['group']
 
 filenames = [
-             'combinada__ad_mci_hc__image_pleasant_memory_routine__features.csv'
+             'all_data_no_hallucinations.csv'
             ]
 
 for filename in filenames:
-    task = filename.split('__')[2]
-
+    try:
+        task = filename.split('__')[2]
+    except:
+        task = ''
     for target_var in target_vars:
         print(target_var)
         # Define variables
@@ -40,7 +42,7 @@ for filename in filenames:
         for fact_var in fact_vars:
             data[fact_var] = data   [fact_var].astype('category').cat.codes
     
-        caliper = 0.55
+        caliper = 0.3
 
         matched_data = perform_three_way_matching(data, output_var,matching_vars,fact_vars,treatment_values=('AD','MCI','HC'),caliper=caliper)
         matched_data = matched_data.drop_duplicates(subset='id')
@@ -52,6 +54,6 @@ for filename in filenames:
         print(table_before)
         print(table)
 
-        matched_data.to_csv(Path(data_dir,f'data_matched_{task}_{target_var}.csv'), index=False)
-        table_before.to_csv(Path(data_dir,f'table_before_{task}_{target_var}.csv'))
-        table.to_csv(Path(data_dir,f'table_matched_{task}_{target_var}.csv'))
+        matched_data.to_csv(Path(data_dir,f'data_matched_{task}_{target_var}.csv'.replace('__','_')), index=False)
+        table_before.to_csv(Path(data_dir,f'table_before_{task}_{target_var}.csv'.replace('__','_')))
+        table.to_csv(Path(data_dir,f'table_matched_{task}_{target_var}.csv'.replace('__','_')))

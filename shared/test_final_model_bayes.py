@@ -85,7 +85,9 @@ save_dir = Path(str(data_dir).replace('data','results'))
 results_test = pd.DataFrame()
 
 for scoring in scoring_metrics:
-    filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    if config["test_size"] == 0:
+        continue
+    filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
 
     if not hyp_opt:
         filename = filename.replace("_hyp_opt","")
@@ -182,7 +184,7 @@ for scoring in scoring_metrics:
             ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
             best_models.loc[r,f'{metric}_holdout'] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
         
-    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated_test.csv'.replace('__','_')
+    filename_to_save = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated_bayes_test.csv'.replace('__','_')
 
     if not hyp_opt:
         filename_to_save = filename_to_save.replace('_hyp_opt','')
