@@ -1,12 +1,12 @@
 {
-    "project_name": "GERO_Ivo",
+    "project_name": "ad_mci_hc",
     "stats": "mean_std",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 5.0,
-    "n_folds_inner": 5.0,
+    "n_folds_outer": 10.0,
+    "n_folds_inner": 10.0,
     "n_iter": 15.0,
     "feature_selection": true,
     "init_points": 50.0,
@@ -23,39 +23,31 @@
     "parallel": true,
     "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
-    "test_size": 0.3,
-    "data_file": "all_data.csv",
+    "test_size": 0.14,
+    "data_file": "all_data_matched_group.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean"
+        "fugu"
     ],
-    "single_dimensions": [
-        "psycholinguistic",
-        "speech_timing"
-    ],
+    "single_dimensions": {
+        "fugu": [
+            "talking-intervals",
+            "text"
+        ]
+    },
     "scoring_metrics": [
-        "r2"
+        "norm_expected_cost",
+        "norm_cross_entropy"
     ],
-    "problem_type": "reg",
+    "problem_type": "clf",
     "y_labels": [
-        "norm_vol_bilateral_HIP",
-        "percent_vol_bilateral_HIP",
-        "GM_norm",
-        "GM_percent",
-        "norm_vol_mask_AD",
-        "percent_vol_mask_AD",
-        "ACEIII_Total_Score",
-        "IFS_Total_Score",
-        "MoCA_Total_Boni_3"
+        "group"
     ],
     "avoid_stats": [
-        "max",
         "kurtosis",
+        "min",
         "skewness",
-        "median",
-        "min"
+        "max",
+        "median"
     ],
     "stat_folder": "mean_std",
     "random_seeds_train": [
@@ -72,5 +64,5 @@
         ""
     ],
     "bayes": true,
-    "kfold_folder": "5_folds_5_folds"
+    "kfold_folder": "10_folds_10_folds"
 }

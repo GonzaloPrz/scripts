@@ -125,7 +125,7 @@ for scoring in scoring_metrics:
                 if not bayes:
                     outputs_test = outputs_test_.squeeze()[model_index]
                 else:
-                    outputS_test = outputs_test_.squeeze()
+                    outputs_test = outputs_test_.squeeze()
             _, y_pred_test = utils.get_metrics_clf(outputs_test, y_test, [], cmatrix)
             cmatrix_test = confusion_matrix(y_test.flatten(), y_pred_test.flatten(),normalize='all')
             fig, ax = plt.subplots(1,2,figsize=(10,5))

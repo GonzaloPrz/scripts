@@ -139,7 +139,18 @@ for scoring in scoring_metrics:
         model.train(X_train[features],y_train)
 
         outputs = model.eval(X_test[features],problem_type)
+        
+        subfolders = [
+                task, dimension, config['scaler_name'],
+                config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
+                'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
+                'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
+                'shuffle' if config['shuffle_labels'] else '',random_seed_test
+            ]
 
+        path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
+        
+        pickle.dump(outputs,open(Path(path_to_save,f'outputs_test_{model_type}.pkl'),'wb'))
         # Prepare data for bootstrap: a tuple of index arrays to resample
         data_indices = (np.arange(y_test.shape[-1]),)
 

@@ -144,7 +144,7 @@ else:
 models_dict = {'clf':{'svc':SVC,
                     'lr':LR,
                     'knnc':KNNC,
-                    'xgb':xgboost
+                    #'xgb':xgboost
                     },
                 
                 'reg':{'lasso':Lasso,
