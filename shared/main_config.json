@@ -568,7 +568,8 @@
     "covars":{
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
-        "GERO_females":["sex","age","education","group"]
+        "GERO_females":["sex","age","education","group"],
+        "GERO_Ivo": []
     },
     "cmatrix":{
         "MCI_classifier_unbalanced":null,
