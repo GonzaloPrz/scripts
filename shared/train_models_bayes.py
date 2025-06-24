@@ -297,7 +297,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                 json.dump(config, f, indent=4)
 
             subfolders = [
-                data_file.split('.')[0],task, dimension, config['scaler_name'],
+                task, dimension, config['scaler_name'],
                 config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
                 'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                 'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',

@@ -88,7 +88,7 @@ results_test = pd.DataFrame()
 for scoring in scoring_metrics:
     if config["test_size"] == 0:
         continue
-    filename = f'best_best_models_{data_file.split(".")[0]}_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+    filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
 
     if not hyp_opt:
         filename = filename.replace("_hyp_opt","")
@@ -113,13 +113,13 @@ for scoring in scoring_metrics:
 
         print(task,dimension,model_type,y_label)
         try:
-            trained_model = pickle.load(open(Path(results_dir,'final_models_bayes',data_file.split('.')[0],task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl'),'rb'))
-            trained_scaler = pickle.load(open(Path(results_dir,'final_models_bayes',data_file.split('.')[0],task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'rb'))
-            trained_imputer = pickle.load(open(Path(results_dir,'final_models_bayes',data_file.split('.')[0],task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'rb'))
+            trained_model = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl'),'rb'))
+            trained_scaler = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'rb'))
+            trained_imputer = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'rb'))
         except:
             continue
     
-        path_to_results = Path(save_dir,data_file.split('.')[0],task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
+        path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
 
         X_train = pickle.load(open(Path(path_to_results,random_seed_test,'X_train.pkl'),'rb'))
         y_train = pickle.load(open(Path(path_to_results,random_seed_test,'y_train.pkl'),'rb'))
@@ -142,7 +142,7 @@ for scoring in scoring_metrics:
         outputs = model.eval(X_test[features],problem_type)
         
         subfolders = [
-                data_file.split('.')[0],task, dimension, config['scaler_name'],
+                task, dimension, config['scaler_name'],
                 config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
                 'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                 'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
@@ -196,7 +196,7 @@ for scoring in scoring_metrics:
             ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
             best_models.loc[r,f'{metric}_holdout'] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
         
-    filename_to_save = f'best_best_models_{data_file.split(".")[0]}_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated_bayes_test.csv'.replace('__','_')
+    filename_to_save = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated_bayes_test.csv'.replace('__','_')
 
     if not hyp_opt:
         filename_to_save = filename_to_save.replace('_hyp_opt','')
