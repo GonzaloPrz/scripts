@@ -88,7 +88,7 @@ for scoring in scoring_metrics:
     extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
     ascending = any(x in scoring for x in ['error','norm'])
 
-    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+    output_filename = f'best_models_{data_file.split(".")[0]}_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
             output_filename = output_filename.replace('_hyp_opt','')
     if not feature_selection:
@@ -104,15 +104,15 @@ for scoring in scoring_metrics:
         all_results = pd.DataFrame()
     
     for task, model_type, y_label in itertools.product(tasks,models,y_labels):
-        if not Path(results_dir,task).exists():
+        if not Path(results_dir,data_file.split('.')[0],task).exists():
             continue
         
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+        dimensions = [folder.name for folder in Path(results_dir,data_file.split('.')[0],task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
 
             print(task,model_type,y_label,dimension)
             
-            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,"bayes",scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","shuffle" if shuffle_labels else "")
+            path = Path(results_dir,data_file.split('.')[0],task,dimension,scaler_name,kfold_folder,y_label,stat_folder,"bayes",scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","shuffle" if shuffle_labels else "")
 
             if not path.exists():
                 continue
@@ -129,10 +129,10 @@ for scoring in scoring_metrics:
                     if len(row) > 0:
                         continue
 
-                if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
+                if not utils._build_path(results_dir,data_file.split(".")[0],task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                     continue
 
-                outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_type,random_seed,config,bayes=True,scoring=scoring)
+                outputs, y_dev = utils._load_data(results_dir,data_file.split(".")[0],task,dimension,y_label,model_type,random_seed,config,bayes=True,scoring=scoring)
 
                 if (cmatrix is not None) or (np.unique(y_dev).shape[0] > 2):
                     metrics_names_ = list(set(metrics_names) - set(["roc_auc","f1","precision","recall"]))
@@ -201,14 +201,15 @@ for scoring in scoring_metrics:
     
     best_best_models = pd.DataFrame(columns=all_results.columns)
     random_seeds_test = all_results['random_seed_test'].unique()
+
     for task,y_label,random_seed_test in itertools.product(tasks,y_labels,random_seeds_test):
 
-        if not Path(results_dir,task).exists():
+        if not Path(results_dir,data_file.split('.')[0],task).exists():
             continue
         
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+        dimensions = [folder.name for folder in Path(results_dir,data_file.split('.')[0],task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
-
+            
             best_best_models_ = all_results[(all_results['task'] == task) & (all_results['y_label'] == y_label) & (all_results['dimension'] == dimension) & (all_results['random_seed_test'].astype(str) == str(random_seed_test))]
 
             try:                            

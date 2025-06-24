@@ -6,6 +6,7 @@ from joblib import Parallel, delayed
 from scipy.stats import bootstrap
 from expected_cost.ec import CostMatrix
 from confidenceinterval.bootstrap import bootstrap_ci
+from scipy.stats import ttest_1samp, wilcoxon, shapiro
 
 sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str(Path.home()) else sys.path.append(str(Path(Path.home(),"gonza","scripts_generales")))
 
@@ -47,7 +48,7 @@ tasks_list = [
 ]
 dimensions_list = [
                    ['properties','norm_brain_lit'],
-                   ['properties','neuropsico_digits']
+                   ['properties','neuropsico_mmse']
 ]
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
@@ -77,6 +78,7 @@ y_labels = main_config['y_labels'][project_name]
 scoring_metrics = [main_config['scoring_metrics'][project_name]]
 problem_type = main_config['problem_type'][project_name]
 metrics_names = main_config["metrics_names"][main_config["problem_type"][project_name]]
+data_file = main_config["data_file"][project_name]
 
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
@@ -86,7 +88,7 @@ for scoring in scoring_metrics:
     extremo = 1 if 'norm' in scoring else 0
     ascending = True if extremo == 1 else False
 
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    best_models_file = f'best_best_models_{data_file.split(".")[0]}_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','')
     if not feature_selection:
@@ -115,12 +117,15 @@ for scoring in scoring_metrics:
                 continue
 
             # Load data for both models
-            outputs1, y_dev1 = utils._load_data(results_dir, tasks[0], dimensions[0], y_label, best1.model_type, '', config, bayes=True, scoring=scoring)
-            outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
+            outputs1, y_dev1 = utils._load_data(results_dir, data_file.split('.')[0],tasks[0], dimensions[0], y_label, best1.model_type, '', config, bayes=True, scoring=scoring)
+            outputs2, y_dev2 = utils._load_data(results_dir, data_file.split('.')[0],tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
 
             # Ensure the datasets are comparable
-            assert y_dev1.shape == y_dev2.shape, "y_dev shapes must match for paired comparison!"
-            
+            try:
+                assert y_dev1.shape == y_dev2.shape, "y_dev shapes must match for paired comparison!"
+            except:
+                print(f"Shape mismatch for {tasks[0]}, {tasks[1]}")
+                continue
             # Prepare data for bootstrap: a tuple of index arrays to resample
             data_indices = (np.arange(y_dev1.shape[-1]),)
 
@@ -139,7 +144,7 @@ for scoring in scoring_metrics:
                 res = bootstrap(
                     data_indices,
                     stat_func,
-                    n_resamples=n_boot, # Use configured n_boot
+                    n_resamples=10000, # Use configured n_boot
                     method=config["bootstrap_method"],
                     vectorized=False,
                     random_state=42
@@ -152,13 +157,12 @@ for scoring in scoring_metrics:
                 res = bootstrap(
                     data_indices,
                     stat_func,
-                    n_resamples=n_boot,
+                    n_resamples=10000,
                     method='percentile',
                     vectorized=False,
                     random_state=42
                 )
                 bootstrap_method = 'percentile'
-
             # Store results for this comparison
             result_row = {
                 "tasks": f'[{tasks[0]}, {tasks[1]}]',
@@ -169,8 +173,11 @@ for scoring in scoring_metrics:
             
             for i, metric in enumerate(metrics_names):
                 est = point_estimates[i]
+                p_value_permutation = np.min((1,np.mean(np.abs(res.bootstrap_distribution[i]) > np.abs(point_estimates[i]))))
+                
                 ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
                 result_row[metric] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
+                result_row[f'p_value_{metric}'] = np.round(p_value_permutation,3)
             
             if all_results.empty:
                 all_results = pd.DataFrame(columns=result_row.keys())

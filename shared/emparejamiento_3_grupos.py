@@ -17,7 +17,7 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 target_vars = ['group']
 
 filenames = [
-             'all_data_no_hallucinations.csv'
+             'filtered_data_no_hallucinations.csv'
             ]
 
 for filename in filenames:
@@ -54,6 +54,6 @@ for filename in filenames:
         print(table_before)
         print(table)
 
-        matched_data.to_csv(Path(data_dir,f'data_matched_{task}_{target_var}.csv'.replace('__','_')), index=False)
+        matched_data.to_csv(Path(data_dir,f'{filename}_matched_{target_var}.csv'.replace('__','_')), index=False)
         table_before.to_csv(Path(data_dir,f'table_before_{task}_{target_var}.csv'.replace('__','_')))
         table.to_csv(Path(data_dir,f'table_matched_{task}_{target_var}.csv'.replace('__','_')))

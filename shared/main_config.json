@@ -452,7 +452,7 @@
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
         "mci_hc_fugu": "data_matched_group.csv",
-        "ad_mci_hc": "all_data_matched_group.csv",
+        "ad_mci_hc": "filtered_data_no_hallucinations_matched_group.csv",
         "ad_mci_hc_ct": "data_matched_image_pleasant_memory_routine_group.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
         "ad_mci_hc_group_as_feature": "data_matched_group.csv",

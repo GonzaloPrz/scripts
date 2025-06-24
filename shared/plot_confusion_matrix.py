@@ -42,6 +42,7 @@ tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
 thresholds = main_config['thresholds'][project_name]
 scoring_metrics = main_config['scoring_metrics'][project_name]
+data_file = main_config['data_file'][project_name]
 
 if not isinstance(scoring_metrics,list):
     scoring_metrics = [scoring_metrics]
@@ -57,7 +58,7 @@ for scoring in scoring_metrics:
     extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
     ascending = True if any(x in scoring for x in ['error','norm']) else False
 
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated.csv'.replace('__','_')
+    best_models_file = f'best_models_{data_file.split(".")[0]}_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated.csv'.replace('__','_')
 
     if not feature_selection:
         best_models_file = best_models_file.replace('_feature_selection','')
@@ -96,7 +97,7 @@ for scoring in scoring_metrics:
 
         bayes = 'model_index' not in best_models.columns
 
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes' if bayes else '',scoring if bayes else '', 'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,data_file.split('.')[0],task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes' if bayes else '',scoring if bayes else '', 'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
 
         with open(Path(path,random_seed,'y_dev.pkl'),'rb') as f:
             y_dev = np.array(pickle.load(f),dtype=int)

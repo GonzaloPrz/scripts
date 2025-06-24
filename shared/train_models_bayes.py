@@ -30,7 +30,7 @@ def parse_args():
         description='Train models with hyperparameter optimization and feature selection'
     )
     parser.add_argument('--project_name', default='ad_mci_hc',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='mean_std', help='Stats to be considered (default = all)')
+    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
@@ -144,12 +144,12 @@ else:
 models_dict = {'clf':{'svc':SVC,
                     'lr':LR,
                     'knnc':KNNC,
-                    #'xgb':xgboost
+                    'xgb':xgboost
                     },
                 
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
-                    #'elastic':ElasticNet,
+                    'elastic':ElasticNet,
                     'knnr':KNNR,
                     #'svr':SVR,
                     'xgb':xgboostr
@@ -297,7 +297,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                 json.dump(config, f, indent=4)
 
             subfolders = [
-                task, dimension, config['scaler_name'],
+                data_file.split('.')[0],task, dimension, config['scaler_name'],
                 config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
                 'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                 'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',

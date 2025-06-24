@@ -45,6 +45,7 @@ scoring_metrics = main_config['scoring_metrics'][project_name]
 metrics_names = main_config['metrics_names'][main_config['problem_type'][project_name]]
 tasks = main_config['tasks'][project_name]
 y_labels = main_config['y_labels'][project_name]
+data_file = main_config['data_file'][project_name]
 
 if isinstance(scoring_metrics,str):
     scoring_metrics = [scoring_metrics]
@@ -93,9 +94,9 @@ if problem_type == 'clf':
             if str(random_seed) == 'nan':
                 random_seed = ''
 
-            path_to_results = Path(results_dir, task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
+            path_to_results = Path(results_dir, data_file.split('.')[0],task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
 
-            Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'bayes' if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed).mkdir(parents=True, exist_ok=True)
+            Path(results_dir,'plots',data_file.split('.')[0],task,dimension,y_label,stat_folder,scoring,'bayes' if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed).mkdir(parents=True, exist_ok=True)
             
             if not bayes:
                 file = f'all_models_{model_name}_dev_bca.csv'
