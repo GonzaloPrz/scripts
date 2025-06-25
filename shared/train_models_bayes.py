@@ -378,7 +378,8 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                                                                                      problem_type=problem_type,
                                                                                      cmatrix=cmatrix,priors=None,
                                                                                      threshold=thresholds,
-                                                                                     parallel=config['parallel'],
+                                                                                     parallel=bool(config['parallel']),
+                                                                                     feature_selection=bool(config['feature_selection']),
                                                                                      calmethod=calmethod,
                                                                                      calparams=calparams)
 

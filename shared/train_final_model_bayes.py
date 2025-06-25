@@ -308,6 +308,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'imputer_{model_type}.pkl'),'wb'))  
 
     if not pearsons_results.empty:
+        pearsons_results = pearsons_results.loc[['percent' not in x for x in pearsons_results['y_label']]]
         p_vals = pearsons_results['p_value'].values
         reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
         pearsons_results['p_value_corrected'] = p_vals_corrected
