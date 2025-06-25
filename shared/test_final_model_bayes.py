@@ -113,9 +113,9 @@ for scoring in scoring_metrics:
 
         print(task,dimension,model_type,y_label)
         try:
-            trained_model = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'model_{model_type}.pkl'),'rb'))
-            trained_scaler = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'scaler_{model_type}.pkl'),'rb'))
-            trained_imputer = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',f'imputer_{model_type}.pkl'),'rb'))
+            trained_model = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'model_{model_type}.pkl'),'rb'))
+            trained_scaler = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'scaler_{model_type}.pkl'),'rb'))
+            trained_imputer = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'imputer_{model_type}.pkl'),'rb'))
         except:
             continue
     

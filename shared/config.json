@@ -1,6 +1,6 @@
 {
     "project_name": "GERO_Ivo",
-    "stats": "",
+    "stats": "mean_std",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
@@ -50,8 +50,14 @@
         "IFS_Total_Score",
         "MoCA_Total_Boni_3"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "min",
+        "kurtosis",
+        "median",
+        "max",
+        "skewness"
+    ],
+    "stat_folder": "mean_std",
     "random_seeds_train": [
         3,
         9,

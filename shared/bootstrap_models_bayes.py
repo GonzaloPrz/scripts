@@ -107,6 +107,9 @@ for scoring in scoring_metrics:
         if not Path(results_dir,task).exists():
             continue
         
+        if model_type == 'lasso':
+            continue
+
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
         for dimension in dimensions:
 
@@ -217,9 +220,11 @@ for scoring in scoring_metrics:
             except:
                 best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
 
-            best_best_models_ = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
-
-            best_best_models.loc[best_best_models.shape[0],:] = best_best_models_
+            best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
+            if best_best_models_append['model_type'] =='lasso':
+                best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[1]
+            
+            best_best_models.loc[best_best_models.shape[0],:] = best_best_models_append
     
     best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)
 
