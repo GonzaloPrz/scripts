@@ -114,7 +114,7 @@ for scoring in scoring_metrics:
         _, y_pred_dev = utils.get_metrics_clf(outputs, y_dev, [], cmatrix) if not bayes else utils.get_metrics_clf(outputs, y_dev, [], cmatrix)
             
         try:
-            cmatrix_dev = confusion_matrix(y_dev.flatten(), y_pred_dev.flatten(),normalize='all')
+            cmatrix_dev = confusion_matrix(y_dev.flatten(), y_pred_dev.flatten(),normalize='true')
         except:
             continue
 

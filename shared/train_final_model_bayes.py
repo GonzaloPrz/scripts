@@ -9,16 +9,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from xgboost import XGBClassifier, XGBRegressor
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut, LeavePOut
+from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.impute import KNNImputer
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.naive_bayes import GaussianNB
 from statsmodels.stats.multitest import multipletests
 from pingouin import partial_corr
-
-from expected_cost.calibration import calibration_train_on_test
-from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
 
 import pickle
 
@@ -82,7 +79,7 @@ models_dict = {
         'reg': {
             'lasso': Lasso,
             'ridge': Ridge,
-            #'elastic': ElasticNet,
+            'elastic': ElasticNet,
             #'svr': SVR,
             'knnr': KNeighborsRegressor,
             'xgb': XGBRegressor
@@ -217,7 +214,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 plt.savefig(save_path, dpi=300)
                 plt.close()
 
-                pearsons_results_file = f'pearons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
+                pearsons_results_file = f'pearsons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
                 if not hyp_opt:
                     pearsons_results_file = pearsons_results_file.replace('_hyp_opt','')
                 if not feature_selection:
@@ -264,7 +261,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 cmatrix = CostMatrix.zero_one_costs(K=len(np.unique(y_train)))
             
             if int(config["n_iter"]):
-                best_params, best_score = utils.tuning(model_class,scaler,imputer,X_train,y_train,hyperp[model_type],CV,init_points=int(config['init_points']),n_iter=n_iter,scoring=scoring,problem_type=problem_type,cmatrix=cmatrix,priors=None,threshold=threshold,calmethod=None,calparams=None)
+                best_params, best_score = utils.tuning(model_class,scaler,imputer,X_train,y_train.values if isinstance(y_train,pd.Series) else y_train,hyperp[model_type],CV,init_points=int(config['init_points']),n_iter=n_iter,scoring=scoring,problem_type=problem_type,cmatrix=cmatrix,priors=None,threshold=threshold,calmethod=None,calparams=None)
             else: 
                 best_params = model_class().get_params()
 
@@ -276,7 +273,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
 
             model = utils.Model(model_class(**best_params),scaler,imputer)
             
-            best_features = utils.rfe(utils.Model(model_class(**best_params),scaler,imputer,None,None),X_train,y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold)[0] if feature_selection else X_train.columns
+            best_features = utils.rfe(utils.Model(model_class(**best_params),scaler,imputer,None,None),X_train,y_train.values if isinstance(y_train,pd.Series) else y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold)[0] if feature_selection else X_train.columns
             
             model.train(X_train[best_features],y_train)
 
@@ -303,6 +300,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 feature_importance.to_csv(Path(results_dir,f'feature_importance_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,feature_importance_file),index=False)
             else:
                 print(task,dimension,f'No feature importance available for {model_type}')
+
             pickle.dump(model.model,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl'),'wb'))
             pickle.dump(model.scaler,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'scaler_{model_type}.pkl'),'wb'))
             pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'imputer_{model_type}.pkl'),'wb'))  

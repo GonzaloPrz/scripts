@@ -1,34 +1,20 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import itertools, pickle, sys, warnings, json, os
-from joblib import Parallel, delayed
+import pickle, sys, warnings, json, os
+from scipy.stats import pearsonr
 
 warnings.filterwarnings('ignore')
 
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.impute import KNNImputer
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC, SVR
-from sklearn.neighbors import KNeighborsClassifier as KNNC
-from sklearn.naive_bayes import GaussianNB
-from xgboost import XGBClassifier
-
-from sklearn.linear_model import Lasso, Ridge, ElasticNet
-from sklearn.neighbors import KNeighborsRegressor as KNNR
-from xgboost import XGBRegressor as xgboostr
-
-from sklearn.neighbors import KNeighborsRegressor
-
-from sklearn.utils import resample 
-
-from expected_cost.ec import *
-
-from expected_cost.calibration import calibration_train_on_heldout
-from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
-
 from scipy.stats import bootstrap
+
+from matplotlib import pyplot as plt
+import seaborn as sns
+
+from expected_cost.ec import CostMatrix
+
+from statsmodels.stats.multitest import multipletests
+from pingouin import partial_corr
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -70,6 +56,7 @@ if not isinstance(scoring_metrics,list):
     scoring_metrics = [scoring_metrics]
 
 problem_type = main_config['problem_type'][project_name]
+covars = main_config["covars"][project_name] if problem_type == 'reg' else []
 metrics_names_ = main_config['metrics_names'][problem_type]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 parallel = bool(config["parallel"])
@@ -84,6 +71,13 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 save_dir = Path(str(data_dir).replace('data','results'))    
 
 results_test = pd.DataFrame()
+
+pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value','n','95_ci','covars','p_value_corrected','correction_method',
+                                         'r_holdout','p_holdout','n_holdout','95_ci_holdout','covars_holdout','p_value_corrected_holdout','correction_method_holdout'])    
+
+correction = 'fdr_bh'
+
+covariates = pd.read_csv(Path(data_dir,data_file))[[config["id_col"]]+covars]
 
 for scoring in scoring_metrics:
     if config["test_size"] == 0:
@@ -108,7 +102,7 @@ for scoring in scoring_metrics:
         random_seed_test = row['random_seed_test']
         if str(random_seed_test) == 'nan':
             continue
-            
+         
         y_label = row['y_label']
 
         print(task,dimension,model_type,y_label)
@@ -189,13 +183,107 @@ for scoring in scoring_metrics:
                 random_state=42
             )
             bootstrap_method = 'percentile'
-
+        
         best_models.loc[r,'bootstrap_method_holdout'] = bootstrap_method
         for i, metric in enumerate(metrics_names):
             est = point_estimates[i]
             ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
             best_models.loc[r,f'{metric}_holdout'] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
         
+        if problem_type == 'reg':
+            pearsons_filename_dev =  f'pearsons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
+            if not hyp_opt:
+                pearsons_filename_dev = pearsons_filename_dev.replace('_hyp_opt','')
+            if not feature_selection:
+                pearsons_filename_dev = pearsons_filename_dev.replace('_feature_selection','')
+            if not shuffle_labels:
+                pearsons_filename_dev = pearsons_filename_dev.replace('_shuffled','')
+            
+            pearsons_results_dev = pd.read_csv(Path(results_dir,pearsons_filename_dev))
+
+            try:
+                idx = pearsons_results_dev[(pearsons_results_dev['task'] == task) &
+                                       (pearsons_results_dev['dimension'] == dimension) &
+                                        (pearsons_results_dev['y_label'] == y_label) &
+                                        (pearsons_results_dev['model_type'] == model_type)].index[0]
+
+            except:
+                continue
+            sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
+            plt.rcParams.update({
+                "font.family": "DejaVu Sans",
+                "axes.titlesize": 16,
+                "axes.labelsize": 14,
+                "xtick.labelsize": 12,
+                "ytick.labelsize": 12
+            })
+            
+            Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+            IDs = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
+
+            try:
+                predictions = pd.DataFrame({'id':IDs_test.values.flatten(),'y_pred':outputs.flatten(),'y_true':y_test.values.flatten()})
+            except:
+                continue
+            predictions = predictions.drop_duplicates('id')
+
+            if not covariates.empty:
+                predictions = pd.merge(predictions,covariates,on=config["id_col"],how='inner')
+
+            Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '', random_seed_test).mkdir(exist_ok=True,parents=True)
+
+            with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.pkl'),'wb') as f:
+                pickle.dump(predictions,f)
+            predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.csv'),index=False)
+            try:
+                results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method='pearson')
+                n, r, ci, p = results.loc['pearson','n'], results.loc['pearson','r'], results.loc['pearson','CI95%'], results.loc['pearson','p-val']
+            except:
+                r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+                n = predictions.shape[0]
+                ci = np.nan
+
+            plt.figure(figsize=(8, 6))
+            sns.regplot(
+                x='y_true', y='y_pred', data=predictions,
+                scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
+                line_kws={'color': 'darkred', 'linewidth': 2}
+            )
+
+            plt.xlabel('True Value')
+            plt.ylabel('Predicted Value')
+            plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
+
+            # Añadir estadística en esquina superior izquierda
+            #plt.text(0.05, 0.95,
+            #        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
+            #        fontsize=12,
+            #        transform=plt.gca().transAxes,
+            #        verticalalignment='top',
+            #        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+            # Guardar resultado y cerrar
+            pearsons_results.loc[idx,:] = [task, dimension, y_label, model_type, pearsons_results_dev.loc[idx,'r'], pearsons_results_dev.loc[idx,'p_value'], pearsons_results_dev.loc[idx,'n'], pearsons_results_dev.loc[idx,'95_ci'], pearsons_results_dev.loc[idx,'covars'], pearsons_results_dev.loc[idx,'p_value_corrected'], 'correction_method', r, p, n, ci,str(covars),np.nan, '']
+
+            save_path = Path(results_dir, f'plots', task, dimension, y_label,
+                            stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
+                            'hyp_opt' if hyp_opt else '',
+                            'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
+                            f'{task}_{y_label}_{dimension}_{model_type}_test.png')
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            plt.tight_layout()
+            plt.savefig(save_path, dpi=300)
+            plt.close()
+
+    pearsons_results_file = f'pearons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_test.csv'.replace('__','_')
+    if not hyp_opt:
+        pearsons_results_file = pearsons_results_file.replace('_hyp_opt','')
+    if not feature_selection:
+        pearsons_results_file = pearsons_results_file.replace('_feature_selection','')
+    if not shuffle_labels:
+        pearsons_results_file = pearsons_results_file.replace('_shuffled','')
+
     filename_to_save = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated_bayes_test.csv'.replace('__','_')
 
     if not hyp_opt:
@@ -210,4 +298,12 @@ for scoring in scoring_metrics:
     if not calibrate:
         filename_to_save = filename_to_save.replace('_calibrated','')
     best_models.to_csv(Path(results_dir,filename_to_save))
-        
+
+    if not pearsons_results.empty:
+        pearsons_results = pearsons_results.loc[['percent' not in x for x in pearsons_results['y_label']]]
+        p_vals = pearsons_results['p_holdout'].values
+        reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
+        pearsons_results['p_value_corrected_holdout'] = p_vals_corrected
+        pearsons_results['correction_method_holdout'] = correction
+
+        pearsons_results.to_csv(Path(results_dir,pearsons_results_file),index=False)

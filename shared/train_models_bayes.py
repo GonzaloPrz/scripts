@@ -365,7 +365,7 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                                                                                      scaler=StandardScaler if config['scaler_name'] == 'StandardScaler' else MinMaxScaler,
                                                                                      imputer=KNNImputer,
                                                                                      X=X_train_,
-                                                                                     y=y_train_,
+                                                                                     y=y_train_.values if isinstance(y_train_, pd.Series) else y_train_,
                                                                                      n_iter=int(config['n_iter']),
                                                                                      iterator_outer=CV_outer,
                                                                                      iterator_inner=CV_inner,

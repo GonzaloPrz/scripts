@@ -220,6 +220,8 @@ for scoring in scoring_metrics:
             except:
                 best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
 
+            best_best_models_.dropna(subset=[scoring_col], inplace=True)
+            
             best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
             if best_best_models_append['model_type'] =='lasso':
                 best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[1]
