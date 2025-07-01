@@ -340,7 +340,6 @@ for y_label,task,scoring in itertools.product(y_labels,tasks,scoring_metrics):
                     X_train_, y_train_, ID_train_, strat_col_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True), strat_col.reset_index(drop=True)
                     X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
 
-                
                 data_train = pd.concat((X_train_,y_train_,ID_train_),axis=1)
 
                 data_test = pd.concat((X_test_,y_test_,ID_test_),axis=1)

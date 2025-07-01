@@ -47,11 +47,8 @@
         ],
         "GERO_Ivo": [
             "norm_vol_bilateral_HIP",
-            "percent_vol_bilateral_HIP",
             "GM_norm",
-            "GM_percent",
             "norm_vol_mask_AD",
-            "percent_vol_mask_AD",
             "ACEIII_Total_Score",
             "IFS_Total_Score",
             "MoCA_Total_Boni_3"
@@ -408,7 +405,8 @@
         ],
         "GERO_Ivo": [
             "psycholinguistic",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
         ],
         "MPLS": [
             "sentiment_analysis",

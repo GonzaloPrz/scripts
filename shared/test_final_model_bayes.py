@@ -72,7 +72,7 @@ save_dir = Path(str(data_dir).replace('data','results'))
 
 results_test = pd.DataFrame()
 
-pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value','n','95_ci','covars','p_value_corrected','correction_method',
+pearsons_results = pd.DataFrame(columns=[
                                          'r_holdout','p_holdout','n_holdout','95_ci_holdout','covars_holdout','p_value_corrected_holdout','correction_method_holdout'])    
 
 correction = 'fdr_bh'
@@ -100,9 +100,7 @@ for scoring in scoring_metrics:
         dimension = row['dimension']
         model_type = row['model_type']
         random_seed_test = row['random_seed_test']
-        if str(random_seed_test) == 'nan':
-            continue
-         
+     
         y_label = row['y_label']
 
         print(task,dimension,model_type,y_label)
@@ -131,7 +129,7 @@ for scoring in scoring_metrics:
         metrics_names = list(set(metrics_names_) - set(['roc_auc','f1','recall','precision'])) if cmatrix is not None or len(np.unique(y_train)) > 2 else metrics_names_
         
         model = utils.Model(type(trained_model)(**params),type(trained_scaler),type(trained_imputer))
-        model.train(X_train[features],y_train)
+        model.train(X_train[features],y_train.values if isinstance(y_train,pd.Series) else y_train)
 
         outputs = model.eval(X_test[features],problem_type)
         
@@ -191,21 +189,11 @@ for scoring in scoring_metrics:
             best_models.loc[r,f'{metric}_holdout'] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
         
         if problem_type == 'reg':
-            pearsons_filename_dev =  f'pearsons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
-            if not hyp_opt:
-                pearsons_filename_dev = pearsons_filename_dev.replace('_hyp_opt','')
-            if not feature_selection:
-                pearsons_filename_dev = pearsons_filename_dev.replace('_feature_selection','')
-            if not shuffle_labels:
-                pearsons_filename_dev = pearsons_filename_dev.replace('_shuffled','')
-            
-            pearsons_results_dev = pd.read_csv(Path(results_dir,pearsons_filename_dev))
-
             try:
-                idx = pearsons_results_dev[(pearsons_results_dev['task'] == task) &
-                                       (pearsons_results_dev['dimension'] == dimension) &
-                                        (pearsons_results_dev['y_label'] == y_label) &
-                                        (pearsons_results_dev['model_type'] == model_type)].index[0]
+                idx = best_models[(best_models['task'] == task) &
+                                       (best_models['dimension'] == dimension) &
+                                        (best_models['y_label'] == y_label) &
+                                        (best_models['model_type'] == model_type)].index[0]
 
             except:
                 continue
@@ -263,7 +251,7 @@ for scoring in scoring_metrics:
             #        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
             # Guardar resultado y cerrar
-            pearsons_results.loc[idx,:] = [task, dimension, y_label, model_type, pearsons_results_dev.loc[idx,'r'], pearsons_results_dev.loc[idx,'p_value'], pearsons_results_dev.loc[idx,'n'], pearsons_results_dev.loc[idx,'95_ci'], pearsons_results_dev.loc[idx,'covars'], pearsons_results_dev.loc[idx,'p_value_corrected'], 'correction_method', r, p, n, ci,str(covars),np.nan, '']
+            best_models.loc[idx,['r_holdout','p_holdout','n_holdout','95_ci_holdout','covars_holdout','p_value_corrected_holdout','correction_method_holdout']] = [r,p,n,ci,str(covars),np.nan,'']
 
             save_path = Path(results_dir, f'plots', task, dimension, y_label,
                             stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
@@ -275,14 +263,6 @@ for scoring in scoring_metrics:
             plt.tight_layout()
             plt.savefig(save_path, dpi=300)
             plt.close()
-
-    pearsons_results_file = f'pearons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_test.csv'.replace('__','_')
-    if not hyp_opt:
-        pearsons_results_file = pearsons_results_file.replace('_hyp_opt','')
-    if not feature_selection:
-        pearsons_results_file = pearsons_results_file.replace('_feature_selection','')
-    if not shuffle_labels:
-        pearsons_results_file = pearsons_results_file.replace('_shuffled','')
 
     filename_to_save = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated_bayes_test.csv'.replace('__','_')
 
@@ -297,13 +277,11 @@ for scoring in scoring_metrics:
     
     if not calibrate:
         filename_to_save = filename_to_save.replace('_calibrated','')
-    best_models.to_csv(Path(results_dir,filename_to_save))
 
-    if not pearsons_results.empty:
-        pearsons_results = pearsons_results.loc[['percent' not in x for x in pearsons_results['y_label']]]
-        p_vals = pearsons_results['p_holdout'].values
+    if problem_type == 'reg':
+        p_vals = best_models['p_holdout'].values
         reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
-        pearsons_results['p_value_corrected_holdout'] = p_vals_corrected
-        pearsons_results['correction_method_holdout'] = correction
+        best_models['p_value_corrected_holdout'] = p_vals_corrected
+        best_models['correction_method_holdout'] = correction
 
-        pearsons_results.to_csv(Path(results_dir,pearsons_results_file),index=False)
+    best_models.to_csv(Path(results_dir,filename_to_save),index=False)

@@ -32,6 +32,7 @@ filter_outliers = bool(config['filter_outliers'])
 test_size = float(config['test_size'])
 n_boot = int(config['n_boot'])
 calibrate = bool(config["calibrate"])
+bayes = bool(config["bayes"])
 
 home = Path(os.environ.get('HOME', Path.home()))
 if 'Users/gp' in str(home):
@@ -69,20 +70,20 @@ if problem_type == 'clf':
         extremo = 1 if any(x in scoring for x in ['norm','error']) else 0
         ascending = True if extremo == 1 else False
 
-        best_models_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{config["bootstrap_method"]}_{stat_folder}_hyp_opt_feature_selection_alibrated.csv'.replace('__','_')
+        best_models_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{config["bootstrap_method"]}_{stat_folder}_hyp_opt_feature_selection_calibrated_bayes.csv'.replace('__','_')
         if not hyp_opt:
             best_models_filename = best_models_filename.replace('_hyp_opt','')
         if not feature_selection:
             best_models_filename = best_models_filename.replace('_feature_selection','')
         if not calibrate:
             best_models_filename = best_models_filename.replace('_calibrated','')
+        if not bayes:
+            best_models_filename = best_models_filename.replace('_bayes','')
 
         if not Path(results_dir,best_models_filename).exists():
             continue
 
         best_models = pd.read_csv(Path(results_dir,best_models_filename))
-
-        bayes = not 'model_index' in best_models.columns
         
         for r,row in best_models.iterrows():
             task = row.task
@@ -94,9 +95,9 @@ if problem_type == 'clf':
             if str(random_seed) == 'nan':
                 random_seed = ''
 
-            path_to_results = Path(results_dir, data_file.split('.')[0],task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
+            path_to_results = Path(results_dir,task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '')
 
-            Path(results_dir,'plots',data_file.split('.')[0],task,dimension,y_label,stat_folder,scoring,'bayes' if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed).mkdir(parents=True, exist_ok=True)
+            Path(results_dir,'plots',task,dimension,y_label,stat_folder,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed).mkdir(parents=True, exist_ok=True)
             
             if not bayes:
                 file = f'all_models_{model_name}_dev_bca.csv'
@@ -149,21 +150,21 @@ if problem_type == 'clf':
                 #Add missing dimensions: model_index, j
                 y_test = pickle.load(open(Path(path_to_results,random_seed,f'y_test.pkl'), 'rb'))
                 IDs_test = pickle.load(open(Path(path_to_results,random_seed,f'IDs_test.pkl'), 'rb'))
-                
-                if outputs_test.shape[0] > 1:
-                    y_test = np.concatenate([y_test for _ in range(outputs_test.shape[0])])
-                    IDs_test = np.concatenate([IDs_test for _ in range(outputs_test.shape[0])])
-
-                scores = np.concatenate([outputs_test[r] for r in range(outputs_test.shape[0])])
-                
-                plot_hists(y_test, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost_test.png'), nbins=50, group_by='score', style='--', label_prefix='test ', axs=None)
+                scores = outputs_test
+                plot_hists(y_test, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost_test.png'), nbins=50, group_by='score', style='--', label_prefix='test ', axs=None)
             
             #Add missing dimensions: model_index, j            
             y_true_ = pickle.load(open(Path(path_to_results,random_seed, f'y_dev.pkl'), 'rb'))
+            while y_true_.ndim < 3:
+                y_true_ = np.expand_dims(y_true_, axis=0)
+            
+            while outputs_.ndim < 4:
+                outputs_ = np.expand_dims(outputs_, axis=0)
+
             IDs = pickle.load(open(Path(path_to_results,random_seed, f'IDs_dev.pkl'), 'rb'))
             
             scores = np.concatenate([outputs_[0,r] for r in range(outputs_.shape[1])])
             y_true = np.concatenate([y_true_[0,r] for r in range(y_true_.shape[1])])
             
-            plot_hists(y_true, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,scoring,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost.png'), nbins=50, group_by='score', style='-', label_prefix='dev ', axs=ax)
+            plot_hists(y_true, scores, outfile=Path(results_dir,'plots',task,dimension,y_label,stat_folder,'bayes' if bayes else '',scoring if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'best_{model_name}_cal_logpost.png' if calibrate else '' + f'best_{model_name}_logpost.png'), nbins=50, group_by='score', style='-', label_prefix='dev ', axs=ax)
             

@@ -228,5 +228,11 @@ for scoring in scoring_metrics:
             
             best_best_models.loc[best_best_models.shape[0],:] = best_best_models_append
     
+    try:                            
+        best_best_models[scoring_col] = best_best_models[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+    except:
+        best_best_models[scoring_col] = best_best_models[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+
+    best_best_models = best_best_models.sort_values(by=['y_label',scoring_col],ascending=ascending)
     best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)
 

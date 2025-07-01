@@ -128,7 +128,7 @@ for scoring in scoring_metrics:
                 else:
                     outputs_test = outputs_test_.squeeze()
             _, y_pred_test = utils.get_metrics_clf(outputs_test, y_test, [], cmatrix)
-            cmatrix_test = confusion_matrix(y_test.flatten(), y_pred_test.flatten(),normalize='all')
+            cmatrix_test = confusion_matrix(y_test.flatten(), y_pred_test.flatten(),normalize='true')
             fig, ax = plt.subplots(1,2,figsize=(10,5))
             ConfusionMatrixDisplay(cmatrix_dev).plot(ax=ax[0])
             ax[0].set_title('X-val')

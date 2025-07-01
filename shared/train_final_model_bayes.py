@@ -104,7 +104,7 @@ hyperp = {'lr':{'C':(1e-4,100)},
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 data_dir = str(results_dir).replace('results','data')
-pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value','n','95_ci','covars','p_value_corrected','correction_method'])
+pearsons_results = pd.DataFrame(columns=['r','p_value','n','95_ci','covars','p_value_corrected','correction_method'])
 
 correction = 'fdr_bh'
 
@@ -201,7 +201,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 #        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
                 # Guardar resultado y cerrar
-                pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p, n, ci,str(covars),np.nan, '']
+                pearsons_results.loc[len(pearsons_results)] = [r, p, n, ci,str(covars),np.nan, '']
 
                 save_path = Path(results_dir, f'plots', task, dimension, y_label,
                                 stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
@@ -213,14 +213,6 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 plt.tight_layout()
                 plt.savefig(save_path, dpi=300)
                 plt.close()
-
-                pearsons_results_file = f'pearsons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
-                if not hyp_opt:
-                    pearsons_results_file = pearsons_results_file.replace('_hyp_opt','')
-                if not feature_selection:
-                    pearsons_results_file = pearsons_results_file.replace('_feature_selection','')
-                if not shuffle_labels:
-                    pearsons_results_file = pearsons_results_file.replace('_shuffled','')
 
             if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl').exists() and not overwrite:
                 print('Model already exists')
@@ -275,7 +267,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             
             best_features = utils.rfe(utils.Model(model_class(**best_params),scaler,imputer,None,None),X_train,y_train.values if isinstance(y_train,pd.Series) else y_train,CV,scoring,problem_type,cmatrix=cmatrix,priors=None,threshold=threshold)[0] if feature_selection else X_train.columns
             
-            model.train(X_train[best_features],y_train)
+            model.train(X_train[best_features],y_train.values if isinstance(y_train,pd.Series) else y_train)
 
             feature_importance_file = f'feature_importance_{model_type}_shuffled_calibrated.csv'.replace('__','_')
 
@@ -306,10 +298,11 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'imputer_{model_type}.pkl'),'wb'))  
 
     if not pearsons_results.empty:
-        pearsons_results = pearsons_results.loc[['percent' not in x for x in pearsons_results['y_label']]]
         p_vals = pearsons_results['p_value'].values
         reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
         pearsons_results['p_value_corrected'] = p_vals_corrected
         pearsons_results['correction_method'] = correction
 
-        pearsons_results.to_csv(Path(results_dir,pearsons_results_file),index=False)
+        best_models = pd.concat((best_models, pearsons_results), axis=1)
+        
+        best_models.to_csv(Path(results_dir,filename),index=False)
