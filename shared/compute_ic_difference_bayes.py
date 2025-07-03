@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 import numpy as np
 from joblib import Parallel, delayed
-from scipy.stats import bootstrap
+from scipy.stats import bootstrap, percentileofscore
 from expected_cost.ec import CostMatrix
 from confidenceinterval.bootstrap import bootstrap_ci
 from scipy.stats import ttest_1samp, wilcoxon, shapiro
@@ -117,8 +117,8 @@ for scoring in scoring_metrics:
                 continue
 
             # Load data for both models
-            outputs1, y_dev1 = utils._load_data(results_dir, data_file.split('.')[0],tasks[0], dimensions[0], y_label, best1.model_type, '', config, bayes=True, scoring=scoring)
-            outputs2, y_dev2 = utils._load_data(results_dir, data_file.split('.')[0],tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
+            outputs1, y_dev1 = utils._load_data(results_dir,tasks[0],dimensions[0],y_label,best1.model_type,'',config, bayes=True, scoring=scoring)
+            outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
 
             # Ensure the datasets are comparable
             try:
@@ -173,11 +173,10 @@ for scoring in scoring_metrics:
             
             for i, metric in enumerate(metrics_names):
                 est = point_estimates[i]
-                p_value_permutation = np.min((1,np.mean(np.abs(res.bootstrap_distribution[i]) > np.abs(point_estimates[i]))))
-                
+                distribution = res.bootstrap_distribution[i] if est > 0 else -res.bootstrap_distribution[i]
                 ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
                 result_row[metric] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
-                result_row[f'p_value_{metric}'] = np.round(p_value_permutation,3)
+                result_row[f'p_value_{metric}'] = 2*np.round(percentileofscore(distribution,0) / 100.0,3)
             
             if all_results.empty:
                 all_results = pd.DataFrame(columns=result_row.keys())

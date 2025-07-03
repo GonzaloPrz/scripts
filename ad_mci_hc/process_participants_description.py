@@ -25,12 +25,12 @@ if not data_dir.exists():
 
 results_dir = Path(str(data_dir).replace('data','results'))
 
-data_file = Path(data_dir,"transcripts_matched_group_divided.csv")
+data_file = Path(data_dir,"filtered_transcripts_no_hallucinations_matched_group.xlsx")
 
 embeddings_video = pickle.load(open(Path(results_dir,f'video_embeddings_{model_name.split("/")[1]}.pkl'),'rb'))
 #Flatten embeddings:
 
-df = pd.read_csv(data_file, sep=",", encoding="utf-8")
+df = pd.read_excel(data_file)
 video_sentences= pickle.load(open(Path(results_dir,'video_sentences.pkl'),'rb'))
 
 distances = pd.DataFrame()
@@ -66,8 +66,8 @@ for r, row in df.iterrows():
     max_similarities_dict = {'id':row['id']}
 
     max_similarities_dict.update(dict((f'fugu__text__{model_name.split("/")[1]}__sim_concept_{i}',max_similarities[i]) for i in range(len(max_similarities))))
-    max_similarities_dict.update(dict((f'embedding_concept_{i}',[embeddings_video[i]]) for i in range(len(argmax_similarities))))
-    max_similarities_dict.update(dict((f'embedding_most_similar_sentence_concept_{i}',[sentence_embeddings[argmax_similarities[i]]]) for i in range(len(argmax_similarities))))
+    #max_similarities_dict.update(dict((f'embedding_concept_{i}',[embeddings_video[i]]) for i in range(len(argmax_similarities))))
+    #max_similarities_dict.update(dict((f'embedding_most_similar_sentence_concept_{i}',[sentence_embeddings[argmax_similarities[i]]]) for i in range(len(argmax_similarities))))
     max_similarities_dict.update(dict((f'most_similar_sentence_concept_{i}',f"{video_sentences[i]}: {sentences[argmax_similarities[i]]}") for i in range(len(argmax_similarities))))
 
     if distances.empty:

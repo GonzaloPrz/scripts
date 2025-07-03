@@ -1,15 +1,15 @@
 {
-    "project_name": "ad_mci_hc_ct",
+    "project_name": "MCI_classifier",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 6.0,
-    "n_folds_inner": 7.0,
+    "n_folds_outer": 5.0,
+    "n_folds_inner": 5.0,
     "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 100.0,
+    "init_points": 50.0,
     "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
@@ -24,48 +24,47 @@
     "n_seeds_test": 0,
     "bootstrap_method": "bca",
     "test_size": 0.0,
-    "data_file": "data_matched_image_pleasant_memory_routine_group.csv",
+    "data_file": "data_matched_group.csv",
     "tasks": [
-        "image_description",
-        "pleasant_memory",
-        "routine",
-        "image_description__pleasant_memory",
-        "pleasant_memory__routine",
-        "image_description__routine",
-        "image_description__pleasant_memory__routine"
+        "fas",
+        "animales",
+        "fas__animales",
+        "grandmean",
+        "nps"
     ],
     "single_dimensions": {
-        "routine": [
+        "fas": [
+            "word_properties",
             "speech_timing",
-            "word_properties"
+            "valid_responses"
         ],
-        "image_description": [
+        "animales": [
+            "word_properties",
             "speech_timing",
-            "word_properties"
+            "valid_responses"
         ],
-        "image_description__routine": [
+        "fas__animales": [
+            "word_properties",
             "speech_timing",
-            "word_properties"
+            "valid_responses"
         ],
-        "image_description__pleasant_memory": [
+        "grandmean": [
+            "word_properties",
             "speech_timing",
-            "word_properties"
+            "valid_responses"
         ],
-        "pleasant_memory": [
-            "speech_timing",
-            "word_properties"
+        "nps": [
+            "digits",
+            "memory",
+            "TMT",
+            "mmse"
         ],
-        "pleasant_memory__routine": [
-            "speech_timing",
-            "word_properties"
-        ],
-        "image_description__pleasant_memory__routine": [
-            "speech_timing",
-            "word_properties"
+        "bio": [
+            "bio"
         ]
     },
     "scoring_metrics": [
-        "norm_expected_cost"
+        "roc_auc"
     ],
     "problem_type": "clf",
     "y_labels": [
@@ -87,5 +86,5 @@
         ""
     ],
     "bayes": true,
-    "kfold_folder": "6_folds_7_folds"
+    "kfold_folder": "5_folds_5_folds"
 }

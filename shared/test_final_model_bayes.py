@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import pickle, sys, warnings, json, os
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, spearmanr, shapiro
 
 warnings.filterwarnings('ignore')
 
@@ -35,6 +35,7 @@ filter_outliers = config['filter_outliers']
 n_boot_test = int(config['n_boot_test'])
 n_boot_train = int(config['n_boot_train'])
 calibrate = bool(config["calibrate"])
+overwrite = bool(config["overwrite"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -72,17 +73,16 @@ save_dir = Path(str(data_dir).replace('data','results'))
 
 results_test = pd.DataFrame()
 
-pearsons_results = pd.DataFrame(columns=[
-                                         'r_holdout','p_holdout','n_holdout','95_ci_holdout','covars_holdout','p_value_corrected_holdout','correction_method_holdout'])    
-
 correction = 'fdr_bh'
 
 covariates = pd.read_csv(Path(data_dir,data_file))[[config["id_col"]]+covars]
 
+method = 'pearson'
+
 for scoring in scoring_metrics:
     if config["test_size"] == 0:
         continue
-    filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+    filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes_corr.csv'.replace('__','_')
 
     if not hyp_opt:
         filename = filename.replace("_hyp_opt","")
@@ -92,6 +92,8 @@ for scoring in scoring_metrics:
         filename = filename.replace("_shuffled","")
     if not calibrate:
         filename = filename.replace("_calibrated","")
+    if not problem_type == 'reg':
+        filename = filename.replace("_corr","")
 
     best_models = pd.read_csv(Path(results_dir,filename))
 
@@ -223,13 +225,38 @@ for scoring in scoring_metrics:
             with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.pkl'),'wb') as f:
                 pickle.dump(predictions,f)
             predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.csv'),index=False)
+            '''
+            if all([shapiro(predictions['y_pred'])[1] > 0.05,shapiro(predictions['y_true'])[1] > 0.05]):
+                method = 'pearson'
+            else:
+                method = 'spearman'
+            '''
+
             try:
-                results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method='pearson')
-                n, r, ci, p = results.loc['pearson','n'], results.loc['pearson','r'], results.loc['pearson','CI95%'], results.loc['pearson','p-val']
+                results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
+                n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
             except:
-                r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+                r, p = pearsonr(predictions['y_true'], predictions['y_pred']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
                 n = predictions.shape[0]
                 ci = np.nan
+
+            # Añadir estadística en esquina superior izquierda
+            #plt.text(0.05, 0.95,
+            #        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
+            #        fontsize=12,
+            #        transform=plt.gca().transAxes,
+            #        verticalalignment='top',
+            #        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+            # Guardar resultado y cerrar
+            best_models.loc[idx,['r_holdout','p_value_corrected_holdout','p_holdout','method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout']] = [r,np.nan,p,method,n,str(ci),str(covars),np.nan]
+
+            save_path = Path(results_dir, f'plots', task, dimension, y_label,
+                            stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
+                            'hyp_opt' if hyp_opt else '',
+                            'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
+                            f'{task}_{y_label}_{dimension}_{model_type}_test.png')
+            save_path.parent.mkdir(parents=True, exist_ok=True)
 
             plt.figure(figsize=(8, 6))
             sns.regplot(
@@ -242,46 +269,25 @@ for scoring in scoring_metrics:
             plt.ylabel('Predicted Value')
             plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
 
-            # Añadir estadística en esquina superior izquierda
-            #plt.text(0.05, 0.95,
-            #        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
-            #        fontsize=12,
-            #        transform=plt.gca().transAxes,
-            #        verticalalignment='top',
-            #        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
-
-            # Guardar resultado y cerrar
-            best_models.loc[idx,['r_holdout','p_holdout','n_holdout','95_ci_holdout','covars_holdout','p_value_corrected_holdout','correction_method_holdout']] = [r,p,n,ci,str(covars),np.nan,'']
-
-            save_path = Path(results_dir, f'plots', task, dimension, y_label,
-                            stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
-                            'hyp_opt' if hyp_opt else '',
-                            'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
-                            f'{task}_{y_label}_{dimension}_{model_type}_test.png')
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-
             plt.tight_layout()
-            plt.savefig(save_path, dpi=300)
+            plt.grid(False)
+            try:
+                plt.savefig(save_path, dpi=300)
+            except:
+                continue
+            
             plt.close()
-
-    filename_to_save = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle_calibrated_bayes_test.csv'.replace('__','_')
-
-    if not hyp_opt:
-        filename_to_save = filename_to_save.replace('_hyp_opt','')
-    
-    if not feature_selection:
-        filename_to_save = filename_to_save.replace('_feature_selection','')
-    
-    if not shuffle_labels:
-        filename_to_save = filename_to_save.replace('_shuffle','')
-    
-    if not calibrate:
-        filename_to_save = filename_to_save.replace('_calibrated','')
 
     if problem_type == 'reg':
         p_vals = best_models['p_holdout'].values
         reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
         best_models['p_value_corrected_holdout'] = p_vals_corrected
+        best_models['p_value_corrected_holdout'] = best_models['p_value_corrected_holdout'].apply(lambda x: f"{x:.2e}" if x < 0.01 else f"{x:.3f}")
+        best_models['r_holdout'] = best_models['r_holdout'].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else np.nan)
+        best_models['p_holdout'] = best_models['p_holdout'].apply(lambda x: f"{x:.2e}" if x < 0.01 else f"{x:.3f}")
+
         best_models['correction_method_holdout'] = correction
 
-    best_models.to_csv(Path(results_dir,filename_to_save),index=False)
+        best_models = best_models[['task','dimension','model_type','y_label','r','p_value_corrected','r_holdout','p_value_corrected_holdout','p_value','p_holdout','method','n','95_ci','covars','correction_method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout','random_seed_test']]
+
+    best_models.to_csv(Path(results_dir,filename.replace('.csv','_test.csv')),index=False)

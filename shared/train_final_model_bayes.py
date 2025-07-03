@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, spearmanr
 import seaborn as sns
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
@@ -16,6 +16,7 @@ from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.naive_bayes import GaussianNB
 from statsmodels.stats.multitest import multipletests
 from pingouin import partial_corr
+from scipy.stats import shapiro
 
 import pickle
 
@@ -104,11 +105,13 @@ hyperp = {'lr':{'C':(1e-4,100)},
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 data_dir = str(results_dir).replace('results','data')
-pearsons_results = pd.DataFrame(columns=['r','p_value','n','95_ci','covars','p_value_corrected','correction_method'])
+corr_results = pd.DataFrame(columns=['r','p_value_corrected','p_value','method','n','95_ci','covars','correction_method'])
 
 correction = 'fdr_bh'
 
 covariates = pd.read_csv(Path(data_dir,data_file))[[id_col]+covars]
+
+method = 'pearson'
 
 for scoring,threshold in itertools.product(scoring_metrics,thresholds):
     if str(threshold) == 'None':
@@ -153,8 +156,8 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                     "axes.titlesize": 16,
                     "axes.labelsize": 14,
                     "xtick.labelsize": 12,
-                    "ytick.labelsize": 12
-                })
+                    "ytick.labelsize": 12,
+                    })
                 
                 Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
                 IDs = pickle.load(open(Path(path_to_results,random_seed,'IDs_dev.pkl'),'rb'))
@@ -173,14 +176,40 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.pkl'),'wb') as f:
                     pickle.dump(predictions,f)
                 predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.csv'),index=False)
-                try:
-                   results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method='pearson')
-                   n, r, ci, p = results.loc['pearson','n'], results.loc['pearson','r'], results.loc['pearson','CI95%'], results.loc['pearson','p-val']
-                except:
-                    r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+                
+                '''
+                if all([shapiro(predictions['y_pred'])[1] > 0.05,shapiro(predictions['y_true'])[1] > 0.05]):
+                    method = 'pearson'
+                else:
+                    method = 'spearman'
+                '''
+
+                if len(covars) != 0: 
+                   results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
+                   n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
+                else:
+                    r, p = pearsonr(predictions['y_true'], predictions['y_pred']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
                     n = predictions.shape[0]
                     ci = np.nan
 
+                # Añadir estadística en esquina superior izquierda
+                #plt.text(0.05, 0.95,
+                #        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
+                #        fontsize=12,
+                #        transform=plt.gca().transAxes,
+                #        verticalalignment='top',
+                #        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+                # Guardar resultado y cerrar
+                corr_results.loc[len(corr_results)] = [r, '',p, method,n, str(ci),str(covars),np.nan]
+
+                save_path = Path(results_dir, f'plots', task, dimension, y_label,
+                                stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
+                                'hyp_opt' if hyp_opt else '',
+                                'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
+                                f'{task}_{y_label}_{dimension}_{model_type}.png')
+                save_path.parent.mkdir(parents=True, exist_ok=True)
+                
                 plt.figure(figsize=(8, 6))
                 sns.regplot(
                     x='y_true', y='y_pred', data=predictions,
@@ -192,26 +221,12 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 plt.ylabel('Predicted Value')
                 plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
 
-                # Añadir estadística en esquina superior izquierda
-                #plt.text(0.05, 0.95,
-                #        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
-                #        fontsize=12,
-                #        transform=plt.gca().transAxes,
-                #        verticalalignment='top',
-                #        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
-
-                # Guardar resultado y cerrar
-                pearsons_results.loc[len(pearsons_results)] = [r, p, n, ci,str(covars),np.nan, '']
-
-                save_path = Path(results_dir, f'plots', task, dimension, y_label,
-                                stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
-                                'hyp_opt' if hyp_opt else '',
-                                'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
-                                f'{task}_{y_label}_{dimension}_{model_type}.png')
-                save_path.parent.mkdir(parents=True, exist_ok=True)
-
                 plt.tight_layout()
-                plt.savefig(save_path, dpi=300)
+                plt.grid(False)
+                try:
+                    plt.savefig(save_path, dpi=300)
+                except:
+                    continue
                 plt.close()
 
             if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl').exists() and not overwrite:
@@ -297,12 +312,17 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             pickle.dump(model.scaler,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'scaler_{model_type}.pkl'),'wb'))
             pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'imputer_{model_type}.pkl'),'wb'))  
 
-    if not pearsons_results.empty:
-        p_vals = pearsons_results['p_value'].values
-        reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
-        pearsons_results['p_value_corrected'] = p_vals_corrected
-        pearsons_results['correction_method'] = correction
+    best_models = best_models.sort_values(by=['y_label',f'{scoring}_extremo'],ascending=[True,False])
 
-        best_models = pd.concat((best_models, pearsons_results), axis=1)
+    if not corr_results.empty:
+        p_vals = corr_results['p_value'].values
+        reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
+        corr_results['p_value_corrected'] = p_vals_corrected
+        corr_results['p_value_corrected'] = corr_results['p_value_corrected'].apply(lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.3f}")
+        corr_results['p_value'] = corr_results['p_value'].apply(lambda x: f'{x:.2e}' if x < 0.001 else f'{x:.3f}')
+        corr_results['r'] = corr_results['r'].apply(lambda x: f'{x:.3f}' if not pd.isna(x) else np.nan)
+        corr_results['correction_method'] = correction
+
+        best_models = pd.concat((best_models, corr_results), axis=1)
         
-        best_models.to_csv(Path(results_dir,filename),index=False)
+        best_models.to_csv(Path(results_dir,filename.replace('.csv','_corr.csv') if problem_type == 'reg' else filename),index=False)
