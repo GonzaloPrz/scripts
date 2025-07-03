@@ -47,18 +47,15 @@
         ],
         "GERO_Ivo": [
             "norm_vol_bilateral_HIP",
-            "GM_norm",
             "norm_vol_mask_AD",
             "ACEIII_Total_Score",
-            "IFS_Total_Score",
-            "MoCA_Total_Boni_3"
+            "IFS_Total_Score"
         ],
         "GERO_Ivo_competence":
-        {"brain":["nps__nps__MoCA_Total_Boni_3",
+        {"brain":[
             "nps__nps__IFS_Total_Score",
             "nps__nps__ACEIII_Total_Score"],
-        "nps":["brain__brain__GM_norm",
-                "brain__brain__norm_vol_mask_AD",
+        "nps":[ "brain__brain__norm_vol_mask_AD",
                 "brain__brain__norm_vol_bilateral_HIP"]
         },
         "MPLS": [
@@ -574,8 +571,8 @@
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
         "GERO_females":["sex","age","education","group"],
-        "GERO_Ivo": ["education"],
-        "GERO_Ivo_competence": ["sex","age","education"]
+        "GERO_Ivo": ["age","sex","education","group","GM_norm"],
+        "GERO_Ivo_competence": ["age","sex","education","group","GM_norm"]
     },
     "cmatrix":{
         "MCI_classifier_unbalanced":null,

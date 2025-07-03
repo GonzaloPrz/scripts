@@ -86,11 +86,13 @@ for scoring in scoring_metrics:
         best_model = best_models[(best_models['task'] == task) & (best_models['y_label'] == y_label) & (best_models['dimension'] == dimension)]
         
         scoring_col = f'{scoring}_extremo'
-        try:                            
-            best_model[scoring_col] = best_model[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-        except:
+        if f'{scoring}_score' in best_models.columns:
             best_model[scoring_col] = best_model[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-
+        elif f'{scoring}_dev' in best_models.columns:
+            best_model[scoring_col] = best_model[f'{scoring}_dev'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+        else:
+            best_model[scoring_col] = best_model[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+        
         best_model = best_model.sort_values(by=scoring_col,ascending=ascending)
 
         model_name = best_model['model_type'].values[0]

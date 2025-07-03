@@ -94,7 +94,8 @@ def load_configuration(args):
         overwrite = bool(args.overwrite),
         parallel = bool(args.parallel),
         n_seeds_test = float(args.n_seeds_test) if args.n_folds != -1 else float(0),
-        bootstrap_method = args.bootstrap_method
+        bootstrap_method = args.bootstrap_method,
+        bayes = False
     )
 
     return config

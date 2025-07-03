@@ -185,6 +185,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 '''
 
                 if len(covars) != 0: 
+                   predictions['group'] = predictions['group'].map({'HC':0,'SCD':1,'MCI':2,'ADD':3})
                    results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
                    n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
                 else:
@@ -325,4 +326,4 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
 
         best_models = pd.concat((best_models, corr_results), axis=1)
         
-        best_models.to_csv(Path(results_dir,filename.replace('.csv','_corr.csv') if problem_type == 'reg' else filename),index=False)
+        best_models.to_csv(Path(results_dir,filename.replace('.csv','_corr_contrincantes.csv') if problem_type == 'reg' else filename),index=False)
