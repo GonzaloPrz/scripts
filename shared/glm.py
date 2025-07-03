@@ -1,16 +1,17 @@
 import pandas as pd
 from pathlib import Path
 import statsmodels.api as sm
-#Import shapiro test
 from scipy.stats import shapiro
 from scipy.stats import ttest_ind,ttest_rel,mannwhitneyu, wilcoxon
 import numpy as np
 
 # Load the dataset
 project_name = 'MCI_classifier'
-datafile = 'matched_data_group.csv'
-output = 'target'
-subsets = ['biomarkers']
+datafile = 'data_matched_group.csv'
+output = 'group'
+subsets = ['speech_timing','word_properties','speech_timing__word_properties']
+stats_to_remove = ['median','min','max','skewness','kurtosis']
+filter_outliers = False
 
 data_dir = Path(Path.home() if "Users/gp" in str(Path.home())else r'D:\CNC_Audio\gonza','data',project_name)
 data = pd.read_csv(Path(data_dir,datafile))
@@ -24,7 +25,7 @@ else:
 ids_to_remove = []
 
 for subset in subsets:
-    predictors = [col for col in data.columns if subset in col]
+    predictors = [col for col in data.columns if (any([x in col for x in subset.split('__')])) and (all(f'_{x}' not in col for x in stats_to_remove))]
     data = data.dropna(subset=predictors)
 
     # Define the dependent and independent variables
@@ -34,11 +35,12 @@ for subset in subsets:
     for predictor in predictors:
         
         #filter outliers
-        iqr = np.nanpercentile(data[predictor],75) - np.nanpercentile(data[predictor],25)
-        X = data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) < 1.5*iqr,predictor]
-        y = data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) < 1.5*iqr,output]
-        ids_to_remove += list(data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) > 1.5*iqr,'id'])
-        
+        if filter_outliers:
+            iqr = np.nanpercentile(data[predictor],75) - np.nanpercentile(data[predictor],25)
+            X = data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) < 1.5*iqr,predictor]
+            y = data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) < 1.5*iqr,output]
+            ids_to_remove += list(data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) > 1.5*iqr,'id'])
+
         shapiro_results = shapiro(X)
         if shapiro_results[1] > 0.05:    
             if rel:

@@ -107,15 +107,13 @@
             "fas",
             "animales",
             "fas__animales",
-            "grandmean",
-            "nps"
+            "grandmean"
         ],
         "MCI_classifier": [
             "fas",
             "animales",
             "fas__animales",
-            "grandmean",
-            "nps"
+            "grandmean"
         ],
         "Proyecto_Ivo": [
             "cog",
@@ -249,26 +247,22 @@
             "fas":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
-                    ],
+            "speech_timing"
+            ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "nps":
             [
@@ -286,26 +280,22 @@
             "fas":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "nps":
             [
