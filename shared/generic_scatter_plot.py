@@ -4,9 +4,9 @@ from sklearn.linear_model import LinearRegression
 from pathlib import Path
 import os
 # Generar datos similares
-np.random.seed(0)
-x = np.random.uniform(0, 10, size=130)
-y = 0.8 * x + np.random.normal(0, 2, size=130)
+np.random.seed(2)
+x = np.random.uniform(0, 10, size=30)
+y = 0.9 * x + np.random.normal(0,2, size=30)
 
 # Ajustar regresión
 model = LinearRegression()
@@ -23,4 +23,4 @@ plt.ylabel('Real value', fontsize=16, weight='bold')
 plt.xticks(fontsize=10, weight='bold')
 plt.yticks(fontsize=10, weight='bold')
 plt.tight_layout()
-plt.savefig(Path(Path.home(),'generic_scatter_plot.png'), dpi=300, bbox_inches='tight')
+plt.savefig(Path(Path.home(),'generic_scatter_plot2.png'), dpi=300, bbox_inches='tight')

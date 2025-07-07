@@ -188,7 +188,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                    results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
                    n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
                 else:
-                    r, p = pearsonr(predictions['y_true'], predictions['y_pred']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
+                    r, p = pearsonr(predictions['y_pred'], predictions['y_true']) if method == 'pearson' else spearmanr(predictions['y_pred'], predictions['y_true'])
                     n = predictions.shape[0]
                     ci = np.nan
 
@@ -204,7 +204,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 
                 plt.figure(figsize=(8, 6))
             sns.regplot(
-                x='y_true', y='y_pred', data=predictions,
+                x='y_pred', y='y_true', data=predictions,
                 scatter_kws={'alpha': 0.6, 's': 50, 'color': '#c9a400'},  # color base
                 line_kws={'color': 'black', 'linewidth': 2}
             )

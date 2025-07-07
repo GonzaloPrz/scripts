@@ -236,7 +236,7 @@ for scoring in scoring_metrics:
                 results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
                 n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
             except:
-                r, p = pearsonr(predictions['y_true'], predictions['y_pred']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
+                r, p = pearsonr(predictions['y_pred'], predictions['y_true']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
                 n = predictions.shape[0]
                 ci = np.nan
             best_models.loc[idx,['r_holdout','p_value_corrected_holdout','p_holdout','method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout']] = [r,np.nan,p,method,n,str(ci),str(covars),np.nan]
@@ -250,7 +250,7 @@ for scoring in scoring_metrics:
 
             plt.figure(figsize=(8, 6))
             sns.regplot(
-                x='y_true', y='y_pred', data=predictions,
+                x='y_pred', y='y_true', data=predictions,
                 scatter_kws={'alpha': 0.6, 's': 50, 'color': '#c9a400'},  # color base
                 line_kws={'color': 'black', 'linewidth': 2}
             )
