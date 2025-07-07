@@ -1,16 +1,16 @@
 {
-    "project_name": "MCI_classifier_unbalanced",
+    "project_name": "GERO_Ivo",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 10.0,
-    "n_folds_inner": 10.0,
+    "n_folds_outer": 5.0,
+    "n_folds_inner": 5.0,
     "n_iter": 15.0,
     "feature_selection": true,
     "init_points": 50.0,
-    "n_seeds_train": 10.0,
+    "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -18,52 +18,32 @@
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
     "filter_outliers": false,
-    "early_fusion": true,
+    "early_fusion": false,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 0,
+    "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
-    "test_size": 0.0,
-    "data_file": "data_matched_unbalanced_group.csv",
+    "test_size": 0.3,
+    "data_file": "all_data.csv",
     "tasks": [
         "fas",
         "animales",
         "fas__animales",
         "grandmean"
     ],
-    "single_dimensions": {
-        "fas": [
-            "word_properties",
-            "speech_timing"
-        ],
-        "animales": [
-            "word_properties",
-            "speech_timing"
-        ],
-        "fas__animales": [
-            "word_properties",
-            "speech_timing"
-        ],
-        "grandmean": [
-            "word_properties",
-            "speech_timing"
-        ],
-        "nps": [
-            "digits",
-            "memory",
-            "TMT",
-            "mmse"
-        ],
-        "bio": [
-            "bio"
-        ]
-    },
-    "scoring_metrics": [
-        "roc_auc"
+    "single_dimensions": [
+        "psycholinguistic",
+        "speech_timing"
     ],
-    "problem_type": "clf",
+    "scoring_metrics": [
+        "r2"
+    ],
+    "problem_type": "reg",
     "y_labels": [
-        "group"
+        "norm_vol_bilateral_HIP",
+        "norm_vol_mask_AD",
+        "ACEIII_Total_Score",
+        "IFS_Total_Score"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -72,19 +52,14 @@
         9,
         27,
         81,
-        243,
-        729,
-        2187,
-        6561,
-        19683,
-        59049
+        243
     ],
     "random_seeds_test": [
-        ""
+        3
     ],
     "random_seeds_shuffle": [
         ""
     ],
     "bayes": true,
-    "kfold_folder": "10_folds_10_folds"
+    "kfold_folder": "5_folds_5_folds"
 }

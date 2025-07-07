@@ -104,13 +104,17 @@
             "fas",
             "animales",
             "fas__animales",
-            "grandmean"
+            "grandmean",
+            "nps",
+            "bio"
         ],
         "MCI_classifier": [
             "fas",
             "animales",
             "fas__animales",
-            "grandmean"
+            "grandmean",
+            "nps",
+            "bio"
         ],
         "Proyecto_Ivo": [
             "cog",
@@ -244,22 +248,23 @@
             "fas":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing",
+            "valid_responses"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing","valid_responses"
             ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing","valid_responses"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing","valid_responses"
             ],
             "nps":
             [
@@ -277,22 +282,22 @@
             "fas":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing","valid_responses"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing","valid_responses"
             ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing","valid_responses"
             ],
             "grandmean":
             [
             "word_properties",
-            "speech_timing"
+            "speech_timing","valid_responses"
             ],
             "nps":
             [
@@ -571,8 +576,8 @@
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
         "GERO_females":["sex","age","education","group"],
-        "GERO_Ivo": ["age","sex","education","group","GM_norm"],
-        "GERO_Ivo_competence": ["age","sex","education","group","GM_norm"]
+        "GERO_Ivo": ["age"],
+        "GERO_Ivo_competence": ["age"]
     },
     "cmatrix":{
         "MCI_classifier_unbalanced":null,

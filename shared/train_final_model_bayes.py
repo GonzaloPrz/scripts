@@ -92,8 +92,8 @@ hyperp = {'lr':{'C':(1e-4,100)},
                  'gamma':(1e-4,1e4)},
             'knnc':{'n_neighbors':(1,40)},
             'xgb':{'max_depth':(1,10),
-                   'n_estimators':(1,2000),
-                   'learning_rate':(1e-4,1)},
+                   'n_estimators':(1,500),
+                   'learning_rate':(1e-3,1)},
             'lasso':{'alpha':(1e-4,1e4)},
             'ridge':{'alpha':(1e-4,1e4)},
             'elastic':{'alpha':(1e-4,1e4),
@@ -153,10 +153,10 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
                 plt.rcParams.update({
                     "font.family": "DejaVu Sans",
-                    "axes.titlesize": 16,
-                    "axes.labelsize": 14,
-                    "xtick.labelsize": 12,
-                    "ytick.labelsize": 12,
+                    "axes.titlesize": 26,
+                    "axes.labelsize": 20,
+                    "xtick.labelsize": 20,
+                    "ytick.labelsize": 20,
                     })
                 
                 Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
@@ -185,21 +185,12 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 '''
 
                 if len(covars) != 0: 
-                   predictions['group'] = predictions['group'].map({'HC':0,'SCD':1,'MCI':2,'ADD':3})
                    results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
                    n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
                 else:
                     r, p = pearsonr(predictions['y_true'], predictions['y_pred']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
                     n = predictions.shape[0]
                     ci = np.nan
-
-                # Añadir estadística en esquina superior izquierda
-                #plt.text(0.05, 0.95,
-                #        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
-                #        fontsize=12,
-                #        transform=plt.gca().transAxes,
-                #        verticalalignment='top',
-                #        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
                 # Guardar resultado y cerrar
                 corr_results.loc[len(corr_results)] = [r, '',p, method,n, str(ci),str(covars),np.nan]
@@ -212,23 +203,44 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 save_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 plt.figure(figsize=(8, 6))
-                sns.regplot(
-                    x='y_true', y='y_pred', data=predictions,
-                    scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
-                    line_kws={'color': 'darkred', 'linewidth': 2}
-                )
+            sns.regplot(
+                x='y_true', y='y_pred', data=predictions,
+                scatter_kws={'alpha': 0.6, 's': 50, 'color': '#c9a400'},  # color base
+                line_kws={'color': 'black', 'linewidth': 2}
+            )
 
-                plt.xlabel('True Value')
-                plt.ylabel('Predicted Value')
-                plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
+            plt.xlabel('Predicted Value')
+            plt.ylabel('True Value')
+            y_labels_dict = {'norm_vol_mask_AD':'ADD mask volume',
+            "norm_vol_bilateral_HIP": 'Hippocampal volume',
+            "ACEIII_Total_Score": 'ACEIII Total Score',
+            "IFS_Total_Score": "IFS Total Score",
+            "nps__nps__IFS_Total_Score": "IFS Total Score",
+            "nps__nps__ACEIII_Total_Score": "ACEIII Total Score",
+            "brain__brain__norm_vol_bilateral_HIP": "Hippocampal volume",
+            "brain__brain__norm_vol_mask_AD": "ADD mask volume"}
 
-                plt.tight_layout()
-                plt.grid(False)
-                try:
-                    plt.savefig(save_path, dpi=300)
-                except:
-                    continue
-                plt.close()
+            plt.text(0.05, 0.95,
+                    f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
+                    fontsize=30,
+                    transform=plt.gca().transAxes,
+                    verticalalignment='top',
+                    bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+            tasks_dict = {'animales':'Semantic',
+            "grandmean": "Average",
+            "nps":"Cognition",
+            "brain":"Brain"}
+
+            plt.title(f'{tasks_dict[task]} | {y_labels_dict[y_label]}', fontsize=25, pad=15)
+
+            plt.tight_layout()
+            plt.grid(False)
+            try:
+                plt.savefig(save_path, dpi=300)
+            except:
+                continue
+            plt.close()
 
             if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl').exists() and not overwrite:
                 print('Model already exists')
@@ -313,17 +325,18 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             pickle.dump(model.scaler,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'scaler_{model_type}.pkl'),'wb'))
             pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'imputer_{model_type}.pkl'),'wb'))  
 
+    if problem_type == 'reg':
+        best_models = pd.concat((best_models,corr_results), axis=1) 
+
     best_models = best_models.sort_values(by=['y_label',f'{scoring}_extremo'],ascending=[True,False])
-
-    if not corr_results.empty:
-        p_vals = corr_results['p_value'].values
+    
+    if problem_type == 'reg':
+        p_vals = best_models['p_value'].values
         reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
-        corr_results['p_value_corrected'] = p_vals_corrected
-        corr_results['p_value_corrected'] = corr_results['p_value_corrected'].apply(lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.3f}")
-        corr_results['p_value'] = corr_results['p_value'].apply(lambda x: f'{x:.2e}' if x < 0.001 else f'{x:.3f}')
-        corr_results['r'] = corr_results['r'].apply(lambda x: f'{x:.3f}' if not pd.isna(x) else np.nan)
-        corr_results['correction_method'] = correction
+        best_models['p_value_corrected'] = p_vals_corrected
+        best_models['p_value_corrected'] = best_models['p_value_corrected'].apply(lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.3f}")
+        best_models['p_value'] = best_models['p_value'].apply(lambda x: f'{x:.2e}' if x < 0.001 else f'{x:.3f}')
+        best_models['r'] = best_models['r'].apply(lambda x: f'{x:.3f}' if not pd.isna(x) else np.nan)
+        best_models['correction_method'] = correction
 
-        best_models = pd.concat((best_models, corr_results), axis=1)
-        
-        best_models.to_csv(Path(results_dir,filename.replace('.csv','_corr_contrincantes.csv') if problem_type == 'reg' else filename),index=False)
+        best_models.to_csv(Path(results_dir,filename.replace('.csv',f'_corr_{covars[-1]}.csv')),index=False)
