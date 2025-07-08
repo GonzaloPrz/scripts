@@ -6,10 +6,10 @@ from scipy.stats import ttest_ind,ttest_rel,mannwhitneyu, wilcoxon
 import numpy as np
 
 # Load the dataset
-project_name = 'MCI_classifier'
-datafile = 'data_matched_group.csv'
+project_name = 'MCI_classifier_unbalanced'
+datafile = 'data_matched_group.csv' if 'unbalanced' not in project_name else 'data_matched_unbalanced_group.csv'
 output = 'group'
-subsets = ['speech_timing','word_properties','speech_timing__word_properties']
+subsets = ['bio','speech_timing','word_properties','speech_timing__word_properties']
 stats_to_remove = ['median','min','max','skewness','kurtosis']
 filter_outliers = False
 
