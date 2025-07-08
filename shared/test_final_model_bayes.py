@@ -256,6 +256,7 @@ for scoring in scoring_metrics:
             )
 
             plt.xlabel('Predicted Value')
+            plt.xticks(rotation=45, ha='right')
             plt.ylabel('True Value')
             y_labels_dict = {'norm_vol_mask_AD':'ADD mask volume',
             "norm_vol_bilateral_HIP": 'Hippocampal volume',

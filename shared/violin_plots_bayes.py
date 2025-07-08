@@ -50,7 +50,7 @@ if isinstance(scoring_metrics,str):
 problem_type = main_config['problem_type'][project_name]
 
 # Set the style for the plots
-sns.set(style='whitegrid')
+
 plt.rcParams.update({
     'font.size': 12,
     'axes.titlesize': 14,
@@ -65,7 +65,7 @@ for scoring in scoring_metrics:
     extremo = 1 if 'norm' in scoring else 0
     ascending = True if extremo == 1 else False
     data_to_plot = pd.DataFrame()
-    best_models_filename = f'metrics_{kfold_folder}_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_dev.csv'.replace('__','_')
+    best_models_filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_bayes.csv'.replace('__','_')
     best_models = pd.read_csv(Path(results_dir,best_models_filename))
     scoring_col = f'{scoring}_extremo'
     best_models[scoring_col] = best_models[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
@@ -146,7 +146,7 @@ for scoring in scoring_metrics:
         else:
             data_to_plot = pd.concat((data_to_plot,data_append),axis=0)
     #        data_to_plot.to_csv(Path(results_dir,filename_to_save), index=False)
-    data_to_plot = data_to_plot[((data_to_plot["task"] == "Animales__P") & (data_to_plot["dimension"] == "properties")) |
+    data_to_plot = data_to_plot[((data_to_plot["task"] == "Animales") & (data_to_plot["dimension"] == "properties")) |
                                 ((data_to_plot["task"] == "cog") & (data_to_plot["dimension"] == "neuropsico_digits")) |
                                 ((data_to_plot["task"] == "brain") & (data_to_plot["dimension"] == "norm_brain_lit")) 
                                 ]
@@ -155,7 +155,7 @@ for scoring in scoring_metrics:
     for metric in metrics_names:
         plt.figure()
         sns.violinplot(data=data_to_plot,x='dimension',y=metric, color="#1f77b4",)
-        plt.ylabel(metric.replace('_', ' ').upper())
+        plt.ylabel(metric.replace('_', ' ').capitalize())
         #plt.title(f"{metric.replace('_', ' ').upper()} Distribution for {model_name}")
         plt.tight_layout()
         filename_to_save = f'violin_{metric}_best_models_{y_label}_{stat_folder}_{scoring}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle'

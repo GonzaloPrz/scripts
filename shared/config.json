@@ -1,16 +1,16 @@
 {
-    "project_name": "GERO_Ivo",
+    "project_name": "Proyecto_Ivo",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 5.0,
-    "n_folds_inner": 5.0,
+    "n_folds_outer": 3.0,
+    "n_folds_inner": 11.0,
     "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 50.0,
-    "n_seeds_train": 5.0,
+    "init_points": 100.0,
+    "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -21,29 +21,57 @@
     "early_fusion": false,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 1.0,
-    "bootstrap_method": "bca",
-    "test_size": 0.3,
+    "n_seeds_test": 0,
+    "bootstrap_method": "percentile",
+    "test_size": 0.0,
     "data_file": "all_data.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean"
+        "cog",
+        "Animales__P",
+        "Animales",
+        "P",
+        "brain",
+        "AAL",
+        "connectivity"
     ],
-    "single_dimensions": [
-        "psycholinguistic",
-        "speech_timing"
-    ],
+    "single_dimensions": {
+        "Animales": [
+            "properties",
+            "timing",
+            "properties__timing"
+        ],
+        "P": [
+            "properties",
+            "timing",
+            "properties__timing"
+        ],
+        "Animales__P": [
+            "properties",
+            "timing",
+            "properties__timing"
+        ],
+        "cog": [
+            "neuropsico_digits__neuropsico_tmt",
+            "neuropsico_tmt",
+            "neuropsico_digits"
+        ],
+        "brain": [
+            "norm_brain_lit"
+        ],
+        "AAL": [
+            "norm_AAL"
+        ],
+        "connectivity": [
+            "networks",
+            "selected_areas"
+        ]
+    },
     "scoring_metrics": [
-        "r2"
+        "roc_auc"
     ],
-    "problem_type": "reg",
+    "problem_type": "clf",
     "y_labels": [
-        "norm_vol_bilateral_HIP",
-        "norm_vol_mask_AD",
-        "ACEIII_Total_Score",
-        "IFS_Total_Score"
+        "target"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -52,14 +80,18 @@
         9,
         27,
         81,
-        243
+        243,
+        729,
+        2187,
+        6561,
+        19683,
+        59049
     ],
     "random_seeds_test": [
-        3
+        ""
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "bayes": true,
-    "kfold_folder": "5_folds_5_folds"
+    "kfold_folder": "3_folds_11_folds"
 }
