@@ -27,7 +27,7 @@ results_dir = Path(str(data_dir).replace('data','results'))
 
 data_file = Path(data_dir,"filtered_transcripts_no_hallucinations_matched_group.xlsx")
 
-embeddings_video = pickle.load(open(Path(results_dir,f'video_embeddings_{model_name.split("/")[1]}.pkl'),'rb'))
+video_embeddings = pickle.load(open(Path(results_dir,f'video_embeddings_{model_name.split("/")[1]}.pkl'),'rb'))
 #Flatten embeddings:
 
 df = pd.read_excel(data_file)
@@ -56,19 +56,29 @@ for r, row in df.iterrows():
             sentence_embeddings.append(model.encode(sent))
 
     max_similarities = []
-    argmax_similarities = []
+    max_similarities_hallucinations = []
 
-    for video_emb in embeddings_video:
+    argmax_similarities = []
+    argmax_similarities_hallucinations = []
+
+    for video_emb in video_embeddings:
         
         max_similarities.append(np.max([cosine_similarity(np.array(video_emb).reshape(1,-1),np.array(sent_emb).reshape(1,-1)) for sent_emb in sentence_embeddings]))
         argmax_similarities.append(np.argmax([cosine_similarity(np.array(video_emb).reshape(1,-1),np.array(sent_emb).reshape(1,-1)) for sent_emb in sentence_embeddings]))
     
+    for sent_emb in sentence_embeddings:
+        max_similarities_hallucinations.append(np.max([cosine_similarity(np.array(video_emb).reshape(1,-1),np.array(sent_emb).reshape(1,-1)) for video_emb in video_embeddings]))
+        argmax_similarities_hallucinations.append(np.argmax([cosine_similarity(np.array(video_emb).reshape(1,-1),np.array(sent_emb).reshape(1,-1)) for video_emb in video_embeddings]))
+
     max_similarities_dict = {'id':row['id']}
 
-    max_similarities_dict.update(dict((f'fugu__text__{model_name.split("/")[1]}__sim_concept_{i}',max_similarities[i]) for i in range(len(max_similarities))))
+    max_similarities_dict.update(dict((f'fugu__text__{model_name.split("/")[1]}__sim_concept_{i}',max_similarities[i] if max_similarities[i] > .5 else 0) for i in range(len(max_similarities))))
     #max_similarities_dict.update(dict((f'embedding_concept_{i}',[embeddings_video[i]]) for i in range(len(argmax_similarities))))
     #max_similarities_dict.update(dict((f'embedding_most_similar_sentence_concept_{i}',[sentence_embeddings[argmax_similarities[i]]]) for i in range(len(argmax_similarities))))
     max_similarities_dict.update(dict((f'most_similar_sentence_concept_{i}',f"{video_sentences[i]}: {sentences[argmax_similarities[i]]}") for i in range(len(argmax_similarities))))
+    max_similarities_dict.update({f'fugu__text__number_of_omissions':sum(np.array(max_similarities) < .5)/ len(max_similarities)})
+    max_similarities_dict.update({f'fugu__text__number_of_hallucinations':sum(np.array(max_similarities_hallucinations) < .5)/len(max_similarities_hallucinations)})
+    max_similarities_dict.update({f'fugu__text__number_of_sentences_retelling':sum(np.array(max_similarities_hallucinations) < .5)/len(max_similarities_hallucinations)})
 
     if distances.empty:
         distances = pd.DataFrame(max_similarities_dict,index=[0])
