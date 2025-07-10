@@ -147,14 +147,21 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
         for random_seed in random_seeds:
             
             y_dev = pickle.load(open(Path(path_to_results,random_seed,'y_dev.pkl'),'rb'))
+            X_train = pickle.load(open(Path(path_to_results,random_seed,'X_train.pkl'),'rb'))
+            y_train = pickle.load(open(Path(path_to_results,random_seed,'y_train.pkl'),'rb'))
             outputs_dev = pickle.load(open(Path(path_to_results,random_seed,f'outputs_{model_type}.pkl'),'rb'))
 
             IDs = pickle.load(open(Path(path_to_results,random_seed,'IDs_dev.pkl'),'rb'))
 
-            try:
+            if problem_type == 'reg':
                 predictions = pd.DataFrame({'id':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
-            except:
-                continue
+            else:
+                _, y_pred = utils.get_metrics_clf(outputs_dev, y_dev, [], cmatrix=cmatrix, priors=None, threshold=threshold)
+                predictions = {'id':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_dev.flatten()}
+                for c in range(outputs_dev.shape[-1]):
+                    predictions[f'outputs_class_{c}'] = outputs_dev[:,:,c].flatten()
+                predictions = pd.DataFrame(predictions)
+
             predictions = predictions.drop_duplicates('id')
 
             Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '', random_seed).mkdir(exist_ok=True,parents=True)
@@ -253,11 +260,9 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             all_models = pd.read_csv(Path(path_to_results,random_seed,f'all_models_{model_type}.csv'))
             
             features = [col for col in all_models.columns if f'{task}__' in col]
-            X_train = X_train[features]
-            X_test = X_test[features]
-            y_train = y_train[features]
-            y_test = y_test[features]
-
+            if not isinstance(X_train, pd.DataFrame):
+                X_train = pd.DataFrame(X_train, columns=features)
+            
             if n_folds == -1:
                 CV = LeaveOneOut()
                 n_max = X_train.shape[0] - 1

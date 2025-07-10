@@ -257,7 +257,8 @@ for scoring in scoring_metrics:
         y_labels_ = sum(y_labels.values(),[])
     else:
         y_labels_ = y_labels
-    for y_label,task in itertools.product(y_labels_,tasks):
-        best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task)].iloc[0].values
+
+    for y_label,dimension,task in itertools.product(y_labels_,dimensions,tasks):
+        best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['dimension'] == dimension) & (best_best_models['task'] == task)].iloc[0].values
     
     best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)

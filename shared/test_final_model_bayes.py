@@ -102,7 +102,7 @@ for scoring in scoring_metrics:
         dimension = row['dimension']
         model_type = row['model_type']
         random_seed_test = row['random_seed_test']
-     
+
         y_label = row['y_label']
 
         print(task,dimension,model_type,y_label)
@@ -191,14 +191,28 @@ for scoring in scoring_metrics:
             best_models.loc[r,f'{metric}_holdout'] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
         
         if problem_type == 'reg':
+            predictions = pd.DataFrame({'id':IDs_test.values.flatten(),'y_pred':outputs.flatten(),'y_true':y_test.values.flatten()})
+        else:
+            _, y_pred = utils.get_metrics_clf(outputs, y_test, [], cmatrix=cmatrix, priors=None, threshold=None)
+            predictions = {'id':IDs_test.values.flatten(),'y_pred':y_pred.flatten(),'y_true':y_test.values.flatten()}
+            for c in range(outputs.shape[-1]):
+                predictions[f'outputs_class_{c}'] = outputs[:,c].flatten()
+            predictions = pd.DataFrame(predictions)
+
+        predictions = predictions.drop_duplicates('id')
+
+        if problem_type == 'reg':
             try:
                 idx = best_models[(best_models['task'] == task) &
-                                       (best_models['dimension'] == dimension) &
-                                        (best_models['y_label'] == y_label) &
-                                        (best_models['model_type'] == model_type)].index[0]
+                                    (best_models['dimension'] == dimension) &
+                                    (best_models['y_label'] == y_label) &
+                                    (best_models['model_type'] == model_type)].index[0]
 
             except:
                 continue
+            
+            best_models.loc[idx,['r_holdout','p_value_corrected_holdout','p_holdout','method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout']] = [r,np.nan,p,method,n,str(ci),str(covars),np.nan]
+
             sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
             plt.rcParams.update({
                 "font.family": "DejaVu Sans",
@@ -208,15 +222,6 @@ for scoring in scoring_metrics:
                 "ytick.labelsize": 20
             })
             
-            Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
-            IDs = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
-
-            try:
-                predictions = pd.DataFrame({'id':IDs_test.values.flatten(),'y_pred':outputs.flatten(),'y_true':y_test.values.flatten()})
-            except:
-                continue
-            predictions = predictions.drop_duplicates('id')
-
             if not covariates.empty:
                 predictions = pd.merge(predictions,covariates,on=config["id_col"],how='inner')
 
@@ -239,7 +244,6 @@ for scoring in scoring_metrics:
                 r, p = pearsonr(predictions['y_pred'], predictions['y_true']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
                 n = predictions.shape[0]
                 ci = np.nan
-            best_models.loc[idx,['r_holdout','p_value_corrected_holdout','p_holdout','method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout']] = [r,np.nan,p,method,n,str(ci),str(covars),np.nan]
 
             save_path = Path(results_dir, f'plots', task, dimension, y_label,
                             stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
