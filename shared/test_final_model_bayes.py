@@ -82,7 +82,7 @@ method = 'pearson'
 for scoring in scoring_metrics:
     if config["test_size"] == 0:
         continue
-    filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes_corr_{covars[-1]}.csv'.replace('__','_')
+    filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes_corr_{covars[-1]}.csv'.replace('__','_') if len(covars) > 0 else f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
 
     if not hyp_opt:
         filename = filename.replace("_hyp_opt","")
@@ -93,7 +93,7 @@ for scoring in scoring_metrics:
     if not calibrate:
         filename = filename.replace("_calibrated","")
     if not problem_type == 'reg':
-        filename = filename.replace(f"_corr_{covars[-1]}","")
+        filename = filename.replace(f"_corr_{covars[-1]}","") if len(covars) > 0 else filename.replace("_corr_","")
 
     best_models = pd.read_csv(Path(results_dir,filename))
 
