@@ -149,6 +149,20 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             y_dev = pickle.load(open(Path(path_to_results,random_seed,'y_dev.pkl'),'rb'))
             outputs_dev = pickle.load(open(Path(path_to_results,random_seed,f'outputs_{model_type}.pkl'),'rb'))
 
+            IDs = pickle.load(open(Path(path_to_results,random_seed,'IDs_dev.pkl'),'rb'))
+
+            try:
+                predictions = pd.DataFrame({'id':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
+            except:
+                continue
+            predictions = predictions.drop_duplicates('id')
+
+            Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '', random_seed).mkdir(exist_ok=True,parents=True)
+
+            with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.pkl'),'wb') as f:
+                pickle.dump(predictions,f)
+            predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.csv'),index=False)
+
             if problem_type == 'reg':
                 sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
                 plt.rcParams.update({
@@ -160,22 +174,9 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                     })
                 
                 Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
-                IDs = pickle.load(open(Path(path_to_results,random_seed,'IDs_dev.pkl'),'rb'))
-
-                try:
-                    predictions = pd.DataFrame({'id':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
-                except:
-                    continue
-                predictions = predictions.drop_duplicates('id')
-
+                
                 if not covariates.empty:
                     predictions = pd.merge(predictions,covariates,on=id_col,how='inner')
-
-                Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '', random_seed).mkdir(exist_ok=True,parents=True)
-
-                with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.pkl'),'wb') as f:
-                    pickle.dump(predictions,f)
-                predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.csv'),index=False)
                 
                 '''
                 if all([shapiro(predictions['y_pred'])[1] > 0.05,shapiro(predictions['y_true'])[1] > 0.05]):
@@ -203,44 +204,44 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                 save_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 plt.figure(figsize=(8, 6))
-            sns.regplot(
-                x='y_pred', y='y_true', data=predictions,
-                scatter_kws={'alpha': 0.6, 's': 50, 'color': '#c9a400'},  # color base
-                line_kws={'color': 'black', 'linewidth': 2}
-            )
+                sns.regplot(
+                    x='y_pred', y='y_true', data=predictions,
+                    scatter_kws={'alpha': 0.6, 's': 50, 'color': '#c9a400'},  # color base
+                    line_kws={'color': 'black', 'linewidth': 2}
+                )
 
-            plt.xlabel('Predicted Value')
-            plt.ylabel('True Value')
-            y_labels_dict = {'norm_vol_mask_AD':'ADD mask volume',
-            "norm_vol_bilateral_HIP": 'Hippocampal volume',
-            "ACEIII_Total_Score": 'ACEIII Total Score',
-            "IFS_Total_Score": "IFS Total Score",
-            "nps__nps__IFS_Total_Score": "IFS Total Score",
-            "nps__nps__ACEIII_Total_Score": "ACEIII Total Score",
-            "brain__brain__norm_vol_bilateral_HIP": "Hippocampal volume",
-            "brain__brain__norm_vol_mask_AD": "ADD mask volume"}
+                plt.xlabel('Predicted Value')
+                plt.ylabel('True Value')
+                y_labels_dict = {'norm_vol_mask_AD':'ADD mask volume',
+                "norm_vol_bilateral_HIP": 'Hippocampal volume',
+                "ACEIII_Total_Score": 'ACEIII Total Score',
+                "IFS_Total_Score": "IFS Total Score",
+                "nps__nps__IFS_Total_Score": "IFS Total Score",
+                "nps__nps__ACEIII_Total_Score": "ACEIII Total Score",
+                "brain__brain__norm_vol_bilateral_HIP": "Hippocampal volume",
+                "brain__brain__norm_vol_mask_AD": "ADD mask volume"}
 
-            plt.text(0.05, 0.95,
-                    f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
-                    fontsize=30,
-                    transform=plt.gca().transAxes,
-                    verticalalignment='top',
-                    bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+                plt.text(0.05, 0.95,
+                        f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
+                        fontsize=30,
+                        transform=plt.gca().transAxes,
+                        verticalalignment='top',
+                        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
-            tasks_dict = {'animales':'Semantic',
-            "grandmean": "Average",
-            "nps":"Cognition",
-            "brain":"Brain"}
+                tasks_dict = {'animales':'Semantic',
+                "grandmean": "Average",
+                "nps":"Cognition",
+                "brain":"Brain"}
 
-            plt.title(f'{tasks_dict[task]} | {y_labels_dict[y_label]}', fontsize=25, pad=15)
+                plt.title(f'{tasks_dict[task]} | {y_labels_dict[y_label]}', fontsize=25, pad=15)
 
-            plt.tight_layout()
-            plt.grid(False)
-            try:
-                plt.savefig(save_path, dpi=300)
-            except:
-                continue
-            plt.close()
+                plt.tight_layout()
+                plt.grid(False)
+                try:
+                    plt.savefig(save_path, dpi=300)
+                except:
+                    continue
+                plt.close()
 
             if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl').exists() and not overwrite:
                 print('Model already exists')
@@ -252,10 +253,11 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             all_models = pd.read_csv(Path(path_to_results,random_seed,f'all_models_{model_type}.csv'))
             
             features = [col for col in all_models.columns if f'{task}__' in col]
-            
-            X_train = pickle.load(open(Path(path_to_results,random_seed,'X_train.pkl'),'rb'))
-            y_train = pickle.load(open(Path(path_to_results,random_seed,'y_train.pkl'),'rb'))
-        
+            X_train = X_train[features]
+            X_test = X_test[features]
+            y_train = y_train[features]
+            y_test = y_test[features]
+
             if n_folds == -1:
                 CV = LeaveOneOut()
                 n_max = X_train.shape[0] - 1

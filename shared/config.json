@@ -1,16 +1,16 @@
 {
-    "project_name": "Proyecto_Ivo",
+    "project_name": "ad_mci_hc",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 3.0,
-    "n_folds_inner": 11.0,
+    "n_folds_outer": 10.0,
+    "n_folds_inner": 10.0,
     "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 100.0,
-    "n_seeds_train": 10.0,
+    "init_points": 50.0,
+    "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -18,60 +18,28 @@
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
     "filter_outliers": false,
-    "early_fusion": false,
+    "early_fusion": true,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 0,
-    "bootstrap_method": "percentile",
-    "test_size": 0.0,
-    "data_file": "all_data.csv",
+    "n_seeds_test": 1.0,
+    "bootstrap_method": "bca",
+    "test_size": 0.14,
+    "data_file": "filtered_data_no_hallucinations_matched_group.csv",
     "tasks": [
-        "cog",
-        "Animales__P",
-        "Animales",
-        "P",
-        "brain",
-        "AAL",
-        "connectivity"
+        "fugu"
     ],
     "single_dimensions": {
-        "Animales": [
-            "properties",
-            "timing",
-            "properties__timing"
-        ],
-        "P": [
-            "properties",
-            "timing",
-            "properties__timing"
-        ],
-        "Animales__P": [
-            "properties",
-            "timing",
-            "properties__timing"
-        ],
-        "cog": [
-            "neuropsico_digits__neuropsico_tmt",
-            "neuropsico_tmt",
-            "neuropsico_digits"
-        ],
-        "brain": [
-            "norm_brain_lit"
-        ],
-        "AAL": [
-            "norm_AAL"
-        ],
-        "connectivity": [
-            "networks",
-            "selected_areas"
+        "fugu": [
+            "talking-intervals",
+            "text"
         ]
     },
     "scoring_metrics": [
-        "roc_auc"
+        "norm_expected_cost"
     ],
     "problem_type": "clf",
     "y_labels": [
-        "target"
+        "group"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -80,18 +48,14 @@
         9,
         27,
         81,
-        243,
-        729,
-        2187,
-        6561,
-        19683,
-        59049
+        243
     ],
     "random_seeds_test": [
-        ""
+        3
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "3_folds_11_folds"
+    "bayes": true,
+    "kfold_folder": "10_folds_10_folds"
 }
