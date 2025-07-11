@@ -48,7 +48,7 @@ tasks_list = [
 ]
 dimensions_list = [
                    ['properties','norm_brain_lit'],
-                   ['properties','neuropsico_mmse']
+                   ['properties','neuropsico_tmt']
 ]
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
