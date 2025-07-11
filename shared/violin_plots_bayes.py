@@ -150,16 +150,70 @@ for scoring in scoring_metrics:
                                 ((data_to_plot["task"] == "cog") & (data_to_plot["dimension"] == "neuropsico_tmt")) |
                                 ((data_to_plot["task"] == "brain") & (data_to_plot["dimension"] == "norm_brain_lit")) 
                                 ]
-    
+        
     data_to_plot["dimension"] = data_to_plot["dimension"].map({"properties":"Speech","neuropsico_tmt": "Cognitive","norm_brain_lit":"Brain"})
     for metric in metrics_names:
+        # Get mean values
+        mean_animales = float(
+            best_models[
+                (best_models['task'] == 'Animales') &
+                (best_models['dimension'] == 'properties')
+            ][metric].values[0].split(', (')[0]
+        )
+
+        mean_cog = float(
+            best_models[
+                (best_models['task'] == 'cog') &
+                (best_models['dimension'] == 'neuropsico_tmt')
+            ][metric].values[0].split(', (')[0]
+        )
+
+        mean_brain = float(
+            best_models[
+                (best_models['task'] == 'brain') &
+                (best_models['dimension'] == 'norm_brain_lit')
+            ][metric].values[0].split(', (')[0]
+        )
+        
+        means = np.array([mean_animales, mean_cog, mean_brain])
+        
+        # Get CI lower and upper bounds
+        def extract_ci(task, dimension):
+            val_str = best_models[
+                (best_models['task'] == task) &
+                (best_models['dimension'] == dimension)
+            ][metric].values[0]
+            # Split: e.g. "0.80, (0.75, 0.84)"
+            ci_part = val_str.split(', (')[1].replace(')', '')
+            ci_low, ci_high = ci_part.split(', ')
+            return float(ci_low), float(ci_high)
+
+        ci_animales = extract_ci('Animales', 'properties')
+        ci_cog = extract_ci('cog', 'neuropsico_tmt')
+        ci_brain = extract_ci('brain', 'norm_brain_lit')
+        
+        # Compute lower and upper errors
+        ci_lowers = means - np.array([ci_animales[0], ci_cog[0], ci_brain[0]])
+        ci_uppers = np.array([ci_animales[1], ci_cog[1], ci_brain[1]]) - means
+        
+        # Combine into (2, N) array
+        yerr = np.vstack([ci_lowers, ci_uppers])
+        
         plt.figure()
-        sns.violinplot(data=data_to_plot,x='dimension',y=metric, color="#1f77b4",order=['Speech', 'Cognitive', 'Brain'])
+        sns.violinplot(data=data_to_plot,x='dimension',y=metric, color="#1f77b4",order=['Speech', 'Cognitive', 'Brain'],inner=None)
+        plt.errorbar(
+        x=np.arange(len(data_to_plot['dimension'].unique())),
+        y=means,
+        yerr= yerr,
+        fmt="D", color="black", capsize=5, markersize=8
+        )
+
         plt.ylabel(metric.replace('_', ' ').capitalize())
         #plt.title(f"{metric.replace('_', ' ').upper()} Distribution for {model_name}")
         plt.xlabel('')
-        plt.ylim([0,1])
+        #plt.ylim([0.6,1])
         plt.tight_layout()
+
         filename_to_save = f'violin_{metric}_best_models_{y_label}_{stat_folder}_{scoring}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffle'
         if not hyp_opt:
             filename_to_save = filename_to_save.replace('_hyp_opt','')
@@ -168,6 +222,6 @@ for scoring in scoring_metrics:
         if not shuffle_labels:
             filename_to_save = filename_to_save.replace('_shuffle','')
 
-        plt.savefig(Path(results_dir,'plots','bayes',f'{filename_to_save}.png'))
-        plt.savefig(Path(results_dir,'plots','bayes',f'{filename_to_save}.svg'))
+        plt.savefig(Path(results_dir,'plots','bayes',f'{filename_to_save}.png'),dpi=300)
+        plt.savefig(Path(results_dir,'plots','bayes',f'{filename_to_save}.svg'),dpi=300)
         plt.close()

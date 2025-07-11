@@ -107,7 +107,7 @@ for scoring in scoring_metrics:
         if not Path(results_dir,task).exists():
             continue
         
-        if model_type == 'lasso':
+        if model_type in ['svc','lasso']:
             continue
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
@@ -135,8 +135,8 @@ for scoring in scoring_metrics:
                     
                     if not overwrite and all_results.shape[0] > 0:
                         row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
-                        if len(row) > 0:
-                            continue
+                        #if len(row) > 0:
+                        #    continue
 
                     if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                         continue
@@ -240,7 +240,7 @@ for scoring in scoring_metrics:
                     print(f"WARNING: No valid models found for {task}/{dimension}/{y_label} with random seed {random_seed_test}. Skipping...")
                     continue
 
-                if best_best_models_append['model_type'] =='lasso':
+                if best_best_models_append['model_type'] in ['lasso','svc']:
                     best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[1]
                 
                 best_best_models.loc[best_best_models.shape[0],:] = best_best_models_append
@@ -250,7 +250,7 @@ for scoring in scoring_metrics:
     except:
         best_best_models[scoring_col] = best_best_models[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
 
-    best_best_models = best_best_models.sort_values(by=['y_label',scoring_col],ascending=ascending)
+    best_best_models = best_best_models.sort_values(by=['y_label',scoring_col],ascending=ascending).reset_index(drop=True)
 
     best_best_best_models = pd.DataFrame(columns=best_best_models.columns)
     if isinstance(y_labels,dict):
@@ -259,6 +259,8 @@ for scoring in scoring_metrics:
         y_labels_ = y_labels
 
     for y_label,dimension,task in itertools.product(y_labels_,dimensions,tasks):
-        best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['dimension'] == dimension) & (best_best_models['task'] == task)].iloc[0].values
+        idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['dimension'] == dimension) & (best_best_models['task'] == task)].index[0]
+        
+        best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
     
     best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)

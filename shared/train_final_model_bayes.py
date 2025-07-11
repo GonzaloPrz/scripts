@@ -135,7 +135,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
         y_label = row.y_label
         model_type = row.model_type
         
-        if model_type == 'lasso':
+        if model_type == 'lasso' or model_type == 'svc':
             continue
         print(task,dimension,y_label,model_type)
         path_to_results = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
@@ -250,9 +250,9 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                     continue
                 plt.close()
 
-            if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl').exists() and not overwrite:
-                print('Model already exists')
-                continue
+            #if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl').exists() and not overwrite:
+            #    print('Model already exists')
+            #    continue
             
             if not Path(path_to_results,random_seed,f'all_models_{model_type}.csv').exists():
                 continue
