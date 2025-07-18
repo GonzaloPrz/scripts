@@ -29,13 +29,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='GERO_Ivo',type=str,help='Project name')
+    parser.add_argument('--project_name', default='Proyecto_Ivo',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
-    parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
+    parser.add_argument('--shuffle_labels', type=int, default=1, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=int, default=3, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=int, default=11, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--init_points', type=int, default=50, help='Number of random initial points to test during Bayesian optimization')
@@ -49,7 +49,7 @@ def parse_args():
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
+    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
@@ -201,12 +201,22 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 all_data = pd.read_csv(Path(data_dir,data_file))
             else:
                 all_data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
-            
+
+            all_features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
+
+            if len(config["avoid_stats"]) > 0:
+                all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
+                
+            data = all_data[all_features + [y_label, config['id_col']]]
+            data.dropna(subset=y_label,inplace=True)
+
             if problem_type == 'clf':
                 all_data[y_label] = all_data[y_label].map({"MCI":0,"AD":1,0:0,1:1,2:2})
 
             if problem_type == 'reg' and config['filter_outliers']:
                 all_data = all_data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
+
+            y = data.pop(y_label)
 
             if config['shuffle_labels'] and problem_type == 'clf':
                 np.random.seed(0)
@@ -226,18 +236,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 #Perform random permutations of the labels
                 y = np.random.permutation(y)
         
-            all_features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
-
-            if len(config["avoid_stats"]) > 0:
-                all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
-                
-            data = all_data[all_features + [y_label,config['id_col']]]
-            data.dropna(subset=y_label,inplace=True)
             features = all_features
             
             ID = data.pop(config['id_col'])
-
-            y = data.pop(y_label)
             
             if (problem_type == 'reg') & ('group' in data.columns) & (config['stratify']):
                 strat_col = data.pop('group')

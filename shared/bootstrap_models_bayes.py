@@ -135,8 +135,8 @@ for scoring in scoring_metrics:
                     
                     if not overwrite and all_results.shape[0] > 0:
                         row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
-                        #if len(row) > 0:
-                        #    continue
+                        if len(row) > 0:
+                            continue
 
                     if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                         continue
@@ -258,9 +258,11 @@ for scoring in scoring_metrics:
     else:
         y_labels_ = y_labels
 
-    for y_label,dimension,task in itertools.product(y_labels_,dimensions,tasks):
-        idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['dimension'] == dimension) & (best_best_models['task'] == task)].index[0]
-        
-        best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
+    for y_label,task in itertools.product(y_labels_,tasks):
+        try:
+            idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task)].index[0]
+            best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
+        except:
+            continue
     
     best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)
