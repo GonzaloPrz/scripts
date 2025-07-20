@@ -4,13 +4,15 @@ import statsmodels.api as sm
 from scipy.stats import shapiro
 from scipy.stats import ttest_ind,ttest_rel,mannwhitneyu, wilcoxon
 import numpy as np
+import itertools
 
 # Load the dataset
 project_name = 'MCI_classifier_unbalanced'
 datafile = 'data_matched_group.csv' if 'unbalanced' not in project_name else 'data_matched_unbalanced_group.csv'
 output = 'group'
+tasks = ['bio','fas','animales','fas__animales','grandmean']
 subsets = ['bio','speech_timing','word_properties','speech_timing__word_properties']
-stats_to_remove = ['median','min','max','skewness','kurtosis']
+stats_to_remove = ['median','min','max','skewness','kurtosis','std']
 filter_outliers = False
 
 data_dir = Path(Path.home() if "Users/gp" in str(Path.home())else r'D:\CNC_Audio\gonza','data',project_name)
@@ -24,8 +26,8 @@ else:
 #subsets = ['voice_quality','pitch','speech_timing']
 ids_to_remove = []
 
-for subset in subsets:
-    predictors = [col for col in data.columns if (any([x in col for x in subset.split('__')])) and (all(f'_{x}' not in col for x in stats_to_remove))]
+for task,subset in itertools.product(tasks,subsets):
+    predictors = [col for col in data.columns if (any([f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),subset.split('__'))])) and (all(f'_{x}' not in col for x in stats_to_remove))]
     data = data.dropna(subset=predictors)
 
     # Define the dependent and independent variables
@@ -40,6 +42,9 @@ for subset in subsets:
             X = data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) < 1.5*iqr,predictor]
             y = data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) < 1.5*iqr,output]
             ids_to_remove += list(data.loc[np.abs(data[predictor] - np.nanmedian(data[predictor])) > 1.5*iqr,'id'])
+        else:
+            X = data[predictor]
+            y = data[output]
 
         shapiro_results = shapiro(X)
         if shapiro_results[1] > 0.05:    
