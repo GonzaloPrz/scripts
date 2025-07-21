@@ -129,9 +129,9 @@ if problem_type == 'clf':
                     
             outputs_filename = f'outputs_{model_name}.pkl'
             try:
-                config['shuffle'] = False
+                config['shuffle_labels'] = False
                 outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_name,'',config, bayes=True, scoring=scoring)
-                config['shuffle'] = True
+                config['shuffle_labels'] = True
                 outputs_shuffle, y_dev_shuffle = utils._load_data(results_dir, task, dimension, y_label,model_name, '', config, bayes=True, scoring=scoring)
             except:
                 continue
