@@ -128,11 +128,13 @@ if problem_type == 'clf':
                 random_seed = row.random_seed_test
                     
             outputs_filename = f'outputs_{model_name}.pkl'
-            config['shuffle'] = False
-            outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_name,'',config, bayes=True, scoring=scoring)
-            config['shuffle'] = True
-            outputs_shuffle, y_dev_shuffle = utils._load_data(results_dir, task, dimension, y_label,model_name, '', config, bayes=True, scoring=scoring)
-
+            try:
+                config['shuffle'] = False
+                outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_name,'',config, bayes=True, scoring=scoring)
+                config['shuffle'] = True
+                outputs_shuffle, y_dev_shuffle = utils._load_data(results_dir, task, dimension, y_label,model_name, '', config, bayes=True, scoring=scoring)
+            except:
+                continue
             # Ensure the datasets are comparable
             try:
                 assert y_dev.shape == y_dev_shuffle.shape, "y_dev shapes must match for paired comparison!"
