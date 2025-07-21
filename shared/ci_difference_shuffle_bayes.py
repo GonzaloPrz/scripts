@@ -1,16 +1,20 @@
-import pickle,json,os,sys,itertools
+import seaborn as sns
 import pandas as pd
-from pathlib import Path
 import numpy as np
+from pathlib import Path
+import itertools, sys, pickle, tqdm, warnings, json, os
+import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
+from expected_cost.utils import plot_hists
+from scipy.stats import ttest_rel
+from scipy.stats import wilcoxon
 from scipy.stats import bootstrap, percentileofscore
-from expected_cost.ec import CostMatrix
-from confidenceinterval.bootstrap import bootstrap_ci
-from scipy.stats import ttest_1samp, wilcoxon, shapiro
 
-sys.path.append(str(Path(Path.home(),"scripts_generales"))) if "Users/gp" in str(Path.home()) else sys.path.append(str(Path(Path.home(),"gonza","scripts_generales")))
+sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
 import utils
+
+warnings.filterwarnings('ignore')
 
 def _calculate_metric_diffs(indices, outputs1, y_dev1, outputs2, y_dev2, metrics, prob_type, cost_matrix):
     """
@@ -41,95 +45,106 @@ def _calculate_metric_diffs(indices, outputs1, y_dev1, outputs2, y_dev2, metrics
     # Return an array of differences
     return np.array([metrics1[m] - metrics2[m] for m in metrics])
 
-tasks_list = [
-              ['Animales','brain'],
-              ['Animales','cog']
-
-]
-dimensions_list = [
-                   ['properties','norm_brain_lit'],
-                   ['properties','neuropsico_tmt']
-]
-
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-project_name = config["project_name"]
+project_name = config['project_name']
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
-avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = config['feature_selection']
+bayes = bool(config['bayes'])
+feature_selection = bool(config['feature_selection'])
 filter_outliers = config['filter_outliers']
-n_boot = int(config["n_boot"])
-problem_type = config["problem_type"]
-calibrate = bool(config["calibrate"])
+test_size = float(config['test_size'])
+n_boot = int(config['n_boot'])
+calibrate = bool(config['calibrate'])
+from expected_cost.ec import CostMatrix
 
-home = Path(os.environ.get("HOME", Path.home()))
-if "Users/gp" in str(home):
+home = Path(os.environ.get('HOME', Path.home()))
+if 'Users/gp' in str(home):
     results_dir = home / 'results' / project_name
 else:
-    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+    results_dir = Path('D:/CNC_Audio/gonza/results', project_name)
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
+scoring_metrics = main_config['scoring_metrics'][project_name]
+metrics_names = main_config['metrics_names'][main_config['problem_type'][project_name]]
+tasks = main_config['tasks'][project_name]
 y_labels = main_config['y_labels'][project_name]
-scoring_metrics = [main_config['scoring_metrics'][project_name]]
-problem_type = main_config['problem_type'][project_name]
-metrics_names = main_config["metrics_names"][main_config["problem_type"][project_name]]
-data_file = main_config["data_file"][project_name]
-
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
-for scoring in scoring_metrics:
-    extremo = 1 if 'norm' in scoring else 0
-    ascending = True if extremo == 1 else False
+if isinstance(scoring_metrics,str):
+    scoring_metrics = [scoring_metrics]
 
-    best_models_file = f'best_best_models_{data_file.split(".")[0]}_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
-    if not hyp_opt:
-        best_models_file = best_models_file.replace('_hyp_opt','')
-    if not feature_selection:
-        best_models_file = best_models_file.replace('_feature_selection','')
-    if not shuffle_labels:
-        best_models_file = best_models_file.replace('_shuffled','')
-    if not calibrate:
-        best_models_file = best_models_file.replace('_calibrated','')
-    
-    best_models = pd.read_csv(Path(results_dir,best_models_file))
-    scoring_col = f'{scoring}_extremo'
-    best_models[scoring_col] = best_models[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
-    best_models = best_models[best_models[scoring_col].astype(str) != 'nan'].reset_index(drop=True)
-    
-    all_results = pd.DataFrame()
+problem_type = main_config['problem_type'][project_name]
 
-    for tasks, dimensions in zip(tasks_list, dimensions_list):
-        for y_label in y_labels:
+# Set the style for the plots
+sns.set(style='whitegrid')
+plt.rcParams.update({
+    'font.size': 12,
+    'axes.titlesize': 14,
+    'axes.labelsize': 12,
+    'xtick.labelsize': 10,
+    'ytick.labelsize': 10,
+    'legend.fontsize': 12,
+    'figure.titlesize': 16
+})
 
-            # Find best models for each task/dimension
-            best1 = best_models[(best_models.task == tasks[0]) & (best_models.dimension == dimensions[0]) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
-            best2 = best_models[(best_models.task == tasks[1]) & (best_models.dimension == dimensions[1]) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
+if problem_type == 'clf':
+    for scoring in scoring_metrics:
+        all_results = pd.DataFrame()
+        extremo = 'sup' if 'norm' in scoring else 'inf'
+        ascending = True if extremo == 'sup' else False
 
-            if best1.empty or best2.empty:
-                print(f"Skipping: No best model found for combination {tasks}, {dimensions}, {y_label}")
+        best_models_filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_calibrated_bayes.csv'.replace('__','_')
+        if not hyp_opt:
+            best_models_filename = best_models_filename.replace('_hyp_opt','')
+        if not feature_selection:
+            best_models_filename = best_models_filename.replace('_feature_selection','')
+        if not calibrate:
+            best_models_filename = best_models_filename.replace('_calibrated','')
+
+        best_models = pd.read_csv(Path(results_dir,best_models_filename))
+
+        tasks = best_models['task'].unique()
+        dimensions = best_models['dimension'].unique()    
+
+        for task,dimension,y_label in itertools.product(tasks,dimensions,y_labels):
+
+            print(task, dimension)
+            path_to_results = Path(results_dir, task, dimension, scaler_name, kfold_folder, y_label, stat_folder,'bayes',scoring,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers and problem_type == 'reg' else '')
+
+            row = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]
+            if row.empty:
                 continue
-
-            # Load data for both models
-            outputs1, y_dev1 = utils._load_data(results_dir,tasks[0],dimensions[0],y_label,best1.model_type,'',config, bayes=True, scoring=scoring)
-            outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
+                
+            model_name = row['model_type'].values[0]
+            
+            if str(row['random_seed_test']) == 'nan':
+                random_seed = ''
+            else:
+                random_seed = row.random_seed_test
+                    
+            outputs_filename = f'outputs_{model_name}.pkl'
+            config['shuffle'] = False
+            outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_name,'',config, bayes=True, scoring=scoring)
+            config['shuffle'] = True
+            outputs_shuffle, y_dev_shuffle = utils._load_data(results_dir, task, dimension, y_label,model_name, '', config, bayes=True, scoring=scoring)
 
             # Ensure the datasets are comparable
             try:
-                assert y_dev1.shape == y_dev2.shape, "y_dev shapes must match for paired comparison!"
+                assert y_dev.shape == y_dev_shuffle.shape, "y_dev shapes must match for paired comparison!"
             except:
-                print(f"Shape mismatch for {tasks[0]}, {tasks[1]}")
+                print(f"Shape mismatch for {task}, {dimension}")
                 continue
             # Prepare data for bootstrap: a tuple of index arrays to resample
-            data_indices = (np.arange(y_dev1.shape[-1]),)
+            data_indices = (np.arange(y_dev.shape[-1]),)
 
             # Define the statistic function with data baked in
             stat_func = lambda indices: _calculate_metric_diffs(
-                indices, outputs1, y_dev1, outputs2, y_dev2, 
+                indices, outputs, y_dev, outputs_shuffle, y_dev_shuffle, 
                 metrics_names, problem_type, cmatrix
             )
 
@@ -163,8 +178,8 @@ for scoring in scoring_metrics:
                 bootstrap_method = 'percentile'
             # Store results for this comparison
             result_row = {
-                "tasks": f'[{tasks[0]}, {tasks[1]}]',
-                "dimensions": f'[{dimensions[0]}, {dimensions[1]}]',
+                "task": task,
+                "dimension": dimension,
                 "y_label": y_label,
                 "bootstrap method": bootstrap_method
             }
@@ -180,9 +195,9 @@ for scoring in scoring_metrics:
                 all_results = pd.DataFrame(columns=result_row.keys())
             
             all_results.loc[len(all_results.index),:] = result_row
-
+    
     # --- Save Final Results ---
-    output_filename = Path(results_dir, f'ic_diff_{scoring}_bayes.csv') # Assumes one scoring metric for filename
+    output_filename = Path(results_dir, f'ic_diff_{scoring}_shuffle_bayes.csv') # Assumes one scoring metric for filename
     all_results.to_csv(output_filename, index=False)
     print(f"Confidence interval differences saved to {output_filename}")
     

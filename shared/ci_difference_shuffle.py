@@ -23,11 +23,13 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 stat_folder = config['stat_folder']
 hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = True if config['n_iter_features'] > 0 else False
+bayes = bool(config['bayes'])
+feature_selection = bool(config['feature_selection'])
 filter_outliers = config['filter_outliers']
 rewrite = bool(config['rewrite'])
 test_size = float(config['test_size'])
 n_boot = int(config['n_boot'])
+calibrate = bool(config['calibrate'])
 
 home = Path(os.environ.get('HOME', Path.home()))
 if 'Users/gp' in str(home):
