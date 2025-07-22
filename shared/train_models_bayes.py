@@ -210,9 +210,6 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
             data = all_data[all_features + [y_label, config['id_col']]]
             data.dropna(subset=y_label,inplace=True)
 
-            if problem_type == 'clf':
-                all_data[y_label] = all_data[y_label].map({"MCI":0,"AD":1,0:0,1:1,2:2})
-
             if problem_type == 'reg' and config['filter_outliers']:
                 all_data = all_data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
 

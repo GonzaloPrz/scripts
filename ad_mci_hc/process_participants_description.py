@@ -78,7 +78,7 @@ for r, row in df.iterrows():
     max_similarities_dict.update(dict((f'most_similar_sentence_concept_{i}',f"{video_sentences[i]}: {sentences[argmax_similarities[i]]}") for i in range(len(argmax_similarities))))
     max_similarities_dict.update({f'fugu__text__number_of_omissions':sum(np.array(max_similarities) < .5)/ len(max_similarities)})
     max_similarities_dict.update({f'fugu__text__number_of_hallucinations':sum(np.array(max_similarities_hallucinations) < .5)/len(max_similarities_hallucinations)})
-    max_similarities_dict.update({f'fugu__text__number_of_sentences_retelling':sum(np.array(max_similarities_hallucinations) < .5)/len(max_similarities_hallucinations)})
+    max_similarities_dict.update({f'fugu__text__number_of_sentences_retelling':len(max_similarities_hallucinations)})
 
     if distances.empty:
         distances = pd.DataFrame(max_similarities_dict,index=[0])
