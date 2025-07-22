@@ -47,12 +47,12 @@ def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_bo
     return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
 filter_outliers = False
-all_stats = False
+all_stats = True
 
-project_name = 'arequipa'
+project_name = 'ad_mci_hc'
 hyp_opt = True
-shuffle_labels = True
-feature_selection = False
+shuffle_labels = False
+feature_selection = True
 n_folds = 5
 n_models_ = 0
 
@@ -203,32 +203,6 @@ else:
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 
-log_file = Path(results_dir,Path(__file__).stem + '.log')
-
-logging.basicConfig(
-    level=logging.DEBUG,  # Log all messages (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(log_file),  # Log to a file
-        logging.StreamHandler(sys.stdout)  # Keep output in the terminal as well
-    ]
-)
-
-# Redirect stdout and stderr to the logger
-class LoggerWriter:
-    def __init__(self, level):
-        self.level = level
-
-    def write(self, message):
-        if message.strip():  # Avoid logging blank lines
-            self.level(message)
-
-    def flush(self):  # Required for file-like behavior
-        pass
-
-sys.stdout = LoggerWriter(logging.info)
-sys.stderr = LoggerWriter(logging.error)
-
 for task,model,y_label,scoring in itertools.product(tasks[project_name],models[project_name],y_labels[project_name],scoring_metrics[project_name]):    
     
     dimensions = list()
@@ -287,60 +261,46 @@ for task,model,y_label,scoring in itertools.product(tasks[project_name],models[p
             if outputs.shape[-2] != y_dev.shape[-1]:
                 print('Mismatch between outputs and y_dev shapes')
                 continue
-            try:
-                if y_dev.ndim == 4:
-                    y_dev = y_dev.squeeze(axis=0)
-                for i in range(outputs.shape[0]):
-                    scorings_i = np.empty((outputs.shape[1],outputs.shape[2]))
-                    for j,r in itertools.product(range(outputs.shape[1]),range(outputs.shape[2])):
-                        if problem_type[project_name] == 'clf':
-                            metrics, y_pred = get_metrics_clf(outputs[i,j,r], y_dev[j,r], [scoring], cmatrix)
-                            scorings_i[j,r] = metrics[scoring]
-                        else:
-                            metrics = get_metrics_reg(outputs[i,j,r], y_dev[j,r],[scoring])
-                            scorings_i[j,r] = metrics[scoring]
-                    scorings[i] = np.nanmean(scorings_i.flatten())
-                
-                scorings = scorings if any(x in scoring for x in ['norm','error']) else -scorings
-
-                best_models = np.argsort(scorings)[:n_models]
+            if y_dev.ndim == 4:
+                y_dev = y_dev.squeeze(axis=0)
+            for i in range(outputs.shape[0]):
+                scorings_i = np.empty((outputs.shape[1],outputs.shape[2]))
+                for j,r in itertools.product(range(outputs.shape[1]),range(outputs.shape[2])):
+                    if problem_type[project_name] == 'clf':
+                        metrics, y_pred = get_metrics_clf(outputs[i,j,r], y_dev[j,r], [scoring], cmatrix)
+                        scorings_i[j,r] = metrics[scoring]
+                    else:
+                        metrics = get_metrics_reg(outputs[i,j,r], y_dev[j,r],[scoring])
+                        scorings_i[j,r] = metrics[scoring]
+                scorings[i] = np.nanmean(scorings_i.flatten())
             
-                all_models = all_models.iloc[best_models].reset_index(drop=True)
-                all_models['idx'] = best_models
-                outputs = outputs[best_models]
+            scorings = scorings if any(x in scoring for x in ['norm','error']) else -scorings
+
+            best_models = np.argsort(scorings)[:n_models]
+        
+            all_models = all_models.iloc[best_models].reset_index(drop=True)
+            all_models['idx'] = best_models
+            outputs = outputs[best_models]
+     
+            metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],outputs.shape[2],n_boot))) for metric in metrics_names[problem_type[project_name]])
             
-                outputs_bootstrap = np.empty((n_boot,) + outputs.shape)
-                y_dev_bootstrap = np.empty((n_boot,) + y_dev.shape)
-                y_pred_bootstrap = np.empty((n_boot,)+outputs.shape) if problem_type[project_name] == 'reg' else np.empty((n_boot,)+outputs.shape[:-1])
-                
-                metrics = dict((metric,np.empty((len(all_models),outputs.shape[1],outputs.shape[2],n_boot))) for metric in metrics_names[problem_type[project_name]])
-                
-                with open(Path(path,random_seed,'config_bootstrap.json'),'w') as f:
-                    json.dump(config_bootstrap,f)
+            with open(Path(path,random_seed,'config_bootstrap.json'),'w') as f:
+                json.dump(config_bootstrap,f)
 
-                if np.isnan(outputs).sum() > len(outputs.flatten())/5:
-                    continue
-
-                all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, j, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index,j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
-
-                # Update the metrics array with the computed results
-                for model_index,j,r, metrics_result in tqdm.tqdm(all_results):
-                    for metric in metrics_names[problem_type[project_name]]:
-                        metrics[metric][model_index,j,r,:] = metrics_result[metric]
-
-                # Update the summary statistics in all_models
-                for model_index in tqdm.tqdm(range(outputs.shape[0])):
-                    for metric in metrics_names[problem_type[project_name]]:
-                        all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(5)
-                        all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(5)
-                        all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(5)
-                all_models.to_csv(Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv')) if all_models_bool == False else all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_bca.csv')) 
-            except:
+            if np.isnan(outputs).sum() > len(outputs.flatten())/5:
                 continue
-                #pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_{model}.pkl'),'wb'))
-                #pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap_{model}.pkl'),'wb'))
-                #pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
-                #pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}_bca_{scoring}.pkl'),'wb'))
-            #except Exception as e:
-            #    print(e)
-            #    continue
+
+            all_results = Parallel(n_jobs=-1)(delayed(compute_metrics)(model_index, j, r, outputs, y_dev, metrics_names, n_boot, problem_type, project_name) for model_index,j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[1]),range(outputs.shape[2])))
+
+            # Update the metrics array with the computed results
+            for model_index,j,r, metrics_result in tqdm.tqdm(all_results):
+                for metric in metrics_names[problem_type[project_name]]:
+                    metrics[metric][model_index,j,r,:] = metrics_result[metric]
+
+            # Update the summary statistics in all_models
+            for model_index in tqdm.tqdm(range(outputs.shape[0])):
+                for metric in metrics_names[problem_type[project_name]]:
+                    all_models.loc[model_index, f'{metric}_mean'] = np.nanmean(metrics[metric][model_index].flatten()).round(5)
+                    all_models.loc[model_index, f'{metric}_inf'] = np.nanpercentile(metrics[metric][model_index].flatten(), 2.5).round(5)
+                    all_models.loc[model_index, f'{metric}_sup'] = np.nanpercentile(metrics[metric][model_index].flatten(), 97.5).round(5)
+            all_models.to_csv(Path(path,random_seed,f'best_models_{model}_dev_bca_{scoring}.csv')) if all_models_bool == False else all_models.to_csv(Path(path,random_seed,f'all_models_{model}_dev_bca.csv')) 

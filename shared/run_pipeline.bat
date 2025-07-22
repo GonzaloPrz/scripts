@@ -90,11 +90,13 @@ if "%n_iter_features%"=="0" (
     set "feature_selection=0"
 )
 
-call "C:\Users\CNC Audio\gonza\gonza-env\Scripts\activate"
+:: Activate base conda environment
+::call "C:\Users\udesa\anaconda3\Scripts\activate" base
 
-python "C:\Users\CNC Audio\gonza\scripts\shared\train_models.py" "%project_name%" "%hyp_opt%" "%all_stats%" "%shuffle_labels%" "%stratify%" "%k%" "%n_iter%" "%n_iter_features%" "%feature_sample_ratio%"
-python "C:\Users\CNC Audio\gonza\scripts\shared\bootstrap_models_bca.py" "%project_name%" "%hyp_opt%" "%all_stats%" "%shuffle_labels%" "%feature_selection%" "%k%" "%n_models%"
-python "C:\Users\CNC Audio\gonza\scripts\shared\test_models.py" "%project_name%" "%hyp_opt%" "%all_stats%" "%shuffle_labels%" "%k%"
+:: Run Python scripts
+python "C:\Users\udesa\gonza\scripts\shared\train_models.py %project_name% %hyp_opt% %all_stats% %shuffle_labels% %stratify% %k% %n_iter% %n_iter_features% %feature_sample_ratio%
+python "C:\Users\udesa\gonza\scripts\shared\bootstrap_models_bca.py" "%project_name%" "%hyp_opt%" "%all_stats%" "%shuffle_labels%" "%feature_selection%" "%k%" "%n_models%"
+python "C:\Users\udesa\gonza\scripts\shared\test_models.py" "%project_name%" "%hyp_opt%" "%all_stats%" "%shuffle_labels%" "%k%"
 
 :: Display used parameters
 echo Pipeline executed with:
