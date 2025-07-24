@@ -26,7 +26,7 @@
             "group"
         ],
         "ad_mci_hc_ct": [
-            "cognitive_impairment"
+            "group"
         ],
         "ad_mci_hc_chile": [
             "group"
@@ -139,11 +139,8 @@
             "image-description",
             "pleasant-memory",
             "routine",
-            "image-description__pleasant-memory",
-            "pleasant-memory__routine",
-            "image-description__routine",
-            "image-description__pleasant-memory__routine"
-        ],
+            "image-description__pleasant-memory"
+            ],
         "ad_mci_hc_chile": [
             "fugu"
                 ],
@@ -444,7 +441,7 @@
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
         "ad_mci_fugu": "filtered_data_no_hallucinations_matched_group.csv",
-        "ad_mci_hc_ct": "image_pleasant_memory_routine_features_matched_cognitive_impairment.csv",
+        "ad_mci_hc_ct": "image_pleasant_memory_features_matched_group.csv",
         "ad_mci_hc_chile": "data_matched_group.csv",
         "ad_mci_hc_group_as_feature": "data_matched_group.csv",
         "GeroApathy_reg": "all_data_agradable.csv",

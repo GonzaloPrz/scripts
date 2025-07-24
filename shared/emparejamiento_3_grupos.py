@@ -17,7 +17,7 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 target_vars = ['group']
 
 filenames = [
-             'image_pleasant_memory_routine__features.csv'
+             'image_pleasant_memory__features.csv'
             ]
 
 for filename in filenames:
@@ -47,7 +47,7 @@ for filename in filenames:
         for var in matching_vars:
             data.dropna(subset=var,inplace=True)
 
-        caliper = 0.65
+        caliper = 0.5
 
         matched_data = perform_three_way_matching(data, output_var,matching_vars,fact_vars,treatment_values=('AD','MCI','HC'),caliper=caliper)
         matched_data = matched_data.drop_duplicates(subset='id')

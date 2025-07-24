@@ -1,15 +1,15 @@
 {
-    "project_name": "ad_mci_hc_ct",
+    "project_name": "ad_mci_fugu",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 6.0,
-    "n_folds_inner": 7.0,
+    "n_folds_outer": 10.0,
+    "n_folds_inner": 10.0,
     "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 100.0,
+    "init_points": 50.0,
     "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
@@ -21,47 +21,17 @@
     "early_fusion": true,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 0,
+    "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
-    "test_size": 0.0,
-    "data_file": "image_pleasant_memory_routine_features_matched_cognitive_impairment.csv",
+    "test_size": 0.14,
+    "data_file": "filtered_data_no_hallucinations_matched_group.csv",
     "tasks": [
-        "image-description",
-        "pleasant-memory",
-        "routine",
-        "image-description__pleasant-memory",
-        "pleasant-memory__routine",
-        "image-description__routine",
-        "image-description__pleasant-memory__routine"
+        "fugu"
     ],
     "single_dimensions": {
-        "routine": [
-            "talking_intervals",
-            "word_properties"
-        ],
-        "image-description": [
-            "talking_intervals",
-            "word_properties"
-        ],
-        "image-description__routine": [
-            "talking_intervals",
-            "word_properties"
-        ],
-        "image-description__pleasant-memory": [
-            "talking_intervals",
-            "word_properties"
-        ],
-        "pleasant-memory": [
-            "talking_intervals",
-            "word_properties"
-        ],
-        "pleasant-memory__routine": [
-            "talking_intervals",
-            "word_properties"
-        ],
-        "image-description__pleasant-memory__routine": [
-            "talking_intervals",
-            "word_properties"
+        "fugu": [
+            "talking-intervals",
+            "text"
         ]
     },
     "scoring_metrics": [
@@ -69,7 +39,7 @@
     ],
     "problem_type": "clf",
     "y_labels": [
-        "cognitive_impairment"
+        "group"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -81,11 +51,11 @@
         243
     ],
     "random_seeds_test": [
-        ""
+        3
     ],
     "random_seeds_shuffle": [
         ""
     ],
     "bayes": true,
-    "kfold_folder": "6_folds_7_folds"
+    "kfold_folder": "10_folds_10_folds"
 }

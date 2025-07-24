@@ -29,7 +29,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='Proyecto_Ivo',type=str,help='Project name')
+    parser.add_argument('--project_name', default='ad_mci_hc_ct',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
