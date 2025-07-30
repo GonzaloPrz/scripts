@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 
 # Define paths
-base_dir = Path("D:/gperez/Audios/wavs")
+base_dir = Path(Path.home(),'data','redlat') if '/Users/gp' in str(Path.home()) else Path('D:\\CNC_Audio\\data\\redlat')
 
 # Define model names
 dictionary = "spanish_mfa"
@@ -16,7 +16,7 @@ output_path.mkdir(parents=True, exist_ok=True)
 
 # Build the MFA command
 command = [
-    r"C:\Users\gperez\anaconda3\envs\aligner\Scripts\mfa.exe",
+    r"C:\mfa_env\Scripts\mfa.exe",
     "align",
     "--clean",
     str(base_dir),

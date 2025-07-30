@@ -1,5 +1,5 @@
 {
-    "project_name": "ad_mci_fugu",
+    "project_name": "ad_mci_hc",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
@@ -24,14 +24,14 @@
     "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
     "test_size": 0.14,
-    "data_file": "filtered_data_no_hallucinations_matched_group.csv",
+    "data_file": "data_matched_group.csv",
     "tasks": [
         "fugu"
     ],
     "single_dimensions": {
         "fugu": [
             "talking-intervals",
-            "text"
+            "word_properties"
         ]
     },
     "scoring_metrics": [

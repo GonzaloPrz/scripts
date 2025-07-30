@@ -1,0 +1,15 @@
+==== Parámetros de Ejecución ====
+Timestamp: 20250729_144301
+Project name: LLM
+User name: cnc audio
+Input CSV: C:\Users\CNC NLP\Documents\GonzaC\aux - Sheet1.csv
+Base output folder: results
+Result name: results.csv
+---- Flags ----
+Model: gemma3:27b
+Ports: [11435]
+GPUs: [0]
+Jobs: craftim_sequentiality, craftim_textual, fugu_number, imputations
+Models dir: D:\CNC_NLP\ollama
+Runs per prompt: 10
+Consolidation method: average
