@@ -10,8 +10,8 @@ import itertools
 project_name = 'MCI_classifier_unbalanced'
 datafile = 'data_matched_group.csv' if 'unbalanced' not in project_name else 'data_matched_unbalanced_group.csv'
 output = 'group'
-tasks = ['bio','fas','animales','fas__animales','grandmean']
-subsets = ['bio','speech_timing','word_properties','speech_timing__word_properties']
+tasks = ['bio','nps']
+subsets = ['bio','speech_timing','word_properties','speech_timing__word_properties','mmse','TMT','digits','memory','nps']
 stats_to_remove = ['median','min','max','skewness','kurtosis','std']
 filter_outliers = False
 
@@ -59,9 +59,10 @@ for task,subset in itertools.product(tasks,subsets):
                 result = wilcoxon(X[y==0],X[y==1])
                 test = 'Wilcoxon test'
             else:
+                
                 result = mannwhitneyu(X[y==0],X[y==1])
                 test = 'Mann-Whitney U test'
-        print(f"{test} for {predictor}: stat = {result[0].round(2)}, p-value = {result[1].round(3)}")
+        print(f"MCI: {np.nanmean(X[y==1]).round(2)}, ({np.nanstd(X[y==1]).round(2)}), HC: {np.nanmean(X[y==0]).round(2)}, ({np.nanstd(X[y==0]).round(2)}), {test} for {predictor}: stat = {result[0].round(2)}, p-value = {result[1].round(3)}")
 
     data_without_outliers = data.loc[~data.id.isin(ids_to_remove)]
     X = data_without_outliers[predictors]

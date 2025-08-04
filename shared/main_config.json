@@ -58,8 +58,7 @@
         "MPLS": [
             "Minimental"
         ],
-        "AKU_outliers_as_nan": [
-            "sdi0001_age",
+        "AKU_2": [
             "cerad_learn_total_corr",
             "cerad_dr_correct",
             "braveman_dr_total",
@@ -167,7 +166,7 @@
             "animales",
             "palabras_con_f"
         ],
-        "AKU_outliers_as_nan": [
+        "AKU_2": [
             "picture_description",
             "pleasant_memory",
             "routine",
@@ -219,7 +218,7 @@
         "GERO_Ivo": 0.3,
         "GERO_Ivo_competence": 0.3,
         "MPLS": 0,
-        "AKU_outliers_as_nan": 0,
+        "AKU_2": 0,
         "GeroApathy_reg": 0.3,
         "arequipa_reg": 0,
         "arequipa_reg_mci": 0,
@@ -405,10 +404,10 @@
             "pitch_analysis",
             "talking_intervals"
         ],
-        "AKU_outliers_as_nan": [
+        "AKU_2": [
             "pitch",
-            "talking-intervals",
-            "voice-quality"
+            "talking_intervals",
+            "voice_quality"
         ],
         "arequipa_reg": [
             "freeling",
@@ -448,7 +447,7 @@
         "GERO_Ivo": "all_data.csv",
         "GERO_Ivo_competence": "all_data.csv",
         "MPLS": "all_data.csv",
-        "AKU_outliers_as_nan": "all_data_HC_outliers_as_nan.csv",
+        "AKU_2": "all_data.csv",
         "arequipa_reg": "all_data.csv",
         "arequipa_reg_mci":"all_data_matched.csv",
         "arequipa_reg_mci_hc":"all_data_matched.csv",
@@ -477,7 +476,7 @@
         "GERO_Ivo": [null],
         "GERO_Ivo_competence": [null],
         "MPLS": [null],
-        "AKU_outliers_as_nan": [null],
+        "AKU_2": [null],
         "arequipa_reg": [null],
         "arequipa_reg_mci": [null],
         "arequipa_reg_mci_hc": [null],
@@ -498,12 +497,12 @@
         "GeroApathy_reg": "mean_absolute_error",
         "GERO_Ivo": "r2",
         "GERO_Ivo_competence": "r2",
-        "MPLS": "r2_score",
-        "AKU_outliers_as_nan": "r2_score",
+        "MPLS": "r2",
+        "AKU_2": "r2",
         "arequipa_reg": "mean_absolute_error",
-        "arequipa_reg_mci": "r2_score",
-        "arequipa_reg_mci_hc": "r2_score",
-        "GERO_females":"r2_score",
+        "arequipa_reg_mci": "r2",
+        "arequipa_reg_mci_hc": "r2",
+        "GERO_females":"r2",
         "tea_tomi_chu":"roc_auc"
     },
     "problem_type": {
@@ -521,7 +520,7 @@
         "GERO_Ivo": "reg",
         "GERO_Ivo_competence": "reg",
         "MPLS": "reg",
-        "AKU_outliers_as_nan": "reg",
+        "AKU_2": "reg",
         "arequipa_reg":"reg",
         "arequipa_reg_mci":"reg",
         "arequipa_reg_mci_hc":"reg",
@@ -547,7 +546,7 @@
         "GERO_Ivo": ["lasso","ridge","knnr","xgb","svr"],
         "GERO_Ivo_competence": ["lasso","ridge","knnr","xgb","svr"],
         "MPLS": ["lasso","ridge","elastic","svr","knnr","xgbr"],
-        "AKU_outliers_as_nan": ["lasso","ridge","elastic","svr","knnr","xgb"],
+        "AKU_2": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg": ["lasso","ridge","elastic","svr","knnr","xgb"],
         "arequipa_reg_mci": ["lasso","ridge","elastic","svr"],
         "arequipa_reg_mci_hc": ["lasso","ridge","elastic","svr"],
@@ -559,7 +558,8 @@
         "arequipa_reg_mci_hc":["sex","age","education"],
         "GERO_females":["sex","age","education","group"],
         "GERO_Ivo": ["age"],
-        "GERO_Ivo_competence": ["age"]
+        "GERO_Ivo_competence": ["age"],
+        "AKU_2":["sex","age","education","number_of_languages"]
     },
     "cmatrix":{
         "MCI_classifier_unbalanced":null,
@@ -573,6 +573,7 @@
         "GERO_Ivo": null,
         "GERO_Ivo_competence": null,
         "GERO_females":null,
-        "tea_tomi_chu":null
+        "tea_tomi_chu":null,
+        "AKU_2":null
     }
 }

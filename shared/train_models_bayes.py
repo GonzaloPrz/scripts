@@ -29,16 +29,16 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='ad_mci_hc_ct',type=str,help='Project name')
+    parser.add_argument('--project_name', default='AKU_2',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
-    parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
+    parser.add_argument('--stratify', type=int, default=0, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
     parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
     parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
-    parser.add_argument('--init_points', type=int, default=50, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--init_points', type=int, default=15, help='Number of random initial points to test during Bayesian optimization')
     parser.add_argument('--n_seeds_train',type=int,default=5,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
@@ -341,7 +341,12 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                             strat_col_train_ = None
 
                     else:
-                        X_train_, y_train_, ID_train_, strat_col_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True), strat_col.reset_index(drop=True)
+                        X_train_, y_train_, ID_train_ = data.reset_index(drop=True), y.reset_index(drop=True), ID.reset_index(drop=True)
+                        if strat_col is not None:
+                            strat_col_train_ = strat_col.reset_index(drop=True)
+                        else:
+                            strat_col_train_ = None
+                            
                         X_test_, y_test_, ID_test_ = pd.DataFrame(), pd.Series(), pd.Series()
 
                     data_train = pd.concat((X_train_,y_train_,ID_train_),axis=1)
