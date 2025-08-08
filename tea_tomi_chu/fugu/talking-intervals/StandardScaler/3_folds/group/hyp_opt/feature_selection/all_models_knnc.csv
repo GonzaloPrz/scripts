@@ -1,0 +1,10 @@
+n_neighbors,fugu__talking-intervals__speechrate,fugu__talking-intervals__syllable_duration_variability,fugu__talking-intervals__syllable_duration_kurtosis,fugu__talking-intervals__nsyll,fugu__talking-intervals__syllable_duration_skewness,fugu__talking-intervals__mean_syllable_duration,fugu__talking-intervals__pause_duration_variability,fugu__talking-intervals__syllable_duration_max,fugu__talking-intervals__pause_duration_skewness,fugu__talking-intervals__syllable_duration_min,fugu__talking-intervals__pause_duration_min,fugu__talking-intervals__pause_duration_kurtosis,fugu__talking-intervals__mean_pause_duration,fugu__talking-intervals__npauses
+5,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+5,1,0,1,1,1,1,1,1,0,1,0,1,1,0
+5,1,1,0,0,0,1,0,1,1,1,0,1,1,1
+13,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+13,1,0,1,1,1,1,1,1,0,1,0,1,1,0
+13,1,1,0,0,0,1,0,1,1,1,0,1,1,1
+6,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+6,1,0,1,1,1,1,1,1,0,1,0,1,1,0
+6,1,1,0,0,0,1,0,1,1,1,0,1,1,1

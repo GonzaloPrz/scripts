@@ -1,0 +1,308 @@
+import pandas as pd
+import numpy as np
+from pathlib import Path
+import pickle, sys, warnings, json, os
+from scipy.stats import pearsonr, spearmanr, shapiro
+
+warnings.filterwarnings('ignore')
+
+from scipy.stats import bootstrap
+
+from matplotlib import pyplot as plt
+import seaborn as sns
+
+from expected_cost.ec import CostMatrix
+
+from statsmodels.stats.multitest import multipletests
+from pingouin import partial_corr
+
+sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
+
+import utils
+
+late_fusion = False
+
+config = json.load(Path(Path(__file__).parent,'config.json').open())
+
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+stat_folder = config['stat_folder']
+kfold_folder = config['kfold_folder']
+hyp_opt = config["n_iter"] > 0 
+shuffle_labels = config['shuffle_labels']
+feature_selection = config['feature_selection']
+filter_outliers = config['filter_outliers']
+n_boot_test = int(config['n_boot_test'])
+n_boot_train = int(config['n_boot_train'])
+calibrate = bool(config["calibrate"])
+overwrite = bool(config["overwrite"])
+
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
+else:
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
+
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+model_types = main_config['models'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config["data_file"][project_name]
+
+if not isinstance(scoring_metrics,list):
+    scoring_metrics = [scoring_metrics]
+
+problem_type = main_config['problem_type'][project_name]
+covars = main_config["covars"][project_name] if problem_type == 'reg' else []
+metrics_names_ = main_config['metrics_names'][problem_type]
+cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+parallel = bool(config["parallel"])
+
+if isinstance(scoring_metrics,str):
+    scoring_metrics = [scoring_metrics]
+
+problem_type = main_config['problem_type'][project_name]
+
+##---------------------------------PARAMETERS---------------------------------##
+data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
+save_dir = Path(str(data_dir).replace('data','results'))    
+
+results_test = pd.DataFrame()
+
+correction = 'fdr_bh'
+
+covariates = pd.read_csv(Path(data_dir,data_file))[[config["id_col"]]+covars]
+
+method = 'pearson'
+
+for scoring in scoring_metrics:
+    if config["test_size"] == 0:
+        continue
+    filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes_corr_{covars[-1]}.csv'.replace('__','_') if len(covars) > 0 else f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+
+    if not hyp_opt:
+        filename = filename.replace("_hyp_opt","")
+    if not feature_selection:
+        filename = filename.replace("_feature_selection","")
+    if not shuffle_labels:
+        filename = filename.replace("_shuffled","")
+    if not calibrate:
+        filename = filename.replace("_calibrated","")
+    if not problem_type == 'reg':
+        filename = filename.replace(f"_corr_{covars[-1]}","") if len(covars) > 0 else filename.replace("_corr_","")
+
+    best_models = pd.read_csv(Path(results_dir,filename))
+
+    for r, row in best_models.iterrows():
+        task = row['task']
+        dimension = row['dimension']
+        model_type = row['model_type']
+        random_seed_test = row['random_seed_test']
+
+        y_label = row['y_label']
+
+        print(task,dimension,model_type,y_label)
+        try:
+            trained_model = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'model_{model_type}.pkl'),'rb'))
+            trained_scaler = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'scaler_{model_type}.pkl'),'rb'))
+            trained_imputer = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'imputer_{model_type}.pkl'),'rb'))
+        except:
+            continue
+    
+        path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
+
+        X_train = pickle.load(open(Path(path_to_results,random_seed_test,'X_train.pkl'),'rb'))
+        y_train = pickle.load(open(Path(path_to_results,random_seed_test,'y_train.pkl'),'rb'))
+        IDs_train = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_train.pkl'),'rb'))
+
+        X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
+        y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
+        IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
+        params = trained_model.get_params()
+        features = trained_model.feature_names_in_
+        
+        if 'probability' in params.keys():
+            params['probability'] = True
+
+        metrics_names = list(set(metrics_names_) - set(['roc_auc','f1','recall','precision'])) if cmatrix is not None or len(np.unique(y_train)) > 2 else metrics_names_
+        
+        model = utils.Model(type(trained_model)(**params),type(trained_scaler),type(trained_imputer))
+        model.train(X_train[features],y_train.values if isinstance(y_train,pd.Series) else y_train)
+
+        outputs = model.eval(X_test[features],problem_type)
+        
+        subfolders = [
+                task, dimension, config['scaler_name'],
+                config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
+                'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
+                'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
+                'shuffle' if config['shuffle_labels'] else '',random_seed_test
+            ]
+
+        path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
+        
+        pickle.dump(outputs,open(Path(path_to_save,f'outputs_test_{model_type}.pkl'),'wb'))
+        # Prepare data for bootstrap: a tuple of index arrays to resample
+        data_indices = (np.arange(y_test.shape[-1]),)
+
+        # Define the statistic function with data baked in
+        stat_func = lambda indices: utils._calculate_metrics(
+            indices, outputs, y_test.values, 
+            metrics_names, problem_type, cmatrix
+        )
+
+        # 1. Calculate the point estimate (the actual difference on the full dataset)
+        point_estimates = stat_func(data_indices[0])
+
+        # 2. Calculate the bootstrap confidence interval
+        try:
+            # Try the more accurate BCa method first
+            res = bootstrap(
+                data_indices,
+                stat_func,
+                n_resamples=n_boot_test, # Use configured n_boot
+                method=config["bootstrap_method"],
+                vectorized=False,
+                random_state=42
+            )
+            bootstrap_method = config["bootstrap_method"]
+
+        except ValueError as e:
+            # If BCa fails (e.g., due to degenerate samples), fall back to percentile
+            print(f"WARNING: {config['bootstrap_method']} method failed for {task}/{dimension}/{y_label}. Falling back to 'percentile'. Error: {e}")
+            res = bootstrap(
+                data_indices,
+                stat_func,
+                n_resamples=n_boot_test,
+                method='percentile',
+                vectorized=False,
+                random_state=42
+            )
+            bootstrap_method = 'percentile'
+        
+        best_models.loc[r,'bootstrap_method_holdout'] = bootstrap_method
+        for i, metric in enumerate(metrics_names):
+            est = point_estimates[i]
+            ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
+            best_models.loc[r,f'{metric}_holdout'] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
+        
+        if problem_type == 'reg':
+            predictions = pd.DataFrame({'id':IDs_test.values.flatten(),'y_pred':outputs.flatten(),'y_true':y_test.values.flatten()})
+        else:
+            _, y_pred = utils.get_metrics_clf(outputs, y_test, [], cmatrix=cmatrix, priors=None, threshold=None)
+            predictions = {'id':IDs_test.values.flatten(),'y_pred':y_pred.flatten(),'y_true':y_test.values.flatten()}
+            for c in range(outputs.shape[-1]):
+                predictions[f'outputs_class_{c}'] = outputs[:,c].flatten()
+            predictions = pd.DataFrame(predictions)
+
+        predictions = predictions.drop_duplicates('id')
+
+        if problem_type == 'reg':
+            try:
+                idx = best_models[(best_models['task'] == task) &
+                                    (best_models['dimension'] == dimension) &
+                                    (best_models['y_label'] == y_label) &
+                                    (best_models['model_type'] == model_type)].index[0]
+
+            except:
+                continue
+            
+            best_models.loc[idx,['r_holdout','p_value_corrected_holdout','p_holdout','method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout']] = [r,np.nan,p,method,n,str(ci),str(covars),np.nan]
+
+            sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
+            plt.rcParams.update({
+                "font.family": "DejaVu Sans",
+                "axes.titlesize": 26,
+                "axes.labelsize": 20,
+                "xtick.labelsize": 20,
+                "ytick.labelsize": 20
+            })
+            
+            if not covariates.empty:
+                predictions = pd.merge(predictions,covariates,on=config["id_col"],how='inner')
+
+            Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '', random_seed_test).mkdir(exist_ok=True,parents=True)
+
+            with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.pkl'),'wb') as f:
+                pickle.dump(predictions,f)
+            predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.csv'),index=False)
+            '''
+            if all([shapiro(predictions['y_pred'])[1] > 0.05,shapiro(predictions['y_true'])[1] > 0.05]):
+                method = 'pearson'
+            else:
+                method = 'spearman'
+            '''
+
+            try:
+                results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
+                n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
+            except:
+                r, p = pearsonr(predictions['y_pred'], predictions['y_true']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
+                n = predictions.shape[0]
+                ci = np.nan
+
+            save_path = Path(results_dir, f'plots', task, dimension, y_label,
+                            stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
+                            'hyp_opt' if hyp_opt else '',
+                            'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
+                            f'{task}_{y_label}_{dimension}_{model_type}_test.png')
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            plt.figure(figsize=(8, 6))
+            sns.regplot(
+                x='y_pred', y='y_true', data=predictions,
+                scatter_kws={'alpha': 0.6, 's': 50, 'color': '#c9a400'},  # color base
+                line_kws={'color': 'black', 'linewidth': 2}
+            )
+
+            plt.xlabel('Predicted Value')
+            plt.xticks(rotation=45, ha='right')
+            plt.ylabel('True Value')
+            y_labels_dict = {'norm_vol_mask_AD':'ADD mask volume',
+            "norm_vol_bilateral_HIP": 'Hippocampal volume',
+            "ACEIII_Total_Score": 'ACEIII Total Score',
+            "IFS_Total_Score": "IFS Total Score",
+            "nps__nps__IFS_Total_Score": "IFS Total Score",
+            "nps__nps__ACEIII_Total_Score": "ACEIII Total Score",
+            "brain__brain__norm_vol_bilateral_HIP": "Hippocampal volume",
+            "brain__brain__norm_vol_mask_AD": "ADD mask volume"}
+
+            plt.text(0.05, 0.95,
+                    f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
+                    fontsize=30,
+                    transform=plt.gca().transAxes,
+                    verticalalignment='top',
+                    bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+            tasks_dict = {'animales':'Semantic',
+            "grandmean": "Average",
+            "nps":"Cognition",
+            "brain":"Brain"}
+
+            plt.title(f'{tasks_dict[task]} | {y_labels_dict[y_label]}', fontsize=25, pad=15)
+
+            plt.tight_layout()
+            plt.grid(False)
+            try:
+                plt.savefig(save_path, dpi=300)
+            except:
+                continue
+            plt.close()
+
+    if problem_type == 'reg':
+        p_vals = best_models['p_holdout'].values
+        reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
+        best_models['p_value_corrected_holdout'] = p_vals_corrected
+        best_models['p_value_corrected_holdout'] = best_models['p_value_corrected_holdout'].apply(lambda x: f"{x:.2e}" if x < 0.01 else f"{x:.3f}")
+        best_models['r_holdout'] = best_models['r_holdout'].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else np.nan)
+        best_models['p_holdout'] = best_models['p_holdout'].apply(lambda x: f"{x:.2e}" if x < 0.01 else f"{x:.3f}")
+
+        best_models['correction_method_holdout'] = correction
+
+        best_models = best_models[['task','dimension','model_type','y_label','r','p_value_corrected','r_holdout','p_value_corrected_holdout','p_value','p_holdout','method','n','95_ci','covars','correction_method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout','random_seed_test']]
+
+    best_models.to_csv(Path(results_dir,filename.replace('.csv','_test.csv')),index=False)

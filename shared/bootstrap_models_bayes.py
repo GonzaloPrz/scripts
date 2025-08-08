@@ -3,168 +3,266 @@ import pickle
 from pathlib import Path
 from expected_cost.utils import *
 import itertools
-from joblib import Parallel, delayed
-import sys,tqdm,json
-from pingouin import compute_bootci
+import sys,json
 import numpy as np
+from scipy.stats import bootstrap
+
+from expected_cost.ec import CostMatrix
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
-from utils import *
+import utils
 
-def get_metrics_bootstrap(samples, targets, metrics_names, random_state=42, n_boot=2000, decimals=5,cmatrix=None, priors=None, problem_type='clf'):
-    assert samples.shape[0] == targets.shape[0]
-    
-    metrics_ci = dict((metric,(np.empty(0),np.empty((0,2)))) for metric in metrics_names)
-    all_metrics = dict((metric,np.empty(n_boot)) for metric in metrics_names)
-    
-    for metric in metrics_names:
-        def get_metric(indices):
-            if problem_type == 'clf':
-                metric_value, y_pred = get_metrics_clf(samples[indices], targets[indices], [metric], cmatrix)
-            else:
-                metric_value = get_metrics_reg(samples[indices], targets[indices], [metric])
-            return metric_value[metric]
-                    
-        results = compute_bootci(x=np.arange(targets.shape[0]),func=get_metric,n_boot=n_boot,method='cper',seed=random_state,return_dist=True,decimals=decimals)
-        metrics_ci[metric] = (np.round(np.nanmean(results[1]),2),results[0])
-        all_metrics[metric] = results[1]
-
-    return metrics_ci, all_metrics
 ##---------------------------------PARAMETERS---------------------------------##
-project_name = 'GeroApathy'
+config = json.load(Path(Path(__file__).parent,'config.json').open())
 
-feature_selection = True
-filter_outliers = True
-shuffle_labels = False
-n_folds = 5
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+hyp_opt = True if int(config['n_iter']) > 0 else False
+feature_selection = bool(config['feature_selection'])
+filter_outliers = config['filter_outliers']
+n_boot = int(config["n_boot"])
+calibrate = bool(config["calibrate"])
+overwrite = bool(config["overwrite"])
 
-n_boot = 200
-scaler_name = 'StandardScaler'
-id_col = 'id'
-
-l2ocv = False
-# Check if required arguments are provided
-if len(sys.argv) > 1:
-    #print("Usage: python bootstrap_models_bca.py <project_name> [hyp_opt] [filter_outliers] [shuffle_labels] [feature_selection] [k]")
-    project_name = sys.argv[1]
-if len(sys.argv) > 2:
-    feature_selection = bool(int(sys.argv[2]))
-if len(sys.argv) > 3:
-    filter_outliers = bool(int(sys.argv[3]))
-if len(sys.argv) > 4:
-    shuffle_labels = bool(int(sys.argv[4]))
-if len(sys.argv) > 5:
-    n_folds = int(sys.argv[5])
-
-models = {'MCI_classifier':['lr','svc','knnc','xgb'],
-          'tell_classifier':['lr','svc','knnc','xgb'],
-          'Proyecto_Ivo':['lr','svc','knnr','xgb'],
-          'GeroApathy':['lr','svc','knnr','xgb'],
-          'GeroApathy_reg':['elastic','lasso','ridge','knnr','svr'],
-            'GERO_Ivo':['elastic','lasso','ridge','knnr','svr']
-            }
-
-tasks = {'tell_classifier':['MOTOR-LIBRE'],
-         'MCI_classifier':['fas','animales','fas__animales','grandmean'],
-         'Proyecto_Ivo':['Animales','P','Animales__P','cog','brain','AAL','conn'],
-         'GeroApathy':['agradable'],
-         'GeroApathy_reg':['agradable'],
-         'GERO_Ivo':['animales','grandmean','fas__animales','fas']
-         }
-
-single_dimensions = {'tell_classifier':['voice-quality','talking-intervals','pitch'],
-                     'MCI_classifier':['talking-intervals','psycholinguistic'],
-                     'Proyecto_Ivo':[],
-                     'GERO_Ivo':[],
-                     'GeroApathy':[],
-                     'GeroApathy_reg':[]}
-
-problem_type = {'tell_classifier':'clf',
-                'MCI_classifier':'clf',
-                'Proyecto_Ivo':'clf',
-                'GERO_Ivo':'reg',
-                'GeroApathy':'clf',
-                'GeroApathy_reg':'reg'}
-
-metrics_names = {'clf':['roc_auc','accuracy','recall','f1','norm_expected_cost','norm_cross_entropy'],
-                'reg':['r2_score','mean_squared_error','mean_absolute_error']}
-
-y_labels = {'MCI_classifier':['target'],
-            'tell_classifier':['target'],
-            'Proyecto_Ivo':['target'],
-            'GERO_Ivo':['MMSE_Total_Score'],
-            'GeroApathy':['DASS_21_Depression_V_label','AES_Total_Score_label'
-                          ,'Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label',
-                          'MiniSea_minisea_total_label'],
-            'GeroApathy_reg':['DASS_21_Depression_V','AES_Total_Score'
-                          ,'Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces',
-                          'MiniSea_minisea_total'],
-            }
-
-if l2ocv:
-    kfold_folder = 'l2ocv'
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
 else:
-    kfold_folder = f'{n_folds}_folds'
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
-results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path(r'D:\CNC_Audio','gonza','results',project_name)
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
-conf_int_metrics = pd.DataFrame(columns=['task','dimension','y_label','model_type','metric','mean','95_ci'])
+y_labels = main_config['y_labels'][project_name]
+tasks = main_config['tasks'][project_name]
+test_size = main_config['test_size'][project_name]
+single_dimensions = main_config['single_dimensions'][project_name]
+data_file = main_config['data_file'][project_name]
+thresholds = main_config['thresholds'][project_name]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+if not isinstance(scoring_metrics,list):
+    scoring_metrics = [scoring_metrics]
 
-for task,model,y_label in itertools.product(tasks[project_name],models[project_name],y_labels[project_name]):    
+problem_type = main_config['problem_type'][project_name]
+models = main_config["models"][project_name]
+metrics_names = main_config["metrics_names"][problem_type]
+cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+
+config = json.load(Path(Path(__file__).parent,'config.json').open())
+
+project_name = config["project_name"]
+scaler_name = config['scaler_name']
+kfold_folder = config['kfold_folder']
+shuffle_labels = config['shuffle_labels']
+avoid_stats = config["avoid_stats"]
+stat_folder = config['stat_folder']
+n_boot = int(config["n_boot"])
+problem_type = config["problem_type"]
+
+home = Path(os.environ.get("HOME", Path.home()))
+if "Users/gp" in str(home):
+    results_dir = home / 'results' / project_name
+else:
+    results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
+
+main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
+
+y_labels = main_config['y_labels'][project_name]
+scoring_metrics = main_config['scoring_metrics'][project_name]
+
+if not isinstance(scoring_metrics,list):
+    scoring_metrics = [scoring_metrics]
     
-    dimensions = list()
+problem_type = main_config['problem_type'][project_name]
+metrics_names = main_config["metrics_names"][main_config["problem_type"][project_name]]
+tasks = main_config["tasks"][project_name]
+cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
-    for ndim in range(1,len(single_dimensions[project_name])+1):
-        for dimension in itertools.combinations(single_dimensions[project_name],ndim):
-            dimensions.append('__'.join(dimension))
+for scoring in scoring_metrics:
+    scoring_col = f'{scoring}_extremo'
+
+    extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
+    ascending = any(x in scoring for x in ['error','norm'])
+
+    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+    if not hyp_opt:
+            output_filename = output_filename.replace('_hyp_opt','')
+    if not feature_selection:
+        output_filename = output_filename.replace('_feature_selection','')
+    if not shuffle_labels:
+        output_filename = output_filename.replace('_shuffled','')
+    if not calibrate:
+        output_filename = output_filename.replace('_calibrated','')
+
+    if (Path(results_dir,output_filename).exists()) & (not overwrite):
+        all_results = pd.read_csv(Path(results_dir,output_filename))
+    else:
+        all_results = pd.DataFrame()
     
-    if not Path(results_dir,task).exists():
-        continue
-
-    if len(dimensions) == 0:
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-
-    for dimension in dimensions:
-        print(task,model,dimension,y_label)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,'hyp_opt','bayes','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type[project_name] == 'reg' else '','shuffle' if shuffle_labels else '')
+    for task, model_type in itertools.product(tasks,models):
+        if not Path(results_dir,task).exists():
+            continue
         
-        if not path.exists():  
+        if model_type in ['svc','lasso']:
             continue
 
-        random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name]
-        if len(random_seeds) == 0:
-            random_seeds = ['']
+        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+        for dimension in dimensions:
+            
+            if isinstance(y_labels,dict):
+                y_labels_ = y_labels[task]
+            else:
+                y_labels_ = y_labels
+            
+            for y_label in y_labels_:
+                print(task,model_type,y_label,dimension)
+                
+                path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,"bayes",scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","shuffle" if shuffle_labels else "")
+
+                if not path.exists():
+                    continue
+
+                random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name] if config['test_size'] > 0 else []
+
+                if len(random_seeds) == 0:
+                    random_seeds = ['']
+
+                for random_seed in random_seeds:
+                    
+                    if not overwrite and all_results.shape[0] > 0:
+                        row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
+                        if len(row) > 0:
+                            continue
+
+                    if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
+                        continue
+
+                    outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_type,random_seed,config,bayes=True,scoring=scoring)
+
+                    if (cmatrix is not None) or (np.unique(y_dev).shape[0] > 2):
+                        metrics_names_ = list(set(metrics_names) - set(["roc_auc","f1","precision","recall"]))
+                    else:
+                        metrics_names_ = metrics_names
+                        
+                    # Prepare data for bootstrap: a tuple of index arrays to resample
+                    data_indices = (np.arange(y_dev.shape[-1]),)
+
+                    # Define the statistic function with data baked in
+                    stat_func = lambda indices: utils._calculate_metrics(
+                        indices, outputs, y_dev, 
+                        metrics_names_, problem_type, cmatrix
+                    )
+
+                    # 1. Calculate the point estimate (the actual difference on the full dataset)
+                    point_estimates = stat_func(data_indices[0])
+
+                    # 2. Calculate the bootstrap confidence interval
+                    try:
+                        # Try the more accurate BCa method first
+                        res = bootstrap(
+                            data_indices,
+                            stat_func,
+                            n_resamples=n_boot, # Use configured n_boot
+                            method=config["bootstrap_method"],
+                            vectorized=False,
+                            random_state=42
+                        )
+                        bootstrap_method = config["bootstrap_method"]
+
+                    except ValueError as e:
+                        # If BCa fails (e.g., due to degenerate samples), fall back to percentile
+                        print(f"WARNING: {config['bootstrap_method']} method failed for {tasks}/{dimensions}/{y_label}. Falling back to 'percentile'. Error: {e}")
+                        res = bootstrap(
+                            data_indices,
+                            stat_func,
+                            n_resamples=n_boot,
+                            method='percentile',
+                            vectorized=False,
+                            random_state=42
+                        )
+                        bootstrap_method = 'percentile'
+
+                    # Store results for this comparison
+                    result_row = {
+                        "task": task,
+                        "dimension": dimension,
+                        "y_label": y_label,
+                        "model_type": model_type,
+                        "random_seed_test": random_seed,
+                        "bootstrap_method_dev": bootstrap_method
+                    }
+                    
+                    for i, metric in enumerate(metrics_names_):
+                        est = point_estimates[i]
+                        ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
+                        result_row[metric] = f"{est:.5f}, ({ci_low:.5f}, {ci_high:.5f})"
+                    
+                    if all_results.empty:
+                        all_results = pd.DataFrame(result_row,index=[0])
+                    else:
+                        all_results.loc[all_results.shape[0],:] = result_row
+
+                    all_results.to_csv(Path(results_dir,output_filename),index=False)
         
-        for random_seed in random_seeds:
+    best_best_models = pd.DataFrame(columns=all_results.columns)
+    random_seeds_test = all_results['random_seed_test'].unique()
 
-            if not Path(path,random_seed,f'outputs_best_{model}.pkl').exists():
-                continue
+    for task,random_seed_test in itertools.product(tasks,random_seeds_test):
+
+        if not Path(results_dir,task).exists():
+            continue
+        
+        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+        for dimension in dimensions:
             
-            outputs = pickle.load(open(Path(path,random_seed,f'outputs_best_{model}.pkl'),'rb'))
+            if isinstance(y_labels,dict):
+                y_labels_ = y_labels[task]
+            else:
+                y_labels_ = y_labels
             
-            try:
-                y_dev = pickle.load(open(Path(path,random_seed,'y_true_dev.pkl'),'rb'))
-            except:
-                y_dev = pickle.load(open(Path(path,random_seed,'y_true.pkl'),'rb'))
+            for y_label in y_labels_:
+                best_best_models_ = all_results[(all_results['task'] == task) & (all_results['y_label'] == y_label) & (all_results['dimension'] == dimension) & (all_results['random_seed_test'].astype(str) == str(random_seed_test))]
 
-            outputs_bootstrap = np.empty((n_boot,outputs.shape[0],outputs.shape[1],outputs.shape[2])) if outputs.ndim == 3 else np.empty((n_boot,outputs.shape[0],outputs.shape[1]))
-            y_dev_bootstrap = np.empty((n_boot,y_dev.shape[0],y_dev.shape[1]),dtype=y_dev.dtype)
-            y_pred_bootstrap = np.empty((n_boot,y_dev.shape[0],y_dev.shape[1]),dtype=y_dev.dtype)
-            
-            metrics = dict((metric,np.empty((outputs.shape[0],n_boot))) for metric in metrics_names[problem_type[project_name]])
+                try:                            
+                    best_best_models_[scoring_col] = best_best_models_[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+                except:
+                    best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
 
-            for r in range(outputs.shape[0]):
-                _,metrics_ = get_metrics_bootstrap(outputs[r], y_dev[r], metrics_names[problem_type[project_name]],n_boot=n_boot,problem_type=problem_type[project_name])
-                for metric in metrics_names[problem_type[project_name]]:
-                    metrics[metric][r,:] = metrics_[metric]
-            for metric in metrics_names[problem_type[project_name]]:
-                mean, ci = np.nanmean(metrics[metric].squeeze()).round(5), (np.nanpercentile(metrics[metric].squeeze(),2.5).round(5),np.nanpercentile(metrics[metric].squeeze(),97.5).round(5))
-                conf_int_metrics.loc[len(conf_int_metrics.index),:] = [task,dimension,y_label,model,metric,mean,f'[{ci[0]},{ci[1]}]']   
+                best_best_models_.dropna(subset=[scoring_col], inplace=True)
+                
+                try:
+                    best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
+                except:
+                    print(f"WARNING: No valid models found for {task}/{dimension}/{y_label} with random seed {random_seed_test}. Skipping...")
+                    continue
 
-            pickle.dump(outputs_bootstrap,open(Path(path,random_seed,f'outputs_bootstrap_best_{model}.pkl'),'wb'))
-            pickle.dump(y_dev_bootstrap,open(Path(path,random_seed,f'y_dev_bootstrap.pkl'),'wb'))
-            pickle.dump(y_pred_bootstrap,open(Path(path,random_seed,f'y_pred_bootstrap_{model}.pkl'),'wb'))
-            pickle.dump(metrics,open(Path(path,random_seed,f'metrics_bootstrap_{model}.pkl'),'wb'))
+                if best_best_models_append['model_type'] in ['lasso','svc']:
+                    best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[1]
+                
+                best_best_models.loc[best_best_models.shape[0],:] = best_best_models_append
+    
+    try:                            
+        best_best_models[scoring_col] = best_best_models[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+    except:
+        best_best_models[scoring_col] = best_best_models[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
 
-conf_int_metrics.to_csv(Path(results_dir,'metrics_feature_selection_dev.csv' if feature_selection else 'metrics_dev.csv'),index=False)
+    best_best_models = best_best_models.sort_values(by=['y_label',scoring_col],ascending=ascending).reset_index(drop=True)
+
+    best_best_best_models = pd.DataFrame(columns=best_best_models.columns)
+    if isinstance(y_labels,dict):
+        y_labels_ = sum(y_labels.values(),[])
+    else:
+        y_labels_ = y_labels
+
+    for y_label,task in itertools.product(y_labels_,tasks):
+        try:
+            idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task)].index[0]
+            best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
+        except:
+            continue
+    
+    best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)

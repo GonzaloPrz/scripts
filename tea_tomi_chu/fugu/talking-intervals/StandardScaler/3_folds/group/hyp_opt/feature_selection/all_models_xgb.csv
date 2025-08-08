@@ -1,0 +1,10 @@
+n_estimators,max_depth,learning_rate,tree_method,gpu_id,random_state,fugu__talking-intervals__speechrate,fugu__talking-intervals__syllable_duration_variability,fugu__talking-intervals__syllable_duration_kurtosis,fugu__talking-intervals__nsyll,fugu__talking-intervals__syllable_duration_skewness,fugu__talking-intervals__mean_syllable_duration,fugu__talking-intervals__pause_duration_variability,fugu__talking-intervals__syllable_duration_max,fugu__talking-intervals__pause_duration_skewness,fugu__talking-intervals__syllable_duration_min,fugu__talking-intervals__pause_duration_min,fugu__talking-intervals__pause_duration_kurtosis,fugu__talking-intervals__mean_pause_duration,fugu__talking-intervals__npauses
+100,6,0.3,auto,,42,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+100,6,0.3,auto,,42,1,0,1,1,1,1,1,1,0,1,0,1,1,0
+100,6,0.3,auto,,42,1,1,0,0,0,1,0,1,1,1,0,1,1,1
+70,4,0.1,auto,,42,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+70,4,0.1,auto,,42,1,0,1,1,1,1,1,1,0,1,0,1,1,0
+70,4,0.1,auto,,42,1,1,0,0,0,1,0,1,1,1,0,1,1,1
+300,4,0.9,auto,,42,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+300,4,0.9,auto,,42,1,0,1,1,1,1,1,1,0,1,0,1,1,0
+300,4,0.9,auto,,42,1,1,0,0,0,1,0,1,1,1,0,1,1,1

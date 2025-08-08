@@ -1,0 +1,112 @@
+{
+'y_labels' : {
+    'tell_classifier': ['target'],
+    'MCI_classifier': ['target'],
+    'Proyecto_Ivo': ['target'],
+    'GeroApathy': ['DASS_21_Depression_V_label','AES_Total_Score_label','Depression_Total_Score_label','MiniSea_MiniSea_Total_EkmanFaces_label','MiniSea_minisea_total_label'],
+    'GeroApathy_reg': ['DASS_21_Depression_V','AES_Total_Score','Depression_Total_Score','MiniSea_MiniSea_Total_EkmanFaces','MiniSea_minisea_total'],
+    'GERO_Ivo': ['GM_norm','WM_norm','norm_vol_bilateral_HIP','norm_vol_mask_AD','GM','WM','vol_bilateral_HIP','vol_mask_AD','MMSE_Total_Score','ACEIII_Total_Score','IFS_Total_Score','MoCA_Total_Boni_3'],
+    'MPLS': ['Minimental'],
+    'AKU_outliers_as_nan': ['sdi0001_age','cerad_learn_total_corr','cerad_dr_correct','braveman_dr_total','stick_dr_total','bird_total','fab_total','setshift_total','an_correct','mint_total'],
+    'arequipa': ['group'],
+    'ad_mci_hc': ['group']
+},
+
+'tasks' : {
+        'tell_classifier': ['MOTOR-LIBRE'],
+        'MCI_classifier': ['fas','animales','fas__animales','grandmean'],
+        'Proyecto_Ivo': ['cog','Animales','P','Animales__P','brain','connectivity'],
+        'GeroApathy': ['agradable'],
+        'GeroApathy_reg': ['agradable'],
+        'GERO_Ivo': ['fas','animales','fas__animales','grandmean'],
+        'MPLS': ['Estado General','Estado General 2','Consulta sobre soledad 1','Consulta sobre soledad 2','Recuerdo feliz','Animales','Palabras con F'],
+        'AKU_outliers_as_nan': ['picture_description','pleasant_memory','routine','video_retelling'],
+        'arequipa': ['dia_tipico','lamina1','lamina2','fugu','testimonio'],
+        'ad_mci_hc': ['fugu']
+    },
+
+'test_size' : {
+        'tell_classifier': 0.3,
+        'MCI_classifier': 0.3,
+        'Proyecto_Ivo': 0,
+        'GeroApathy': 0.3,
+        'GERO_Ivo': 0.3,
+        'MPLS': 0,
+        'AKU_outliers_as_nan': 0,
+        'arequipa': 0,
+        'ad_mci_hc': 0.15
+    },
+
+'single_dimensions' : {
+        'tell_classifier': ['voice-quality','talking-intervals','pitch'],
+        'MCI_classifier': ['talking-intervals','psycholinguistic'],
+        'Proyecto_Ivo': {
+            'Animales': ['properties','timing','properties__timing','timing__vr','properties__timing__vr'],
+            'P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+            'Animales__P': ['properties','timing','properties__timing','properties__vr','timing__vr','properties__timing__vr'],
+            'cog': ['neuropsico_digits__neuropsico_tmt','neuropsico_tmt','neuropsico_digits'],
+            'brain': ['norm_brain_lit'],
+            'AAL': ['norm_AAL'],
+            'connectivity': ['networks','selected_areas']
+        },
+        'GeroApathy': ['mfcc','pitch','talking-intervals'],
+        'GeroApathy_reg': ['mfcc','ratio','pitch','talking-intervals'],
+        'GERO_Ivo': ['psycholinguistic','speech-timing'],
+        'MPLS': ['pitch-analysis','talking-intervals','sentiment-analysis'],
+        'AKU_outliers_as_nan': ['pitch','talking-intervals','voice-quality'],
+        'arequipa': ['pitch','talking_intervals','word_properties'],
+        'ad_mci_hc': ['pitch','talking-intervals','voice-quality']
+    },
+
+'data_file' : {
+        'tell_classifier': 'data_MOTOR-LIBRE.csv',
+        'MCI_classifier': 'features_data.csv',
+        'Proyecto_Ivo': 'all_data.csv',
+        'GeroApathy': 'data_matched_agradable',
+        'GeroApathy_reg': 'all_data_agradable.csv',
+        'GERO_Ivo': 'all_data.csv',
+        'MPLS': 'all_data.csv',
+        'AKU_outliers_as_nan': 'all_data_HC_outliers_as_nan.csv',
+        'arequipa': 'data_matched_group.csv',
+        'ad_mci_hc': 'data_matched_group.csv'
+    },
+
+'thresholds' : {
+        'tell_classifier': [np.log(0.5)],
+        'MCI_classifier': [np.log(0.5)],
+        'Proyecto_Ivo': [np.log(0.5)],
+        'GeroApathy': [np.log(0.5)],
+        'GeroApathy_reg': [None],
+        'GERO_Ivo': [None],
+        'MPLS': [None],
+        'AKU_outliers_as_nan': [None],
+        'arequipa': [np.log(0.5)],
+        'ad_mci_hc': [None]
+    },
+
+'scoring_metrics' : {
+        'MCI_classifier': 'norm_cross_entropy',
+        'tell_classifier': 'norm_cross_entropy',
+        'Proyecto_Ivo': 'roc_auc',
+        'GeroApathy': 'norm_cross_entropy',
+        'GeroApathy_reg': 'mean_absolute_error',
+        'GERO_Ivo': 'mean_absolute_error',
+        'MPLS': 'r2_score',
+        'AKU_outliers_as_nan': 'r2_score',
+        'arequipa': 'roc_auc',
+        'ad_mci_hc': 'norm_expected_cost'
+    },
+
+'problem_type' : {
+        'tell_classifier': 'clf',
+        'MCI_classifier': 'clf',
+        'Proyecto_Ivo': 'clf',
+        'GeroApathy': 'clf',
+        'GeroApathy_reg': 'reg',
+        'GERO_Ivo': 'reg',
+        'MPLS': 'reg',
+        'AKU_outliers_as_nan': 'reg',
+        'arequipa': 'clf',
+        'ad_mci_hc': 'clf'
+    }
+}

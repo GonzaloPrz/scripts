@@ -1,0 +1,10 @@
+n_estimators,max_depth,learning_rate,tree_method,gpu_id,random_state,IG__nada___MLU_Words,IG__nada___Riqueza_lexica,IG__nada___1er_TotPron,IG__nada___2da_TotPron,IG__nada___3era_TotPron,IG__nada___%_Pauses,IG__nada___%_Fillers,IG__nada___%_Reformulaciones,IG__nada___%_monoWWR,IG__nada___Rango_pitch,IG__nada___Rango_Jitter,IG__nada___Rango Shimmer,IG__nada___talking_intervals_speechrate
+100,6,0.3,auto,,42,1,0,1,1,1,1,0,1,0,1,0,1,1
+100,6,0.3,auto,,42,1,1,0,0,0,1,0,1,1,1,0,1,1
+100,6,0.3,auto,,42,1,1,1,1,1,1,1,1,1,1,1,1,1
+70,4,0.1,auto,,42,1,0,1,1,1,1,0,1,0,1,0,1,1
+70,4,0.1,auto,,42,1,1,0,0,0,1,0,1,1,1,0,1,1
+70,4,0.1,auto,,42,1,1,1,1,1,1,1,1,1,1,1,1,1
+300,4,0.9,auto,,42,1,0,1,1,1,1,0,1,0,1,0,1,1
+300,4,0.9,auto,,42,1,1,0,0,0,1,0,1,1,1,0,1,1
+300,4,0.9,auto,,42,1,1,1,1,1,1,1,1,1,1,1,1,1
