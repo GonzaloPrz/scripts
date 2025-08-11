@@ -13,9 +13,7 @@ from pathlib import Path
 from scenedetect import VideoManager, SceneManager
 from scenedetect.detectors import ContentDetector
 
-# GPU 1 será cuda:0 en este proceso
-torch.cuda.set_device(0)
-device = "cuda:0"
+device = "cpu"
 
 model_id = "Qwen/Qwen2.5-VL-7B-Instruct"
 
@@ -25,7 +23,6 @@ processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 # ↓ Usa SDPA (rápido) y bf16; el modelo se carga UNA sola vez y ya queda en cuda:0
 model = AutoModelForVision2Seq.from_pretrained(
     model_id,
-    device_map="auto",
     torch_dtype=torch.bfloat16,
     low_cpu_mem_usage=True,
     attn_implementation="sdpa",   # <- sin flash-attn
@@ -71,9 +68,7 @@ def extract_frames_by_scene(video_path: str, threshold: float = 30.0, fps: int =
                 break
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frames.append(Image.fromarray(rgb))
-
-        # ↓ toma solo 8–12 frames representativos por escena (acelera muchísimo)
-        frames = uniform_sample(frames, k=8)
+       
         frames_by_scene.append(frames)
         print(f"Escena {i+1}: {len(frames)} frames usados.")
 
@@ -93,7 +88,7 @@ def describe_video_with_qwen(frames: list, prompt: str, max_new_tokens: int = 51
     inputs = processor(text=[text], images=frames, return_tensors="pt").to(device)
 
     # generación rápida (greedy, cache on) y en bf16
-    with torch.inference_mode(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+    with torch.inference_mode(), torch.autocast(device_type="cpu", dtype=torch.bfloat16):
         output_ids = model.generate(
             **inputs,
             max_new_tokens=max_new_tokens,
@@ -116,7 +111,7 @@ if __name__ == "__main__":
     data_dir = Path(Path.home(), 'data', 'ad_mci_hc') if '/Users/gp' in str(Path.home()) else Path('D:', 'CNC_Audio', 'gonza', 'data', 'ad_mci_hc')
     local_video_path = "fugu_video.mp4"
 
-    video_frames = extract_frames_by_scene(local_video_path, fps=2)
+    video_frames = extract_frames_by_scene(local_video_path, fps=5)
     editable_prompt = "Por favor, haz una descripción objetiva y tan precisa como puedas del contenido de este video. Evita frases como 'El video muestra' o 'Una secuencia de imágenes' o 'La escena muestra' o 'En esta secuencia' y explicalo de forma secuencial, sin caer en descripciones de imágenes estáticas, sino prestando atención a la dinámica del video. Pon énfasis en las acciones del video y en los objetos que aparecen en él. Por ejemplo, si hay un pez globo, menciona que es un pez globo y describe su comportamiento. Si hay una persona cocinando, describe qué está cocinando y cómo lo hace. No incluyas información sobre el contexto del video, como quién lo grabó o dónde fue grabado. Concéntrate únicamente en lo que se ve en el video."
 
     descriptions = []
