@@ -1,16 +1,16 @@
 {
-    "project_name": "ad_mci_hc",
-    "stats": "mean_std",
+    "project_name": "MCI_classifier_unbalanced",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 5.0,
-    "n_folds_inner": 5.0,
-    "n_iter": 15.0,
+    "n_folds_outer": 10.0,
+    "n_folds_inner": 10.0,
+    "n_iter": 0.0,
     "feature_selection": false,
-    "init_points": 15.0,
-    "n_seeds_train": 5.0,
+    "init_points": 0.0,
+    "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -21,47 +21,76 @@
     "early_fusion": true,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 1.0,
+    "n_seeds_test": 0,
     "bootstrap_method": "bca",
-    "test_size": 0.14,
-    "data_file": "data_matched_group.csv",
+    "test_size": 0.0,
+    "data_file": "data_matched_unbalanced_group.csv",
     "tasks": [
-        "fugu"
+        "fas",
+        "animales",
+        "fas__animales",
+        "grandmean",
+        "nps",
+        "bio"
     ],
     "single_dimensions": {
-        "fugu": [
-            "talking-intervals",
-            "word_properties"
+        "fas": [
+            "word_properties",
+            "speech_timing",
+            "valid_responses"
+        ],
+        "animales": [
+            "word_properties",
+            "speech_timing",
+            "valid_responses"
+        ],
+        "fas__animales": [
+            "word_properties",
+            "speech_timing",
+            "valid_responses"
+        ],
+        "grandmean": [
+            "word_properties",
+            "speech_timing",
+            "valid_responses"
+        ],
+        "nps": [
+            "digits",
+            "memory",
+            "TMT",
+            "mmse"
+        ],
+        "bio": [
+            "bio"
         ]
     },
     "scoring_metrics": [
-        "norm_expected_cost"
+        "roc_auc"
     ],
     "problem_type": "clf",
     "y_labels": [
         "group"
     ],
-    "avoid_stats": [
-        "kurtosis",
-        "min",
-        "max",
-        "skewness",
-        "median"
-    ],
-    "stat_folder": "mean_std",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
         3,
         9,
         27,
         81,
-        243
+        243,
+        729,
+        2187,
+        6561,
+        19683,
+        59049
     ],
     "random_seeds_test": [
-        3
+        ""
     ],
     "random_seeds_shuffle": [
         ""
     ],
     "bayes": true,
-    "kfold_folder": "5_folds_5_folds"
+    "kfold_folder": "10_folds_10_folds"
 }

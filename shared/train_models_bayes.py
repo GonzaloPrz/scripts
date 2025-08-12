@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--project_name', default='AKU_2',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
-    parser.add_argument('--stratify', type=int, default=0, help='Stratification flag (1 or 0)')
+    parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
     parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
     parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')

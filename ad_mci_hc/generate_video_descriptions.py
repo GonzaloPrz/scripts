@@ -123,5 +123,6 @@ if __name__ == "__main__":
             max_new_tokens=384,   # prueba 384; si aún lento, 256
         )
         descriptions.append(desc)
+        descriptions_df = pd.DataFrame(descriptions, columns=["description"])
 
-    pd.DataFrame(descriptions, columns=["description"]).to_csv(Path(data_dir, "video_descriptions.csv"), index=False)
+        descriptions_df.to_csv(Path(data_dir, "video_descriptions.csv"), index=False)
