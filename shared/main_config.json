@@ -1,9 +1,8 @@
 {
     "y_labels": {
         "53_ceac":[
-            "depression",
-            "anxiety",
-            "burnout"
+            "depression"
+            
         ],
         "tell_classifier": [
             "target"
@@ -321,6 +320,7 @@
                 "timing"
             ],
             "nps": [
+                "executive",
                 "mmse"
             ],
             "brain": [

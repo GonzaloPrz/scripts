@@ -259,10 +259,12 @@ for scoring in scoring_metrics:
         y_labels_ = y_labels
 
     for y_label,task in itertools.product(y_labels_,tasks):
-        try:
-            idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task)].index[0]
-            best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
-        except:
-            continue
+        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+        for dimension in dimensions:
+            try:
+                idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task) & (best_best_models['dimension'] == dimension)].index[0]
+                best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
+            except:
+                continue
     
     best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)
