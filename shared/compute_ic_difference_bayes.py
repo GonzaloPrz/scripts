@@ -44,15 +44,15 @@ def _calculate_metric_diffs(indices, outputs1, y_dev1, outputs2, y_dev2, metrics
 tasks_list = [
               ['Animales','brain'],
               ['Animales','nps'],
+              ['Animales','nps'],
               ['Animales','connectivity'],
-              ['Animales','nps']
 
 ]
 dimensions_list = [
                    ['properties','norm_brain_lit'],
                    ['properties','mmse'],
+                   ['properties','executive'],
                    ['properties','networks'],
-                   ['properties','digits__tmt']
 ]
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
