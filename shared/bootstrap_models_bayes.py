@@ -107,7 +107,7 @@ for scoring in scoring_metrics:
         if not Path(results_dir,task).exists():
             continue
         
-        if model_type in ['svc','lasso']:
+        if model_type in ['lasso','knnc']:
             continue
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]

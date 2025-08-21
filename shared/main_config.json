@@ -1,5 +1,10 @@
 {
     "y_labels": {
+        "53_ceac":[
+            "depression",
+            "anxiety",
+            "burnout"
+        ],
         "tell_classifier": [
             "target"
         ],
@@ -93,13 +98,13 @@
         
     },
     "tasks": {
+        "53_ceac":[
+            "mean"
+        ],
         "tell_classifier": [
             "MOTOR-LIBRE"
         ],
         "MCI_classifier_unbalanced": [
-            "fas",
-            "animales",
-            "fas__animales",
             "grandmean",
             "nps",
             "bio"
@@ -113,11 +118,11 @@
             "bio"
         ],
         "Proyecto_Ivo": [
-            "cog",
-            "Animales__P",
+            "nps",
             "Animales",
-            "P",
             "brain",
+            "P",
+            "Animales__P",
             "AAL",
             "connectivity"
         ],
@@ -205,6 +210,7 @@
         ]
     },
     "test_size": {
+        "53_ceac": 0.3,
         "tell_classifier": 0.3,
         "MCI_classifier_unbalanced": 0,
         "MCI_classifier": 0,
@@ -228,6 +234,10 @@
 
     },
     "single_dimensions": {
+        "53_ceac":[
+            "pitch_analysis",
+            "talking_intervals"
+        ],
         "tell_classifier": [
             "pitch",
             "voice_quality",
@@ -253,14 +263,11 @@
             "grandmean":
             [
             "word_properties",
-            "speech_timing","valid_responses"
+            "speech_timing"
             ],
             "nps":
             [
-            "digits",
-            "memory",
-            "TMT",
-            "mmse"
+            "digits__memory__TMT__mmse"
             ],
             "bio":
             [
@@ -313,10 +320,8 @@
                 "properties",
                 "timing"
             ],
-            "cog": [
-                "neuropsico_digits",
-                "neuropsico_mmse",
-                "neuropsico_tmt"
+            "nps": [
+                "mmse"
             ],
             "brain": [
                 "norm_brain_lit"
@@ -433,6 +438,7 @@
         ]
     },
     "data_file": {
+        "53_ceac": "all_data.csv",
         "tell_classifier": "data_MOTOR-LIBRE.csv",
         "MCI_classifier_unbalanced": "data_matched_unbalanced_group.csv",
         "MCI_classifier": "data_matched_group.csv",
@@ -462,6 +468,7 @@
     },
 
     "thresholds": {
+        "53_ceac": [null],
         "tell_classifier": [null],
         "MCI_classifier_unbalanced": [null],
         "MCI_classifier": [null],
@@ -484,6 +491,7 @@
         "tea_tomi_chu":[null]
     },
     "scoring_metrics": {
+        "53_ceac": "r2",
         "MCI_classifier_unbalanced": "roc_auc",
         "MCI_classifier": "roc_auc",
         "tell_classifier": "norm_expected_cost",
@@ -506,6 +514,7 @@
         "tea_tomi_chu":"roc_auc"
     },
     "problem_type": {
+        "53_ceac": "reg",
         "tell_classifier": "clf",
         "MCI_classifier_unbalanced": "clf",
         "MCI_classifier": "clf",
@@ -532,6 +541,7 @@
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "models": {
+        "53_ceac": ["ridge","elastic","svr","knnr","xgb"],
         "tell_classifier": ["lr","svc","knnc","xgb"],
         "MCI_classifier_unbalanced": ["lr","knnc","xgb","nb","svc"],
         "MCI_classifier": ["lr","knnc","xgb","nb","svc"],
@@ -554,6 +564,7 @@
         "tea_tomi_chu": ["lr","svc","xgb","knnc","nb"]
     },
     "covars":{
+        "53_ceac":["sex","age"],
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
         "GERO_females":["sex","age","education","group"],
@@ -562,6 +573,7 @@
         "AKU_2":["sex","age","education","number_of_languages"]
     },
     "cmatrix":{
+        "53_ceac":null,
         "MCI_classifier_unbalanced":null,
         "MCI_classifier":null,
         "tell_classifier":null,

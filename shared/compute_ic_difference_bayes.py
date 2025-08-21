@@ -43,12 +43,16 @@ def _calculate_metric_diffs(indices, outputs1, y_dev1, outputs2, y_dev2, metrics
 
 tasks_list = [
               ['Animales','brain'],
-              ['Animales','cog']
+              ['Animales','nps'],
+              ['Animales','connectivity'],
+              ['Animales','nps']
 
 ]
 dimensions_list = [
                    ['properties','norm_brain_lit'],
-                   ['properties','neuropsico_tmt']
+                   ['properties','mmse'],
+                   ['properties','networks'],
+                   ['properties','digits__tmt']
 ]
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
@@ -86,7 +90,7 @@ for scoring in scoring_metrics:
     extremo = 1 if 'norm' in scoring else 0
     ascending = True if extremo == 1 else False
 
-    best_models_file = f'best_best_models_{data_file.split(".")[0]}_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','')
     if not feature_selection:

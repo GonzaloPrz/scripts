@@ -1,75 +1,45 @@
 {
-    "project_name": "MCI_classifier_unbalanced",
+    "project_name": "53_ceac",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 10.0,
-    "n_folds_inner": 10.0,
-    "n_iter": 0.0,
-    "feature_selection": false,
-    "init_points": 0.0,
-    "n_seeds_train": 10.0,
+    "n_folds_outer": 5.0,
+    "n_folds_inner": 5.0,
+    "n_iter": 15.0,
+    "feature_selection": true,
+    "init_points": 20.0,
+    "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
-    "n_boot": 1000.0,
+    "n_boot": 2000.0,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
     "filter_outliers": false,
     "early_fusion": true,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 0,
+    "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
-    "test_size": 0.0,
-    "data_file": "data_matched_unbalanced_group.csv",
+    "test_size": 0.3,
+    "data_file": "all_data.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean",
-        "nps",
-        "bio"
+        "mean"
     ],
-    "single_dimensions": {
-        "fas": [
-            "word_properties",
-            "speech_timing",
-            "valid_responses"
-        ],
-        "animales": [
-            "word_properties",
-            "speech_timing",
-            "valid_responses"
-        ],
-        "fas__animales": [
-            "word_properties",
-            "speech_timing",
-            "valid_responses"
-        ],
-        "grandmean": [
-            "word_properties",
-            "speech_timing",
-            "valid_responses"
-        ],
-        "nps": [
-            "digits",
-            "memory",
-            "TMT",
-            "mmse"
-        ],
-        "bio": [
-            "bio"
-        ]
-    },
+    "single_dimensions": [
+        "pitch_analysis",
+        "talking_intervals"
+    ],
     "scoring_metrics": [
-        "roc_auc"
+        "r2"
     ],
-    "problem_type": "clf",
+    "problem_type": "reg",
     "y_labels": [
-        "group"
+        "depression",
+        "anxiety",
+        "burnout"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -78,19 +48,14 @@
         9,
         27,
         81,
-        243,
-        729,
-        2187,
-        6561,
-        19683,
-        59049
+        243
     ],
     "random_seeds_test": [
-        ""
+        3
     ],
     "random_seeds_shuffle": [
         ""
     ],
     "bayes": true,
-    "kfold_folder": "10_folds_10_folds"
+    "kfold_folder": "5_folds_5_folds"
 }
