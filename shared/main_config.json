@@ -1,8 +1,9 @@
 {
     "y_labels": {
         "53_ceac":[
-            "depression"
-            
+            "depression",
+            "anxiety",
+            "burnout"  
         ],
         "tell_classifier": [
             "target"
@@ -564,7 +565,7 @@
         "tea_tomi_chu": ["lr","svc","xgb","knnc","nb"]
     },
     "covars":{
-        "53_ceac":["sex","age"],
+        "53_ceac":[],
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
         "GERO_females":["sex","age","education","group"],

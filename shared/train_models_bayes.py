@@ -53,7 +53,7 @@ def parse_args():
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
-
+    parser.add_argument('--round_values',type=int,default=0,help='Whether to round predicted values for regression or not')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -82,7 +82,8 @@ def load_configuration(args):
         overwrite = bool(args.overwrite),
         parallel = bool(args.parallel),
         n_seeds_test = float(args.n_seeds_test) if args.n_folds_outer!= -1 else float(0),
-        bootstrap_method = args.bootstrap_method
+        bootstrap_method = args.bootstrap_method,
+        round_values = bool(args.round_values)
     )
 
     return config
@@ -148,12 +149,12 @@ models_dict = {'clf':{
                     'svc':SVC,
                     },
                 
-                'reg':{'lasso':Lasso,
+                'reg':{#'lasso':Lasso,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
                     'knnr':KNNR,
-                    #'svr':SVR,
-                    'xgb':xgboostr
+                    'svr':SVR,
+                    #'xgb':xgboostr
                     }
 }
 
@@ -390,7 +391,8 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                                                                                         parallel=bool(config['parallel']),
                                                                                         feature_selection=bool(config['feature_selection']),
                                                                                         calmethod=calmethod,
-                                                                                        calparams=calparams)
+                                                                                        calparams=calparams,
+                                                                                        round_values=config['round_values'])
 
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(parents=True, exist_ok=True)
                     with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '','config.json'),'w') as f:

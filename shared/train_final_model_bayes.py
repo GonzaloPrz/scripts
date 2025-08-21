@@ -219,14 +219,6 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
 
                 plt.xlabel('Predicted Value')
                 plt.ylabel('True Value')
-                y_labels_dict = {'norm_vol_mask_AD':'ADD mask volume',
-                "norm_vol_bilateral_HIP": 'Hippocampal volume',
-                "ACEIII_Total_Score": 'ACEIII Total Score',
-                "IFS_Total_Score": "IFS Total Score",
-                "nps__nps__IFS_Total_Score": "IFS Total Score",
-                "nps__nps__ACEIII_Total_Score": "ACEIII Total Score",
-                "brain__brain__norm_vol_bilateral_HIP": "Hippocampal volume",
-                "brain__brain__norm_vol_mask_AD": "ADD mask volume"}
 
                 plt.text(0.05, 0.95,
                         f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
@@ -235,12 +227,7 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
                         verticalalignment='top',
                         bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
-                tasks_dict = {'animales':'Semantic',
-                "grandmean": "Average",
-                "nps":"Cognition",
-                "brain":"Brain"}
-
-                plt.title(f'{tasks_dict[task]} | {y_labels_dict[y_label]}', fontsize=25, pad=15)
+                plt.title(f'{task} | {y_label}', fontsize=25, pad=15)
 
                 plt.tight_layout()
                 plt.grid(False)
@@ -346,4 +333,5 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
         best_models['r'] = best_models['r'].apply(lambda x: f'{x:.3f}' if not pd.isna(x) else np.nan)
         best_models['correction_method'] = correction
 
-        best_models.to_csv(Path(results_dir,filename.replace('.csv',f'_corr_{covars[-1]}.csv')),index=False)
+        filename = filename.replace('.csv',f'_corr_{covars[-1]}.csv') if len(covars) != 0 else filename.replace('.csv','_corr.csv')
+        best_models.to_csv(Path(results_dir,filename),index=False)
