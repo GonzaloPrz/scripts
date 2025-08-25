@@ -14,18 +14,19 @@ from scenedetect import VideoManager, SceneManager
 from scenedetect.detectors import ContentDetector
 
 device = "cpu"
-
-model_id = "Qwen/Qwen2.5-VL-7B-Instruct"
+fps = 4
+model_id = "Qwen/Qwen2.5-VL-72B-Instruct"
 
 print("Loading model and processor...")
-processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True,cache_dir='D:\CNC_Audio\gonza')
 
 # ↓ Usa SDPA (rápido) y bf16; el modelo se carga UNA sola vez y ya queda en cuda:0
 model = AutoModelForVision2Seq.from_pretrained(
     model_id,
     torch_dtype=torch.bfloat16,
     low_cpu_mem_usage=True,
-    attn_implementation="sdpa",   # <- sin flash-attn
+    attn_implementation="sdpa", 
+    cache_dir='D:\CNC_Audio\gonza'  # <- sin flash-attn
 )
 model.eval()
 print("✓ Model and processor loaded.")
@@ -83,7 +84,6 @@ def describe_video_with_qwen(frames: list, prompt: str, max_new_tokens: int = 51
     }]
 
     text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-
     # preprocesa y sube a GPU
     inputs = processor(text=[text], images=frames, return_tensors="pt").to(device)
 
@@ -109,13 +109,25 @@ def describe_video_with_qwen(frames: list, prompt: str, max_new_tokens: int = 51
 
 if __name__ == "__main__":
     data_dir = Path(Path.home(), 'data', 'ad_mci_hc') if '/Users/gp' in str(Path.home()) else Path('D:', 'CNC_Audio', 'gonza', 'data', 'ad_mci_hc')
+    if Path(Path(data_dir, f'video_descriptions_{fps}_fps_{model_id.split("/")[1].replace(" ","_")}.csv')).exists():
+        descriptions_df = pd.read_csv(Path(data_dir,f'video_descriptions_{fps}_fps_{model_id.split("/")[1].replace(" ","_")}.csv' ))
+        descriptions = descriptions_df["description"].to_list()
+    else:
+        descriptions = []
+
     local_video_path = "fugu_video.mp4"
 
-    video_frames = extract_frames_by_scene(local_video_path, fps=5)
+    video_frames = extract_frames_by_scene(local_video_path, fps=fps)
+    
     editable_prompt = "Por favor, haz una descripción objetiva y tan precisa como puedas del contenido de este video. Evita frases como 'El video muestra' o 'Una secuencia de imágenes' o 'La escena muestra' o 'En esta secuencia' y explicalo de forma secuencial, sin caer en descripciones de imágenes estáticas, sino prestando atención a la dinámica del video. Pon énfasis en las acciones del video y en los objetos que aparecen en él. Por ejemplo, si hay un pez globo, menciona que es un pez globo y describe su comportamiento. Si hay una persona cocinando, describe qué está cocinando y cómo lo hace. No incluyas información sobre el contexto del video, como quién lo grabó o dónde fue grabado. Concéntrate únicamente en lo que se ve en el video."
 
-    descriptions = []
-    for frames in video_frames[1:-1]:
+    for i, frames in enumerate(video_frames[1:-1]):
+        if len(frames) > 19:
+            frames = uniform_sample(frames, 19)
+        if i < len(descriptions):
+            print(f"Skipping scene {i + 1}")
+            continue
+
         print(f"Procesando escena con {len(frames)} frames...")
         desc = describe_video_with_qwen(
             frames,
@@ -125,4 +137,4 @@ if __name__ == "__main__":
         descriptions.append(desc)
         descriptions_df = pd.DataFrame(descriptions, columns=["description"])
 
-        descriptions_df.to_csv(Path(data_dir, "video_descriptions.csv"), index=False)
+        descriptions_df.to_csv(Path(data_dir, f'video_descriptions_{fps}_fps_{model_id.split("/")[1].replace(" ","_")}.csv'), index=False)

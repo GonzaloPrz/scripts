@@ -61,12 +61,6 @@ def build_global_summary(descriptions: list, max_new_tokens: int = 512) -> str:
     return resumen
 
 # -------------------------------
-# Carga de datos
-# -------------------------------
-video_descriptions = pd.read_csv(data_dir / 'video_descriptions.csv')
-video_descriptions_list = video_descriptions['description'].astype(str).tolist()
-
-# -------------------------------
 # Modelo
 # -------------------------------
 print("Cargando modelo y processor...")
@@ -84,6 +78,15 @@ model = AutoModelForCausalLM.from_pretrained(
 model.eval()
 model.to(device)
 print(f"✓ Modelo cargado en {device} con dtype {dtype}")
+
+fps = 4
+model_id = "Qwen/Qwen2.5-VL-72B-Instruct"
+
+# -------------------------------
+# Carga de datos
+# -------------------------------
+video_descriptions = pd.read_csv(data_dir / f'video_descriptions_{fps}_fps_{model_id.split("/")[1].replace(" ","_")}.csv')
+video_descriptions_list = video_descriptions['description'].astype(str).tolist()
 
 # -------------------------------
 # Generación
