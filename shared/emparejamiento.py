@@ -8,24 +8,24 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from matching_module import perform_matching
 
-project_name = 'ad_mci_hc_ct'
+project_name = '53_ceac'
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 
-target_vars = ['cognitive_impairment']
+target_vars = ['has_depression','has_anxiety','burnout_risk']
 
-filename = 'image_pleasant_memory_routine__features.csv'
+matching_vars = ['sex','age']
+    
+fact_vars = ['sex']
+cont_vars = ['age']
 
 for target_var in target_vars:
+    filename = f'all_data_{target_var}.csv'
+
     print(target_var)
     # Define variables
-    vars = ['sex','age','education', target_var, 'id']
+    vars = matching_vars + [target_var,'id']
 
     output_var = target_var
-    
-    matching_vars = ['sex','age','education']
-
-    fact_vars = ['sex']
-    cont_vars = ['education','age']
 
     data = pd.read_csv(Path(data_dir,filename))
 
@@ -33,7 +33,7 @@ for target_var in target_vars:
     for fact_var in fact_vars:
         data[fact_var] = data[fact_var].astype('category').cat.codes
 
-    caliper = 0.22
+    caliper = 0.05
 
     table_before = TableOne(data,list(set(vars) - set([output_var,'id'])),fact_vars,groupby=output_var, pval=True, nonnormal=[])
     print(table_before)

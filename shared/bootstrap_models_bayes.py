@@ -20,14 +20,14 @@ project_name = config["project_name"]
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
-avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = True if int(config['n_iter']) > 0 else False
 feature_selection = bool(config['feature_selection'])
-filter_outliers = config['filter_outliers']
 n_boot = int(config["n_boot"])
 calibrate = bool(config["calibrate"])
 overwrite = bool(config["overwrite"])
+scoring = config['scoring_metric']
+problem_type = config['problem_type']
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -40,28 +40,8 @@ main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 y_labels = main_config['y_labels'][project_name]
 tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
-single_dimensions = main_config['single_dimensions'][project_name]
-data_file = main_config['data_file'][project_name]
-thresholds = main_config['thresholds'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
-if not isinstance(scoring_metrics,list):
-    scoring_metrics = [scoring_metrics]
-
-problem_type = main_config['problem_type'][project_name]
-models = main_config["models"][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
-
-config = json.load(Path(Path(__file__).parent,'config.json').open())
-
-project_name = config["project_name"]
-scaler_name = config['scaler_name']
-kfold_folder = config['kfold_folder']
-shuffle_labels = config['shuffle_labels']
-avoid_stats = config["avoid_stats"]
-stat_folder = config['stat_folder']
-n_boot = int(config["n_boot"])
-problem_type = config["problem_type"]
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -69,70 +49,54 @@ if "Users/gp" in str(home):
 else:
     results_dir = Path("D:/CNC_Audio/gonza/results", project_name)
 
-main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
+scoring_col = f'{scoring}_extremo'
 
-y_labels = main_config['y_labels'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
+extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
+ascending = any(x in scoring for x in ['error','norm'])
 
-if not isinstance(scoring_metrics,list):
-    scoring_metrics = [scoring_metrics]
-    
-problem_type = main_config['problem_type'][project_name]
-metrics_names = main_config["metrics_names"][main_config["problem_type"][project_name]]
-tasks = main_config["tasks"][project_name]
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+if not hyp_opt:
+        output_filename = output_filename.replace('_hyp_opt','')
+if not feature_selection:
+    output_filename = output_filename.replace('_feature_selection','')
+if not shuffle_labels:
+    output_filename = output_filename.replace('_shuffled','')
+if not calibrate:
+    output_filename = output_filename.replace('_calibrated','')
 
-for scoring in scoring_metrics:
-    scoring_col = f'{scoring}_extremo'
+if (Path(results_dir,output_filename).exists()) & (not overwrite):
+    all_results = pd.read_csv(Path(results_dir,output_filename))
+else:
+    all_results = pd.DataFrame()
 
-    extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
-    ascending = any(x in scoring for x in ['error','norm'])
+for task in tasks:
+    if not Path(results_dir,task).exists():
+        continue
 
-    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
-    if not hyp_opt:
-            output_filename = output_filename.replace('_hyp_opt','')
-    if not feature_selection:
-        output_filename = output_filename.replace('_feature_selection','')
-    if not shuffle_labels:
-        output_filename = output_filename.replace('_shuffled','')
-    if not calibrate:
-        output_filename = output_filename.replace('_calibrated','')
-
-    if (Path(results_dir,output_filename).exists()) & (not overwrite):
-        all_results = pd.read_csv(Path(results_dir,output_filename))
-    else:
-        all_results = pd.DataFrame()
-    
-    for task, model_type in itertools.product(tasks,models):
-        if not Path(results_dir,task).exists():
-            continue
+    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+    for dimension in dimensions:
         
-        if model_type in ['lasso','knnc']:
-            continue
+        if isinstance(y_labels,dict):
+            y_labels_ = y_labels[task]
+        else:
+            y_labels_ = y_labels
+        
+        for y_label in y_labels_:            
+            path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,"bayes",scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","shuffle" if shuffle_labels else "")
 
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-        for dimension in dimensions:
-            
-            if isinstance(y_labels,dict):
-                y_labels_ = y_labels[task]
-            else:
-                y_labels_ = y_labels
-            
-            for y_label in y_labels_:
-                print(task,model_type,y_label,dimension)
+            if not path.exists():
+                continue
+
+            random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name] if config['test_size'] > 0 else []
+
+            if len(random_seeds) == 0:
+                random_seeds = ['']
+
+            for random_seed in random_seeds:
                 
-                path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,"bayes",scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","shuffle" if shuffle_labels else "")
-
-                if not path.exists():
-                    continue
-
-                random_seeds = [folder.name for folder in path.iterdir() if folder.is_dir() and 'random_seed' in folder.name] if config['test_size'] > 0 else []
-
-                if len(random_seeds) == 0:
-                    random_seeds = ['']
-
-                for random_seed in random_seeds:
-                    
+                models = [filename.stem.split('_')[-1] for filename in Path(path,random_seed).rglob('*.csv')]
+                
+                for model_type in models:
                     if not overwrite and all_results.shape[0] > 0:
                         row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
                         if len(row) > 0:
@@ -207,64 +171,64 @@ for scoring in scoring_metrics:
                         all_results.loc[all_results.shape[0],:] = result_row
 
                     all_results.to_csv(Path(results_dir,output_filename),index=False)
-        
-    best_best_models = pd.DataFrame(columns=all_results.columns)
-    random_seeds_test = all_results['random_seed_test'].unique()
-
-    for task,random_seed_test in itertools.product(tasks,random_seeds_test):
-
-        if not Path(results_dir,task).exists():
-            continue
-        
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-        for dimension in dimensions:
-            
-            if isinstance(y_labels,dict):
-                y_labels_ = y_labels[task]
-            else:
-                y_labels_ = y_labels
-            
-            for y_label in y_labels_:
-                best_best_models_ = all_results[(all_results['task'] == task) & (all_results['y_label'] == y_label) & (all_results['dimension'] == dimension) & (all_results['random_seed_test'].astype(str) == str(random_seed_test))]
-
-                try:                            
-                    best_best_models_[scoring_col] = best_best_models_[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-                except:
-                    best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-
-                best_best_models_.dropna(subset=[scoring_col], inplace=True)
-                
-                try:
-                    best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
-                except:
-                    print(f"WARNING: No valid models found for {task}/{dimension}/{y_label} with random seed {random_seed_test}. Skipping...")
-                    continue
-
-                if best_best_models_append['model_type'] in ['lasso','svc']:
-                    best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[1]
-                
-                best_best_models.loc[best_best_models.shape[0],:] = best_best_models_append
     
-    try:                            
-        best_best_models[scoring_col] = best_best_models[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-    except:
-        best_best_models[scoring_col] = best_best_models[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+best_best_models = pd.DataFrame(columns=all_results.columns)
+random_seeds_test = all_results['random_seed_test'].unique()
 
-    best_best_models = best_best_models.sort_values(by=['y_label',scoring_col],ascending=ascending).reset_index(drop=True)
+for task,random_seed_test in itertools.product(tasks,random_seeds_test):
 
-    best_best_best_models = pd.DataFrame(columns=best_best_models.columns)
-    if isinstance(y_labels,dict):
-        y_labels_ = sum(y_labels.values(),[])
-    else:
-        y_labels_ = y_labels
+    if not Path(results_dir,task).exists():
+        continue
+    
+    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+    for dimension in dimensions:
+        
+        if isinstance(y_labels,dict):
+            y_labels_ = y_labels[task]
+        else:
+            y_labels_ = y_labels
+        
+        for y_label in y_labels_:
+            best_best_models_ = all_results[(all_results['task'] == task) & (all_results['y_label'] == y_label) & (all_results['dimension'] == dimension) & (all_results['random_seed_test'].astype(str) == str(random_seed_test))]
 
-    for y_label,task in itertools.product(y_labels_,tasks):
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-        for dimension in dimensions:
-            try:
-                idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task) & (best_best_models['dimension'] == dimension)].index[0]
-                best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
+            try:                            
+                best_best_models_[scoring_col] = best_best_models_[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
             except:
+                best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+
+            best_best_models_.dropna(subset=[scoring_col], inplace=True)
+            
+            try:
+                best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
+            except:
+                print(f"WARNING: No valid models found for {task}/{dimension}/{y_label} with random seed {random_seed_test}. Skipping...")
                 continue
-    
-    best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)
+
+            if best_best_models_append['model_type'] in ['lasso','svc']:
+                best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[1]
+            
+            best_best_models.loc[best_best_models.shape[0],:] = best_best_models_append
+
+try:                            
+    best_best_models[scoring_col] = best_best_models[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+except:
+    best_best_models[scoring_col] = best_best_models[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+
+best_best_models = best_best_models.sort_values(by=['y_label',scoring_col],ascending=ascending).reset_index(drop=True)
+
+best_best_best_models = pd.DataFrame(columns=best_best_models.columns)
+if isinstance(y_labels,dict):
+    y_labels_ = sum(y_labels.values(),[])
+else:
+    y_labels_ = y_labels
+
+for y_label,task in itertools.product(y_labels_,tasks):
+    dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+    for dimension in dimensions:
+        try:
+            idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task) & (best_best_models['dimension'] == dimension)].index[0]
+            best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
+        except:
+            continue
+
+best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)

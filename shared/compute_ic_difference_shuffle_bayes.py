@@ -41,31 +41,9 @@ def _calculate_metric_diffs(indices, outputs1, y_dev1, outputs2, y_dev2, metrics
     # Return an array of differences
     return np.array([metrics1[m] - metrics2[m] for m in metrics])
 
-tasks_list = [
-              ['Animales','brain'],
-              ['Animales','nps'],
-              ['Animales','nps'],
-              ['Animales','connectivity'],
-              ['brain','nps'],
-              ['brain','nps'],
-              ['brain','connectivity'],
-              ['nps','nps'],
-              ['nps','connectivity'],
-              ['nps','connectivity']
+tasks_list = ['Animales','brain','nps','nps','connectivity']
 
-]
-dimensions_list = [
-                   ['properties','norm_brain_lit'],
-                   ['properties','mmse'],
-                   ['properties','executive'],
-                   ['properties','networks'],
-                   ['norm_brain_lit','mmse'],
-                   ['norm_brain_lit','executive'],
-                   ['norm_brain_lit','networks'],
-                   ['mmse','executive'],
-                   ['mmse','networks'],
-                   ['executive','networks']
-]
+dimensions_list = ['properties','norm_brain_lit','mmse','executive','networks']
 
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
@@ -102,43 +80,50 @@ for scoring in scoring_metrics:
     extremo = 1 if 'norm' in scoring else 0
     ascending = True if extremo == 1 else False
 
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+    best_models_file_shuffled = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
-        best_models_file = best_models_file.replace('_hyp_opt','')
+        best_models_file_shuffled = best_models_file_shuffled.replace('_hyp_opt','')
     if not feature_selection:
-        best_models_file = best_models_file.replace('_feature_selection','')
-    if not shuffle_labels:
-        best_models_file = best_models_file.replace('_shuffled','')
+        best_models_file_shuffled = best_models_file_shuffled.replace('_feature_selection','')
     if not calibrate:
-        best_models_file = best_models_file.replace('_calibrated','')
+        best_models_file_shuffled = best_models_file_shuffled.replace('_calibrated','')
+    
+    best_models_file = best_models_file_shuffled.replace('_shuffled','')
     
     best_models = pd.read_csv(Path(results_dir,best_models_file))
+    best_models_shuffled = pd.read_csv(Path(results_dir,best_models_file_shuffled))
+    
     scoring_col = f'{scoring}_extremo'
     best_models[scoring_col] = best_models[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
     best_models = best_models[best_models[scoring_col].astype(str) != 'nan'].reset_index(drop=True)
-    
+
+    best_models_shuffled[scoring_col] = best_models_shuffled[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
+    best_models_shuffled = best_models_shuffled[best_models_shuffled[scoring_col].astype(str) != 'nan'].reset_index(drop=True)
+
     all_results = pd.DataFrame()
 
-    for tasks, dimensions in zip(tasks_list, dimensions_list):
+    for task, dimension in zip(tasks_list, dimensions_list):
         for y_label in y_labels:
 
             # Find best models for each task/dimension
-            best1 = best_models[(best_models.task == tasks[0]) & (best_models.dimension == dimensions[0]) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
-            best2 = best_models[(best_models.task == tasks[1]) & (best_models.dimension == dimensions[1]) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
+            best = best_models[(best_models.task == task) & (best_models.dimension == dimension) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
+            best_shuffled = best_models_shuffled[(best_models_shuffled.task == task) & (best_models_shuffled.dimension == dimension) & (best_models_shuffled.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
 
-            if best1.empty or best2.empty:
-                print(f"Skipping: No best model found for combination {tasks}, {dimensions}, {y_label}")
+            if best.empty or best_shuffled.empty :
+                print(f"Skipping: No best model found for combination {task}, {dimension}, {y_label}")
                 continue
 
             # Load data for both models
-            outputs1, y_dev1 = utils._load_data(results_dir,tasks[0],dimensions[0],y_label,best1.model_type,'',config, bayes=True, scoring=scoring)
-            outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
+            config['shuffle_labels'] = False
+            outputs1, y_dev1 = utils._load_data(results_dir,task,dimension,y_label,best.model_type,'',config, bayes=True, scoring=scoring)
+            config['shuffle_labels'] = True
+            outputs2, y_dev2 = utils._load_data(results_dir, task, dimension, y_label, best_shuffled.model_type, '', config, bayes=True, scoring=scoring)
 
             # Ensure the datasets are comparable
             try:
                 assert y_dev1.shape == y_dev2.shape, "y_dev shapes must match for paired comparison!"
             except:
-                print(f"Shape mismatch for {tasks[0]}, {tasks[1]}")
+                print(f"Shape mismatch for {task}, {dimension}")
                 continue
             # Prepare data for bootstrap: a tuple of index arrays to resample
             data_indices = (np.arange(y_dev1.shape[-1]),)
@@ -167,7 +152,7 @@ for scoring in scoring_metrics:
 
             except ValueError as e:
                 # If BCa fails (e.g., due to degenerate samples), fall back to percentile
-                print(f"WARNING: {config['bootstrap_method']} method failed for {tasks}/{dimensions}/{y_label}. Falling back to 'percentile'. Error: {e}")
+                print(f"WARNING: {config['bootstrap_method']} method failed for {task}/{dimension}/{y_label}. Falling back to 'percentile'. Error: {e}")
                 res = bootstrap(
                     data_indices,
                     stat_func,
@@ -179,8 +164,8 @@ for scoring in scoring_metrics:
                 bootstrap_method = 'percentile'
             # Store results for this comparison
             result_row = {
-                "tasks": f'[{tasks[0]}, {tasks[1]}]',
-                "dimensions": f'[{dimensions[0]}, {dimensions[1]}]',
+                "task": task,
+                "dimensions": dimension,
                 "y_label": y_label,
                 "bootstrap method": bootstrap_method
             }
@@ -198,7 +183,7 @@ for scoring in scoring_metrics:
             all_results.loc[len(all_results.index),:] = result_row
 
     # --- Save Final Results ---
-    output_filename = Path(results_dir, f'ic_diff_{scoring}_bayes.csv') # Assumes one scoring metric for filename
+    output_filename = Path(results_dir, f'ic_diff_{scoring}_shuffle_bayes.csv') # Assumes one scoring metric for filename
     all_results.to_csv(output_filename, index=False)
     print(f"Confidence interval differences saved to {output_filename}")
     

@@ -32,16 +32,16 @@ scaler_name = config['scaler_name']
 n_folds = int(config['n_folds_inner'])
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
-avoid_stats = config["avoid_stats"]
 stat_folder = config['stat_folder']
 hyp_opt = config['n_iter'] > 0
 feature_selection = bool(config['feature_selection'])
-filter_outliers = bool(config['filter_outliers'])
 calibrate = bool(config["calibrate"])
 n_iter = int(config["n_iter"])
 init_points = int(config["init_points"])
-scaler_name = config['scaler_name']
 id_col = config['id_col']
+scoring = config['scoring_metric']
+problem_type = config['problem_type']
+overwrite = bool(config["overwrite"])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -51,23 +51,10 @@ else:
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
-y_labels = main_config['y_labels'][project_name]
 data_file = main_config['data_file'][project_name]
-tasks = main_config['tasks'][project_name]
-test_size = main_config['test_size'][project_name]
-single_dimensions = main_config['single_dimensions'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
-problem_type = main_config['problem_type'][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 thresholds = main_config['thresholds'][project_name]
 covars = main_config['covars'][project_name] if problem_type == 'reg' else []
-data_file = main_config['data_file'][project_name]
-
-overwrite = bool(config["overwrite"])
-if not isinstance(scoring_metrics,list):
-    scoring_metrics = [scoring_metrics]
-    
-models = main_config["models"][project_name]
 
 models_dict = {
         'clf': {
@@ -87,21 +74,7 @@ models_dict = {
         }
     }
 
-hyperp = {'lr':{'C':(1e-4,100)},
-          'svc':{'C':(1e-4,100),
-                 'gamma':(1e-4,1e4)},
-            'knnc':{'n_neighbors':(1,40)},
-            'xgb':{'max_depth':(1,10),
-                   'n_estimators':(1,500),
-                   'learning_rate':(1e-3,1)},
-            'lasso':{'alpha':(1e-4,1e4)},
-            'ridge':{'alpha':(1e-4,1e4)},
-            'elastic':{'alpha':(1e-4,1e4),
-                       'l1_ratio':(0,1)},
-            'knnr':{'n_neighbors':(1,40)},
-            'svr':{'C':(1e-4,100),
-                    'gamma':(1e-4,1e4)}
-            }
+hyperp = json.load(Path(Path(__file__).parent,'hyperparameters.json').open())
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
 data_dir = str(results_dir).replace('results','data')
@@ -113,7 +86,7 @@ covariates = pd.read_csv(Path(data_dir,data_file))[[id_col]+covars]
 
 method = 'pearson'
 
-for scoring,threshold in itertools.product(scoring_metrics,thresholds):
+for threshold in thresholds:
     if str(threshold) == 'None':
         threshold = None
     filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
@@ -150,11 +123,12 @@ for scoring,threshold in itertools.product(scoring_metrics,thresholds):
             X_train = pickle.load(open(Path(path_to_results,random_seed,'X_train.pkl'),'rb'))
             y_train = pickle.load(open(Path(path_to_results,random_seed,'y_train.pkl'),'rb'))
             outputs_dev = pickle.load(open(Path(path_to_results,random_seed,f'outputs_{model_type}.pkl'),'rb'))
-
+            
             IDs = pickle.load(open(Path(path_to_results,random_seed,'IDs_dev.pkl'),'rb'))
 
             if problem_type == 'reg':
-                predictions = pd.DataFrame({'id':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
+                y_pred = np.round(outputs_dev,decimals=0) if config['round_values'] else outputs_dev
+                predictions = pd.DataFrame({'id':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_dev.flatten()})
             else:
                 _, y_pred = utils.get_metrics_clf(outputs_dev, y_dev, [], cmatrix=cmatrix, priors=None, threshold=threshold)
                 predictions = {'id':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_dev.flatten()}

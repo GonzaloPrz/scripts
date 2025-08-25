@@ -29,17 +29,17 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='Proyecto_Ivo',type=str,help='Project name')
+    parser.add_argument('--project_name', default='53_ceac',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=3, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=int, default=11, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
-    parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
-    parser.add_argument('--init_points', type=int, default=100, help='Number of random initial points to test during Bayesian optimization')
-    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
+    parser.add_argument('--feature_selection',type=int,default=0,help='Whether to perform feature selection with RFE or not')
+    parser.add_argument('--init_points', type=int, default=30, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_seeds_train',type=int,default=5,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -48,12 +48,13 @@ def parse_args():
     parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap iterations for testing')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
+    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
+    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
     parser.add_argument('--round_values',type=int,default=0,help='Whether to round predicted values for regression or not')
+    parser.add_argument('--add_dem',type=int,default=0,help='Whether to add demographic features or not')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -83,7 +84,8 @@ def load_configuration(args):
         parallel = bool(args.parallel),
         n_seeds_test = float(args.n_seeds_test) if args.n_folds_outer!= -1 else float(0),
         bootstrap_method = args.bootstrap_method,
-        round_values = bool(args.round_values)
+        round_values = bool(args.round_values),
+        add_dem = bool(args.add_dem)
     )
 
     return config
@@ -112,11 +114,7 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
-if not isinstance(scoring_metrics,list):
-    scoring_metrics = [scoring_metrics]
 
-problem_type = main_config['problem_type'][project_name]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
 config['test_size'] = float(test_size)
@@ -124,8 +122,6 @@ config['data_file'] = data_file
 config['tasks'] = tasks
 config['single_dimensions'] = single_dimensions    
 
-config['scoring_metrics'] = scoring_metrics
-config['problem_type'] = problem_type
 config['y_labels'] = y_labels
 config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
@@ -158,23 +154,9 @@ models_dict = {'clf':{
                     }
 }
 
-hyperp = {'lr':{'C':(1e-4,100)},
-          'svc':{'C':(1e-4,100),
-                 'gamma':(1e-4,1e4)},
-            'knnc':{'n_neighbors':(1,40)},
-            'xgb':{'max_depth':(1,10),
-                   'n_estimators':(1,500),
-                   'learning_rate':(1e-3,1)},
-            'lasso':{'alpha':(1e-4,1e4)},
-            'ridge':{'alpha':(1e-4,1e4)},
-            'elastic':{'alpha':(1e-4,1e4),
-                       'l1_ratio':(0,1)},
-            'knnr':{'n_neighbors':(1,40)},
-            'svr':{'C':(1e-4,100),
-                    'gamma':(1e-4,1e4)}
-            }
+hyperp = json.load(Path(Path(__file__).parent,'hyperparameters.json').open())
 
-for task,scoring in itertools.product(tasks,scoring_metrics):
+for task in tasks:
     if isinstance(y_labels,dict):
         y_labels_ = y_labels[task]
     else:
@@ -196,28 +178,42 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
         else:
             dimensions = [single_dimensions_]
 
-        for dimension in dimensions:
-            print(task,dimension)
-            
-            if problem_type == 'clf':
-                all_data = pd.read_csv(Path(data_dir,data_file))
-            else:
-                all_data = pd.read_excel(Path(data_dir,data_file)) if 'xlsx' in data_file else pd.read_csv(Path(data_dir,data_file))
+        for dimension in dimensions:            
+            all_data = pd.read_csv(Path(data_dir,data_file))
 
             all_features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
 
             if len(config["avoid_stats"]) > 0:
                 all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
-                
+            
+            if config['add_dem']:
+                for col in set(['sex','age','education','handedness']).intersection(set(all_data.columns)):
+                    
+                    all_data[f'{task}__dem__{col}'] = all_data[col]
+
+                demographic_features = [f'{task}__dem__{col}' for col in all_data.columns if col in ['sex','age','education','handedness']]
+
+                all_features.extend(demographic_features)
+                dimension = dimension + '__dem' if dimension != '' else 'dem'
+            
+            print(task,dimension)
             data = all_data[all_features + [y_label, config['id_col']]]
             data.dropna(subset=y_label,inplace=True)
+            data = data.reset_index(drop=True)
+    
+            if len(np.unique(data[y_label])) > 4:
+                config['problem_type'] = 'reg'
+                config['scoring_metric'] = 'r2'
+            else:
+                config['problem_type'] = 'clf'
+                config['scoring_metric'] = 'roc_auc' if len(np.unique(data[y_label])) == 2 else 'norm_expected_cost'
 
-            if problem_type == 'reg' and config['filter_outliers']:
+            if config['problem_type'] == 'reg' and config['filter_outliers']:
                 all_data = all_data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
 
             y = data.pop(y_label)
 
-            if config['shuffle_labels'] and problem_type == 'clf':
+            if config['shuffle_labels'] and config['problem_type'] == 'clf':
                 np.random.seed(0)
                 zero_indices = np.where(y == 0)[0]
                 one_indices = np.where(y == 1)[0]
@@ -239,14 +235,14 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
             
             ID = data.pop(config['id_col'])
             
-            if (problem_type == 'reg') & ('group' in data.columns) & (config['stratify']):
+            if (config['problem_type'] == 'reg') & ('group' in data.columns) & (config['stratify']):
                 strat_col = data.pop('group')
-            elif (problem_type == 'clf') & (config['stratify']):
+            elif (config['problem_type'] == 'clf') & (config['stratify']):
                 strat_col = y
             else:
                 strat_col = None
 
-            for model_key, model_class in models_dict[problem_type].items():        
+            for model_key, model_class in models_dict[config['problem_type']].items():        
                 print(model_key)
                 
                 held_out = float(config["test_size"]) > 0
@@ -304,13 +300,23 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
 
                 subfolders = [
                     task, dimension, config['scaler_name'],
-                    config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
+                    config['kfold_folder'], y_label, config['stat_folder'],'bayes',config['scoring_metric'],
                     'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
-                    'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
+                    'filter_outliers' if config['filter_outliers'] and config['problem_type'] == 'reg' else '',
                     'shuffle' if config['shuffle_labels'] else ''
                 ]
 
                 path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
+
+                if Path(path_to_save,'config.json').exists():
+                    with open(Path(path_to_save,'config.json'), 'r') as f:
+                        old_config = json.load(f)
+
+                    if not config['overwrite'] and old_config != config:
+                        config = old_config
+
+                        with open(Path(Path(__file__).parent,'config.json'),'wb') as f:
+                            json.dump(config, f, indent=4)
 
                 for random_seed_test in random_seeds_test:
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(exist_ok=True,parents=True)
@@ -371,7 +377,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                     
                     print(f'Training model: {model_key}')
         
-                    all_models,outputs_best,y_dev,y_pred_best,IDs_dev = utils.nestedCVT(model_class=models_dict[problem_type][model_key],
+                    all_models,outputs_best,y_dev,y_pred_best,IDs_dev = utils.nestedCVT(model_class=models_dict[config['problem_type']][model_key],
                                                                                         scaler=StandardScaler if config['scaler_name'] == 'StandardScaler' else MinMaxScaler,
                                                                                         imputer=KNNImputer,
                                                                                         X=X_train_,
@@ -384,8 +390,8 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                                                                                         hyperp_space=hyperp[model_key],
                                                                                         IDs=ID_train_,
                                                                                         init_points=int(config['init_points']),
-                                                                                        scoring=scoring,
-                                                                                        problem_type=problem_type,
+                                                                                        scoring=config['scoring_metric'],
+                                                                                        problem_type=config['problem_type'],
                                                                                         cmatrix=cmatrix,priors=None,
                                                                                         threshold=thresholds,
                                                                                         parallel=bool(config['parallel']),

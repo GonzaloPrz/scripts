@@ -36,6 +36,8 @@ n_boot_test = int(config['n_boot_test'])
 n_boot_train = int(config['n_boot_train'])
 calibrate = bool(config["calibrate"])
 overwrite = bool(config["overwrite"])
+scoring = config['scoring_metric']
+problem_type = config['problem_type']
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -45,27 +47,12 @@ else:
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
-y_labels = main_config['y_labels'][project_name]
-tasks = main_config['tasks'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
-model_types = main_config['models'][project_name]
-single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config["data_file"][project_name]
 
-if not isinstance(scoring_metrics,list):
-    scoring_metrics = [scoring_metrics]
-
-problem_type = main_config['problem_type'][project_name]
 covars = main_config["covars"][project_name] if problem_type == 'reg' else []
 metrics_names_ = main_config['metrics_names'][problem_type]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
-parallel = bool(config["parallel"])
-
-if isinstance(scoring_metrics,str):
-    scoring_metrics = [scoring_metrics]
-
-problem_type = main_config['problem_type'][project_name]
 
 ##---------------------------------PARAMETERS---------------------------------##
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -79,9 +66,8 @@ covariates = pd.read_csv(Path(data_dir,data_file))[[config["id_col"]]+covars]
 
 method = 'pearson'
 
-for scoring in scoring_metrics:
-    if config["test_size"] == 0:
-        continue
+if config["test_size"] != 0:
+
     filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes_corr_{covars[-1]}.csv'.replace('__','_') if len(covars) > 0 else f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
 
     if not hyp_opt:
@@ -112,7 +98,7 @@ for scoring in scoring_metrics:
             trained_imputer = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'imputer_{model_type}.pkl'),'rb'))
         except:
             continue
-    
+
         path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
 
         X_train = pickle.load(open(Path(path_to_results,random_seed_test,'X_train.pkl'),'rb'))
@@ -262,14 +248,6 @@ for scoring in scoring_metrics:
             plt.xlabel('Predicted Value')
             plt.xticks(rotation=45, ha='right')
             plt.ylabel('True Value')
-            y_labels_dict = {'norm_vol_mask_AD':'ADD mask volume',
-            "norm_vol_bilateral_HIP": 'Hippocampal volume',
-            "ACEIII_Total_Score": 'ACEIII Total Score',
-            "IFS_Total_Score": "IFS Total Score",
-            "nps__nps__IFS_Total_Score": "IFS Total Score",
-            "nps__nps__ACEIII_Total_Score": "ACEIII Total Score",
-            "brain__brain__norm_vol_bilateral_HIP": "Hippocampal volume",
-            "brain__brain__norm_vol_mask_AD": "ADD mask volume"}
 
             plt.text(0.05, 0.95,
                     f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
@@ -283,7 +261,7 @@ for scoring in scoring_metrics:
             "nps":"Cognition",
             "brain":"Brain"}
 
-            plt.title(f'{tasks_dict[task]} | {y_labels_dict[y_label]}', fontsize=25, pad=15)
+            plt.title(f'{task} | {y_label}', fontsize=25, pad=15)
 
             plt.tight_layout()
             plt.grid(False)
