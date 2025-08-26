@@ -235,6 +235,7 @@ for task in tasks:
         
             features = all_features
             
+            
             ID = data.pop(config['id_col'])
             
             if (config['problem_type'] == 'reg') & ('group' in data.columns) & (config['stratify']):
