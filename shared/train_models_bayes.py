@@ -93,6 +93,8 @@ def load_configuration(args):
 args = parse_args()
 config = load_configuration(args)
 project_name = config['project_name']
+add_dem = config['add_dem']
+round_values = config['round_values']
 
 logging.info('Configuration loaded. Starting training...')
 logging.info('Training completed.')
@@ -142,7 +144,7 @@ models_dict = {'clf':{
                     'lr':LR,
                     'knnc':KNNC,
                     'xgb':xgboost,
-                    'svc':SVC,
+                    #'svc':SVC,
                     },
                 
                 'reg':{#'lasso':Lasso,
@@ -203,10 +205,10 @@ for task in tasks:
     
             if len(np.unique(data[y_label])) > 4:
                 config['problem_type'] = 'reg'
-                config['scoring_metric'] = 'r2'
+                scoring_metric = 'r2'
             else:
                 config['problem_type'] = 'clf'
-                config['scoring_metric'] = 'roc_auc' if len(np.unique(data[y_label])) == 2 else 'norm_expected_cost'
+                scoring_metric = 'roc_auc' if len(np.unique(data[y_label])) == 2 else 'norm_expected_cost'
 
             if config['problem_type'] == 'reg' and config['filter_outliers']:
                 all_data = all_data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
@@ -300,7 +302,7 @@ for task in tasks:
 
                 subfolders = [
                     task, dimension, config['scaler_name'],
-                    config['kfold_folder'], y_label, config['stat_folder'],'bayes',config['scoring_metric'],
+                    config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring_metric,
                     'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                     'filter_outliers' if config['filter_outliers'] and config['problem_type'] == 'reg' else '',
                     'shuffle' if config['shuffle_labels'] else ''
@@ -309,13 +311,17 @@ for task in tasks:
                 path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
 
                 if Path(path_to_save,'config.json').exists():
-                    with open(Path(path_to_save,'config.json'), 'r') as f:
+                    with open(Path(path_to_save,'config.json'), 'rb') as f:
                         old_config = json.load(f)
 
                     if not config['overwrite'] and old_config != config:
                         config = old_config
+                        if 'scoring_metric' not in config:
+                            config['scoring_metric'] = scoring_metric
+                            config['add_dem'] = add_dem
+                            config['round_values'] = round_values
 
-                        with open(Path(Path(__file__).parent,'config.json'),'wb') as f:
+                        with open(Path(Path(__file__).parent,'config.json'),'w') as f:
                             json.dump(config, f, indent=4)
 
                 for random_seed_test in random_seeds_test:
@@ -390,7 +396,7 @@ for task in tasks:
                                                                                         hyperp_space=hyperp[model_key],
                                                                                         IDs=ID_train_,
                                                                                         init_points=int(config['init_points']),
-                                                                                        scoring=config['scoring_metric'],
+                                                                                        scoring=scoring_metric,
                                                                                         problem_type=config['problem_type'],
                                                                                         cmatrix=cmatrix,priors=None,
                                                                                         threshold=thresholds,
@@ -398,7 +404,7 @@ for task in tasks:
                                                                                         feature_selection=bool(config['feature_selection']),
                                                                                         calmethod=calmethod,
                                                                                         calparams=calparams,
-                                                                                        round_values=config['round_values'])
+                                                                                        round_values=round_values)
 
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(parents=True, exist_ok=True)
                     with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '','config.json'),'w') as f:
