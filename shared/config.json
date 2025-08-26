@@ -1,14 +1,14 @@
 {
-    "project_name": "Proyecto_Ivo",
+    "project_name": "MCI_classifier_unbalanced",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 3.0,
-    "n_folds_inner": 11.0,
+    "n_folds_outer": 10.0,
+    "n_folds_inner": 10.0,
     "n_iter": 15.0,
-    "feature_selection": true,
+    "feature_selection": false,
     "init_points": 50.0,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -22,50 +22,54 @@
     "overwrite": false,
     "parallel": true,
     "n_seeds_test": 0,
-    "bootstrap_method": "percentile",
-    "round_values": false,
-    "add_dem": true,
+    "bootstrap_method": "bca",
     "test_size": 0.0,
-    "data_file": "all_data.csv",
+    "data_file": "data_matched_unbalanced_group.csv",
     "tasks": [
+        "fas",
+        "animales",
+        "fas__animales",
+        "grandmean",
         "nps",
-        "Animales",
-        "brain",
-        "P",
-        "Animales__P",
-        "AAL",
-        "connectivity"
+        "bio"
     ],
     "single_dimensions": {
-        "Animales": [
-            "properties",
-            "timing"
+        "fas": [
+            "word_properties",
+            "speech_timing",
+            "valid_responses"
         ],
-        "P": [
-            "properties",
-            "timing"
+        "animales": [
+            "word_properties",
+            "speech_timing",
+            "valid_responses"
         ],
-        "Animales__P": [
-            "properties",
-            "timing"
+        "fas__animales": [
+            "word_properties",
+            "speech_timing",
+            "valid_responses"
+        ],
+        "grandmean": [
+            "word_properties",
+            "speech_timing",
+            "valid_responses"
         ],
         "nps": [
-            "executive",
+            "digits",
+            "memory",
+            "TMT",
             "mmse"
         ],
-        "brain": [
-            "norm_brain_lit"
-        ],
-        "AAL": [
-            "norm_AAL"
-        ],
-        "connectivity": [
-            "networks",
-            "selected_areas"
+        "bio": [
+            "bio"
         ]
     },
+    "scoring_metrics": [
+        "roc_auc"
+    ],
+    "problem_type": "clf",
     "y_labels": [
-        "target"
+        "group"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -88,7 +92,8 @@
         ""
     ],
     "bayes": true,
-    "problem_type": "clf",
+    "kfold_folder": "10_folds_10_folds",
     "scoring_metric": "roc_auc",
-    "kfold_folder": "3_folds_11_folds"
+    "add_dem": false,
+    "round_values": false
 }
