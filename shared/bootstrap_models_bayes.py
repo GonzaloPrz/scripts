@@ -97,16 +97,20 @@ for task in tasks:
                 models = [filename.stem.split('_')[-1] for filename in Path(path,random_seed).rglob('*.csv')]
                 
                 for model_type in models:
+                    '''
                     if not overwrite and all_results.shape[0] > 0:
                         row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
                         if len(row) > 0:
                             continue
-
+                    ''' 
                     if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                         continue
-
+                    
+                    print(task,dimension,model_type)
                     outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_type,random_seed,config,bayes=True,scoring=scoring)
 
+                    if model_type == 'svc':
+                        print('SVC')
                     if (cmatrix is not None) or (np.unique(y_dev).shape[0] > 2):
                         metrics_names_ = list(set(metrics_names) - set(["roc_auc","f1","precision","recall"]))
                     else:

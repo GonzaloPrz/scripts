@@ -41,32 +41,6 @@ def _calculate_metric_diffs(indices, outputs1, y_dev1, outputs2, y_dev2, metrics
     # Return an array of differences
     return np.array([metrics1[m] - metrics2[m] for m in metrics])
 
-tasks_list = [
-              ['Animales','brain'],
-              ['Animales','nps'],
-              ['Animales','nps'],
-              ['Animales','connectivity'],
-              ['brain','nps'],
-              ['brain','nps'],
-              ['brain','connectivity'],
-              ['nps','nps'],
-              ['nps','connectivity'],
-              ['nps','connectivity']
-
-]
-dimensions_list = [
-                   ['properties','norm_brain_lit'],
-                   ['properties','mmse'],
-                   ['properties','executive'],
-                   ['properties','networks'],
-                   ['norm_brain_lit','mmse'],
-                   ['norm_brain_lit','executive'],
-                   ['norm_brain_lit','networks'],
-                   ['mmse','executive'],
-                   ['mmse','networks'],
-                   ['executive','networks']
-]
-
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
 project_name = config["project_name"]
@@ -81,6 +55,8 @@ filter_outliers = config['filter_outliers']
 n_boot = int(config["n_boot"])
 problem_type = config["problem_type"]
 calibrate = bool(config["calibrate"])
+scoring_metrics = [config['scoring_metric']]
+problem_type = config['problem_type']
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -91,43 +67,41 @@ else:
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
-scoring_metrics = [main_config['scoring_metrics'][project_name]]
-problem_type = main_config['problem_type'][project_name]
-metrics_names = main_config["metrics_names"][main_config["problem_type"][project_name]]
+metrics_names = main_config["metrics_names"][problem_type]
 data_file = main_config["data_file"][project_name]
 
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
 for scoring in scoring_metrics:
-    extremo = 1 if 'norm' in scoring else 0
-    ascending = True if extremo == 1 else False
-
-    best_models_file = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+    best_models_file = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','')
     if not feature_selection:
         best_models_file = best_models_file.replace('_feature_selection','')
-    if not shuffle_labels:
-        best_models_file = best_models_file.replace('_shuffled','')
     if not calibrate:
         best_models_file = best_models_file.replace('_calibrated','')
     
     best_models = pd.read_csv(Path(results_dir,best_models_file))
+    index_list = itertools.combinations(best_models.index,2)
+    '''
+    extremo = 1 if 'norm' in scoring else 0
+    ascending = True if extremo == 1 else False
     scoring_col = f'{scoring}_extremo'
     best_models[scoring_col] = best_models[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
     best_models = best_models[best_models[scoring_col].astype(str) != 'nan'].reset_index(drop=True)
-    
+    '''
     all_results = pd.DataFrame()
 
-    for tasks, dimensions in zip(tasks_list, dimensions_list):
+    for index in index_list:
         for y_label in y_labels:
 
             # Find best models for each task/dimension
-            best1 = best_models[(best_models.task == tasks[0]) & (best_models.dimension == dimensions[0]) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
-            best2 = best_models[(best_models.task == tasks[1]) & (best_models.dimension == dimensions[1]) & (best_models.y_label == y_label)].sort_values(by=scoring_col,ascending=ascending).iloc[0]
+            tasks = [best_models.loc[index[0],'task'], best_models.loc[index[1],'task']]
+            dimensions = [best_models.loc[index[0],'dimension'], best_models.loc[index[1],'dimension']]
+            best1 = best_models[(best_models.task == best_models.loc[index[0],'task']) & (best_models.dimension == best_models.loc[index[0],'dimension']) & (best_models.y_label == y_label)].iloc[0]
+            best2 = best_models[(best_models.task == best_models.loc[index[1],'task']) & (best_models.dimension == best_models.loc[index[1],'dimension']) & (best_models.y_label == y_label)].iloc[0]
 
             if best1.empty or best2.empty:
-                print(f"Skipping: No best model found for combination {tasks}, {dimensions}, {y_label}")
                 continue
 
             # Load data for both models

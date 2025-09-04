@@ -2,7 +2,13 @@
 
 "svc":{"C":[1e-4,100],
        "gamma":[1e-4,1e4]},
-       "knnc":{"n_neighbors":[1,40]},
+
+"lda":{"solver":["svd","lsqr","eigen"]},
+
+"qda":{"reg_param":[0.0,1.0],
+       "tol":[1e-5,1e-1]},
+       
+"knnc":{"n_neighbors":[1,40]},
 
 "xgb":{"max_depth":[1,10],
         "n_estimators":[1,500],

@@ -6,6 +6,8 @@ from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.naive_bayes import GaussianNB
@@ -37,7 +39,7 @@ def parse_args():
     parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
     parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
-    parser.add_argument('--feature_selection',type=int,default=0,help='Whether to perform feature selection with RFE or not')
+    parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--init_points', type=int, default=30, help='Number of random initial points to test during Bayesian optimization')
     parser.add_argument('--n_seeds_train',type=int,default=5,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
@@ -48,7 +50,7 @@ def parse_args():
     parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap iterations for testing')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
+    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
     parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
@@ -144,14 +146,16 @@ models_dict = {'clf':{
                     'lr':LR,
                     'knnc':KNNC,
                     'xgb':xgboost,
-                    #'svc':SVC,
+                    'svc':SVC,
+                    'qda':QDA,
+                    #'lda': LDA
                     },
                 
                 'reg':{#'lasso':Lasso,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
-                    'knnr':KNNR,
-                    'svr':SVR,
+                    #'knnr':KNNR,
+                    #'svr':SVR,
                     #'xgb':xgboostr
                     }
 }
@@ -216,7 +220,7 @@ for task in tasks:
             y = data.pop(y_label)
 
             if config['shuffle_labels'] and config['problem_type'] == 'clf':
-                np.random.seed(0)
+                np.random.seed(42)
                 zero_indices = np.where(y == 0)[0]
                 one_indices = np.where(y == 1)[0]
 
@@ -315,15 +319,20 @@ for task in tasks:
                     with open(Path(path_to_save,'config.json'), 'rb') as f:
                         old_config = json.load(f)
 
-                    if not config['overwrite'] and old_config != config:
-                        config = old_config
-                        if 'scoring_metric' not in config:
-                            config['scoring_metric'] = scoring_metric
-                            config['add_dem'] = add_dem
-                            config['round_values'] = round_values
+                    if (not config['overwrite']) & (any(old_config[x] != config[x] for x in ['n_iter','init_points','n_seeds_train','n_boot'])):
+                        for key in ['n_iter','init_points','n_seeds_train','n_boot']:
+                            print(f'Warning: {key} has changed from {old_config[key]} to {config[key]}. Overwriting previous results.')
+                            config[key] = old_config[key]
+                    with open(Path(path_to_save,'config.json'),'w') as f:
+                        json.dump(config, f, indent=4)
+                        
+                if 'scoring_metric' not in list(config.keys()):
+                    config['scoring_metric'] = scoring_metric
+                    config['add_dem'] = add_dem
+                    config['round_values'] = round_values
 
-                        with open(Path(Path(__file__).parent,'config.json'),'w') as f:
-                            json.dump(config, f, indent=4)
+                with open(Path(Path(__file__).parent,'config.json'),'w') as f:
+                    json.dump(config, f, indent=4)
 
                 for random_seed_test in random_seeds_test:
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(exist_ok=True,parents=True)

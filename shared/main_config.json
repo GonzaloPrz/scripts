@@ -1,8 +1,8 @@
 {
     "y_labels": {
         "53_ceac":[
-            "has_depression",
-            "has_anxiety"
+            "depression",
+            "anxiety"
         ],
         "tell_classifier": [
             "target"
@@ -98,15 +98,16 @@
     },
     "tasks": {
         "53_ceac":[
-            "mean"
+            "pais",
+            "dia_anterior",
+            "pais__dia_anterior"
         ],
         "tell_classifier": [
             "MOTOR-LIBRE"
         ],
         "MCI_classifier_unbalanced": [
             "grandmean",
-            "nps",
-            "bio"
+            "nps"
         ],
         "MCI_classifier": [
             "fas",
@@ -120,9 +121,6 @@
             "nps",
             "Animales",
             "brain",
-            "P",
-            "Animales__P",
-            "AAL",
             "connectivity"
         ],
         "GeroApathy": [
@@ -233,11 +231,12 @@
 
     },
     "single_dimensions": {
-        "53_ceac":[            
+        "53_ceac":[    
             "pitch_analysis",
             "talking_intervals",
+            "sentiment",            
             "verbosity",
-            "sentiment_analysis"
+            "word_properties"
         ],
         "tell_classifier": [
             "pitch",
@@ -248,18 +247,17 @@
             "fas":
             [
             "word_properties",
-            "speech_timing",
-            "valid_responses"
+            "speech_timing"
             ],
             "animales":
             [
             "word_properties",
-            "speech_timing","valid_responses"
+            "speech_timing"
             ],
             "fas__animales":
             [
             "word_properties",
-            "speech_timing","valid_responses"
+            "speech_timing"
             ],
             "grandmean":
             [
@@ -310,8 +308,7 @@
         },
         "Proyecto_Ivo": {
             "Animales": [
-                "properties",
-                "timing"
+                "properties"
             ],
             "P": [
                 "properties",
@@ -332,8 +329,7 @@
                 "norm_AAL"
             ],
             "connectivity": [
-                "networks",
-                "selected_areas"
+                "networks"
             ]
         },
         "GeroApathy": [
@@ -498,7 +494,7 @@
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "covars":{
-        "53_ceac": ["sex","age"],
+        "53_ceac": [],
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
         "GERO_females":["sex","age","education","group"],

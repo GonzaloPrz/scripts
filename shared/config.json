@@ -1,16 +1,16 @@
 {
-    "project_name": "MCI_classifier_unbalanced",
+    "project_name": "53_ceac",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 10.0,
-    "n_folds_inner": 10.0,
+    "n_folds_outer": 5.0,
+    "n_folds_inner": 5.0,
     "n_iter": 15.0,
     "feature_selection": false,
-    "init_points": 50.0,
-    "n_seeds_train": 10.0,
+    "init_points": 10.0,
+    "n_seeds_train": 5.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -21,55 +21,27 @@
     "early_fusion": true,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 0,
+    "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
-    "test_size": 0.0,
-    "data_file": "data_matched_unbalanced_group.csv",
+    "round_values": false,
+    "add_dem": false,
+    "test_size": 0.3,
+    "data_file": "all_data.csv",
     "tasks": [
-        "fas",
-        "animales",
-        "fas__animales",
-        "grandmean",
-        "nps",
-        "bio"
+        "pais",
+        "dia_anterior",
+        "pais__dia_anterior"
     ],
-    "single_dimensions": {
-        "fas": [
-            "word_properties",
-            "speech_timing",
-            "valid_responses"
-        ],
-        "animales": [
-            "word_properties",
-            "speech_timing",
-            "valid_responses"
-        ],
-        "fas__animales": [
-            "word_properties",
-            "speech_timing",
-            "valid_responses"
-        ],
-        "grandmean": [
-            "word_properties",
-            "speech_timing",
-            "valid_responses"
-        ],
-        "nps": [
-            "digits",
-            "memory",
-            "TMT",
-            "mmse"
-        ],
-        "bio": [
-            "bio"
-        ]
-    },
-    "scoring_metrics": [
-        "roc_auc"
+    "single_dimensions": [
+        "pitch_analysis",
+        "talking_intervals",
+        "sentiment",
+        "verbosity",
+        "word_properties"
     ],
-    "problem_type": "clf",
     "y_labels": [
-        "group"
+        "depression",
+        "anxiety"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -78,22 +50,16 @@
         9,
         27,
         81,
-        243,
-        729,
-        2187,
-        6561,
-        19683,
-        59049
+        243
     ],
     "random_seeds_test": [
-        ""
+        3
     ],
     "random_seeds_shuffle": [
         ""
     ],
     "bayes": true,
-    "kfold_folder": "10_folds_10_folds",
-    "scoring_metric": "roc_auc",
-    "add_dem": false,
-    "round_values": false
+    "problem_type": "reg",
+    "kfold_folder": "5_folds_5_folds",
+    "scoring_metric": "r2"
 }
