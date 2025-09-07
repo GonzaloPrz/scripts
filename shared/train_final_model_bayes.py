@@ -5,10 +5,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, spearmanr
 import seaborn as sns
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
-from xgboost import XGBClassifier, XGBRegressor
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from xgboost import XGBClassifier as xgboost
+from xgboost import XGBRegressor as xgboostr
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.neighbors import KNeighborsClassifier as KNNC
+from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.impute import KNNImputer
@@ -56,23 +60,23 @@ cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_con
 thresholds = main_config['thresholds'][project_name]
 covars = main_config['covars'][project_name] if problem_type == 'reg' else []
 
-models_dict = {
-        'clf': {
-            'lr': LogisticRegression,
-            'svc': SVC,
-            'knnc': KNeighborsClassifier,
-            'xgb': XGBClassifier,
-            'nb':GaussianNB
-        },
-        'reg': {
-            'lasso': Lasso,
-            'ridge': Ridge,
-            'elastic': ElasticNet,
-            #'svr': SVR,
-            'knnr': KNeighborsRegressor,
-            'xgb': XGBRegressor
-        }
-    }
+models_dict = {'clf':{
+                    'lr':LR,
+                    'knnc':KNNC,
+                    'xgb':xgboost,
+                    'svc':SVC,
+                    'qda':QDA,
+                    'lda': LDA
+                    },
+                
+                'reg':{#'lasso':Lasso,
+                    'ridge':Ridge,
+                    'elastic':ElasticNet,
+                    #'knnr':KNNR,
+                    #'svr':SVR,
+                    #'xgb':xgboostr
+                    }
+}
 
 hyperp = json.load(Path(Path(__file__).parent,'hyperparameters.json').open())
 

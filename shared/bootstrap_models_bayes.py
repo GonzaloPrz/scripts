@@ -94,15 +94,15 @@ for task in tasks:
 
             for random_seed in random_seeds:
                 
-                models = [filename.stem.split('_')[-1] for filename in Path(path,random_seed).rglob('*.csv')]
+                models = [filename.stem.split('_')[-1] for filename in Path(path,random_seed).glob('*.csv') if all(x not in filename.stem for x in ['knnc','svc'])] 
                 
                 for model_type in models:
-                    '''
+                    
                     if not overwrite and all_results.shape[0] > 0:
                         row = all_results[(all_results['task'] == task) & (all_results['dimension'] == dimension) & (all_results['model_type'] == model_type) & (all_results['y_label'] == y_label)]
                         if len(row) > 0:
                             continue
-                    ''' 
+                     
                     if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                         continue
                     
@@ -167,7 +167,7 @@ for task in tasks:
                     for i, metric in enumerate(metrics_names_):
                         est = point_estimates[i]
                         ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
-                        result_row[metric] = f"{est:.5f}, ({ci_low:.5f}, {ci_high:.5f})"
+                        result_row[metric] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
                     
                     if all_results.empty:
                         all_results = pd.DataFrame(result_row,index=[0])

@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
@@ -166,7 +167,23 @@ def main():
 
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    # Recorrer como en tu script
+    # Estilo tipo ggplot
+    plt.style.use('ggplot')
+    sns.set_context("paper", font_scale=1.7)
+    sns.set_palette("deep")
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    axes = axes.flatten()
+
+    # Títulos para cada subplot
+    subplot_titles = [
+        "Speech timing",
+        "Word properties",
+        "Word properties and speech timing",
+        "Neurocognitive scores"
+    ]
+
+    # Colores y orden
+    plot_idx = 0
     for task in tasks:
         dims = _list_dimensions(results_dir, task)
         if isinstance(y_labels_cfg, dict):
@@ -185,7 +202,7 @@ def main():
                 if not seeds:
                     seeds = ["random_seed_0"]
             else:
-                seeds = [""]  # sin carpeta de seed
+                seeds = [""]
 
             for seed in seeds:
                 combo_dir = leaf / seed if seed else leaf
@@ -199,7 +216,7 @@ def main():
                 ]
                 if not sel.empty:
                     model_type = sel["model_type"].unique().tolist()[0]
-
+                    mean_auc = sel["roc_auc"].values[0].split(', (')[0]
                 try:
                     outputs_tmp, y_vec = utils._load_data(
                         results_dir, task, dimension, y_label, model_type,
@@ -213,9 +230,6 @@ def main():
                 classes = np.unique(y_true)
                 is_binary = classes.size == 2
 
-                # ---- Plot ----
-                plt.figure(figsize=(8,6))
-
                 try:
                     outputs, y_check = utils._load_data(
                         results_dir, task, dimension, y_label, model_type,
@@ -226,39 +240,66 @@ def main():
                     continue
 
                 scores = _to_numpy(outputs)
-                
                 fpr_grid = np.linspace(0, 1, 100)
-                tpr_mat = []  # TPR interpolados por seed (binario o micro)
                 aucs = []
-                
+
                 if is_binary:
+                    tpr_mean = np.zeros_like(fpr_grid)
                     for r in range(y_true.shape[0]):
-
                         fpr, tpr, _ = roc_curve(y_true[r], scores[r,:,1], pos_label=classes.max())
-                        tpr_interp = np.interp(fpr_grid, fpr, tpr)  # interpola TPR en el grid común
-
-                        tpr_mat.append(tpr_interp)
+                        tpr_interp = np.interp(fpr_grid, fpr, tpr)
+                        tpr_mean += tpr_interp
                         aucs.append(auc(fpr, tpr))
-                    
-                    tpr_mat = np.vstack(tpr_mat)
+                    tpr_mean /= y_true.shape[0]
+                    tpr_mean[0] = 0.0
+                    tpr_mean[-1] = 1.0
 
-                    plt.plot(fpr_grid, tpr_mat.mean(axis=0), label=f"{model_type} (AUC={np.mean(aucs):.3f})")
-                
-                # Línea diagonal
-                plt.plot([0,1],[0,1], linestyle="--")
-                title = f"ROC — task={task} | dim={dimension} | y={y_label} | seed={seed or 'none'}"
-                plt.title(title)
-                plt.xlabel("False Positive Rate")
-                plt.ylabel("True Positive Rate")
-                plt.legend(loc="lower right")
-                plt.tight_layout()
+                    # Decide color y posición
+                    if task.lower() == 'nps':
+                        idx_subplot = 3  # abajo a la derecha
+                        color = '#FFD700'  # gold
+                    else:
+                        idx_subplot = plot_idx if plot_idx < 3 else 2
+                        color = '#1565c0'  # azul más vistoso
 
-                out_name = f"roc_dev_{task}__{dimension}__{y_label}__{(seed or 'none').replace('random_seed_','rs')}.png"
-                out_path = Path(save_dir) / out_name
-                out_path.parent.mkdir(parents=True, exist_ok=True)
-                plt.savefig(out_path, dpi=300, bbox_inches="tight")
-                plt.close()
-                print("[OK] Guardado:", out_path)
+                    axes[idx_subplot].plot(
+                        fpr_grid, tpr_mean,
+                        label=f"AUC = {mean_auc}",
+                        lw=3, color=color, alpha=0.95
+                    )
+                    axes[idx_subplot].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
+                    # Etiquetas solo en el borde izquierdo y abajo
+                    if idx_subplot % 2 == 0:
+                        axes[idx_subplot].set_ylabel("True Positive Rate", fontsize=17, weight='bold')
+                    else:
+                        axes[idx_subplot].set_ylabel("")
+                        axes[idx_subplot].set_yticklabels([])
+                    if idx_subplot >= 2:
+                        axes[idx_subplot].set_xlabel("False Positive Rate", fontsize=17, weight='bold')
+                    else:
+                        axes[idx_subplot].set_xlabel("")
+                        axes[idx_subplot].set_xticklabels([])
+                    axes[idx_subplot].set_xlim([0, 1])
+                    axes[idx_subplot].set_ylim([0, 1])
+                    # Quitar grid
+                    axes[idx_subplot].grid(False)
+                    # Mejorar bordes y fondo
+                    axes[idx_subplot].set_facecolor('white')
+                    for spine in axes[idx_subplot].spines.values():
+                        spine.set_edgecolor('#444444')
+                        spine.set_linewidth(1.5)
+                    axes[idx_subplot].legend(loc="lower right", fontsize=15, frameon=False)
+                    # Agregar título
+                    axes[idx_subplot].set_title(subplot_titles[idx_subplot], fontsize=18, weight='bold', pad=10)
+                    plot_idx += 1
+
+    plt.tight_layout()
+    out_path_png = Path(save_dir) / "roc_grid.png"
+    out_path_pdf = Path(save_dir) / "roc_grid.pdf"
+    plt.savefig(out_path_png, dpi=300, bbox_inches="tight")
+    plt.savefig(out_path_pdf, dpi=300, bbox_inches="tight")
+    plt.close()
+    print("[OK] Guardado:", out_path_png, out_path_pdf)
 
 if __name__ == "__main__":
     main()

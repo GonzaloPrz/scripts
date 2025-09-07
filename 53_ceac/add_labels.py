@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 
-conditions = ['has_depression','has_anxiety']
+conditions = ['depression','anxiety']
 
 data_dir = Path(Path.home(),'data','53_ceac') if '/Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','53_ceac')
 

@@ -3,7 +3,7 @@
 "svc":{"C":[1e-4,100],
        "gamma":[1e-4,1e4]},
 
-"lda":{"solver":["svd","lsqr","eigen"]},
+"lda":{"tol":[1e-5,1e-1]},
 
 "qda":{"reg_param":[0.0,1.0],
        "tol":[1e-5,1e-1]},

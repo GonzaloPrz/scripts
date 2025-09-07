@@ -14,15 +14,14 @@ all_data.columns = ['id'] + [f"nps__nps__{col}" for col in all_data.columns[1:]]
 #all_data = pd.merge(nps_data,biomarkers,on='id',how='left')
 
 matched_data = pd.read_csv(Path(data_dir,'data_matched_group.csv'))
-demographic_data = pd.read_csv(Path(data_dir,'nps_relevant_data.csv'))[['id','sex','age','education','handedness']]
+matched_data.drop(columns=['group'],inplace=True)
+demographic_data = pd.read_csv(Path(data_dir,'nps_relevant_data.csv'))
 
-matched_unbalanced_data = pd.read_csv(Path(data_dir,'data_matched_unbalanced_group.csv'))[['id','group']]
+matched_unbalanced_data = pd.read_csv(Path(data_dir,'data_matched_unbalanced_group.csv'))
+matched_unbalanced_data.drop(columns=['group'],inplace=True)
 
-data_matched_group = pd.merge(matched_data,all_data,on='id',how='inner')
-data_matched_unbalanced_group = pd.merge(matched_unbalanced_data,all_data,on='id',how='inner')
-
-data_matched_group = pd.merge(data_matched_group,demographic_data,on='id',how='inner')
-data_matched_unbalanced_group = pd.merge(data_matched_unbalanced_group,demographic_data,on='id',how='inner')
+data_matched_group = pd.merge(matched_data,demographic_data,on='id',how='inner')
+data_matched_unbalanced_group = pd.merge(matched_unbalanced_data,demographic_data,on='id',how='inner')
 
 data_matched_group.to_csv(Path(data_dir,'data_matched_group.csv'), index=False)
 data_matched_unbalanced_group.to_csv(Path(data_dir,'data_matched_unbalanced_group.csv'), index=False)

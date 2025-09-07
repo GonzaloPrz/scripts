@@ -144,18 +144,18 @@ else:
 
 models_dict = {'clf':{
                     'lr':LR,
-                    'knnc':KNNC,
+                    #'knnc':KNNC,
                     'xgb':xgboost,
-                    'svc':SVC,
+                    #'svc':SVC,
                     'qda':QDA,
-                    #'lda': LDA
+                    'lda': LDA
                     },
                 
                 'reg':{#'lasso':Lasso,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
-                    #'knnr':KNNR,
-                    #'svr':SVR,
+                    'knnr':KNNR,
+                    'svr':SVR,
                     #'xgb':xgboostr
                     }
 }
@@ -318,6 +318,7 @@ for task in tasks:
                 if Path(path_to_save,'config.json').exists():
                     with open(Path(path_to_save,'config.json'), 'rb') as f:
                         old_config = json.load(f)
+                        old_config['n_boot'] = config['n_boot']
 
                     if (not config['overwrite']) & (any(old_config[x] != config[x] for x in ['n_iter','init_points','n_seeds_train','n_boot'])):
                         for key in ['n_iter','init_points','n_seeds_train','n_boot']:

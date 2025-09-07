@@ -236,7 +236,8 @@
             "talking_intervals",
             "sentiment",            
             "verbosity",
-            "word_properties"
+            "word_properties",
+            "phq9"
         ],
         "tell_classifier": [
             "pitch",
