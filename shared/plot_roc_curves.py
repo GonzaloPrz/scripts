@@ -241,48 +241,35 @@ def main():
 
                 scores = _to_numpy(outputs)
                 fpr_grid = np.linspace(0, 1, 100)
-                aucs = []
+
+                if task.lower() == 'nps':
+                    idx_subplot = 1  # abajo a la derecha
+                    color = '#FFD700'  # gold
+                else:
+                    idx_subplot = plot_idx if plot_idx < 2 else 1
+                    color = '#1565c0'  # azul más vistoso
 
                 if is_binary:
-                    tpr_mean = np.zeros_like(fpr_grid)
                     for b in range(n_boot):
+                        tpr = np.zeros((n_boot, fpr_grid.size))
                         np.random.seed(b)
-                        indices = np.random.choice(y_true.shape[0], size=y_true.shape[0], replace=True)
-                        fpr, tpr, _ = roc_curve(y_true[:,indices].ravel(), scores[:,indices,1].ravel())
-                        tpr_interp = np.interp(fpr_grid, fpr, tpr)
-                        tpr_mean += tpr_interp
-                    
-                    tpr_mean /= n_boot
-                    tpr_mean[0] = 0.0
-                    tpr_mean[-1] = 1.0
+                        indices = np.random.choice(y_true.shape[1], size=y_true.shape[1], replace=True)
+                        fpr, tpr_, _ = roc_curve(y_true[:,indices].ravel(), scores[:,indices,1].ravel())
+                        tpr_interp = np.interp(fpr_grid, fpr, tpr_)
+                        tpr[b] = tpr_interp
+                        tpr[b,0] = 0.0
+                        tpr[b,-1] = 1.0
+                    tpr_mean = np.mean(tpr, axis=0)
+                    tpr_ci = np.std(tpr, axis=0)
 
-                    #Add confidence intervals
-
-                    
                     #Plot curves with confidence intervals
-
+                    axes[idx_subplot].plot(fpr_grid, tpr_mean, label=f"AUC = {mean_auc}", lw=3, color=color, alpha=0.95)
+                    axes[idx_subplot].fill_between(fpr_grid, tpr_mean - tpr_ci, tpr_mean + tpr_ci, color=color, alpha=0.2, label="95% CI")
+                    axes[idx_subplot].set_title(subplot_titles[idx_subplot], fontsize=18, weight='bold', pad=10)
                     # Decide color y posición
-                    if task.lower() == 'nps':
-                        idx_subplot = 3  # abajo a la derecha
-                        color = '#FFD700'  # gold
-                    else:
-                        idx_subplot = plot_idx if plot_idx < 3 else 2
-                        color = '#1565c0'  # azul más vistoso
-
-                    axes[idx_subplot].plot(
-                        fpr_grid, tpr_mean,
-                        label=f"AUC = {mean_auc}",
-                        lw=3, color=color, alpha=0.95
-                    )
+                    
                     axes[idx_subplot].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
-                    # Agregar sombreado de CI
-                    axes[idx_subplot].fill_between(
-                        fpr_grid,
-                        np.maximum(tpr_mean - 1.96 * np.std(aucs)/np.sqrt(n_boot), 0),
-                        np.minimum(tpr_mean + 1.96 * np.std(aucs)/np.sqrt(n_boot), 1),
-                        color=color, alpha=0.2,
-                        label="95% CI"
-                    )
+                    
                     # Etiquetas solo en el borde izquierdo y abajo
                     if idx_subplot % 2 == 0:
                         axes[idx_subplot].set_ylabel("True Positive Rate", fontsize=17, weight='bold')
