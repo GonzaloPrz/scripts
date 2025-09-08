@@ -121,13 +121,16 @@ for task in tasks:
 
                     # Define the statistic function with data baked in
                     stat_func = lambda indices: utils._calculate_metrics(
-                        indices, outputs, y_dev, 
-                        metrics_names_, problem_type, cmatrix
-                    )
+                    indices, outputs, y_dev, 
+                    metrics_names_, problem_type, cmatrix)
 
                     # 1. Calculate the point estimate (the actual difference on the full dataset)
-                    point_estimates = stat_func(data_indices[0])
-
+                    try:
+                        point_estimates = stat_func(data_indices[0])
+                    except Exception as e:
+                        print(f"ERROR calculating metrics for {tasks}/{dimensions}/{y_label} with model {model_type}. Error: {e}")
+                        continue
+                        
                     # 2. Calculate the bootstrap confidence interval
                     try:
                         # Try the more accurate BCa method first

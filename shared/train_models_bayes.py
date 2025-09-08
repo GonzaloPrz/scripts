@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut
+from sklearn.model_selection import StratifiedKFold, KFold, LeaveOneOut, StratifiedShuffleSplit, ShuffleSplit
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
@@ -36,12 +36,12 @@ def parse_args():
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=int, default=5, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=int, default=5, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=float, default=0.2, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=float, default=0.2, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
-    parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
-    parser.add_argument('--init_points', type=int, default=30, help='Number of random initial points to test during Bayesian optimization')
-    parser.add_argument('--n_seeds_train',type=int,default=5,help='Number of seeds for cross-validation training')
+    parser.add_argument('--feature_selection',type=int,default=0,help='Whether to perform feature selection with RFE or not')
+    parser.add_argument('--init_points', type=int, default=15, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_seeds_train',type=int,default=1,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -151,12 +151,12 @@ models_dict = {'clf':{
                     'lda': LDA
                     },
                 
-                'reg':{#'lasso':Lasso,
-                    'ridge':Ridge,
+                'reg':{'lasso':Lasso,
+                    #'ridge':Ridge,
                     'elastic':ElasticNet,
                     'knnr':KNNR,
                     'svr':SVR,
-                    #'xgb':xgboostr
+                    'xgb':xgboostr
                     }
 }
 
@@ -253,8 +253,8 @@ for task in tasks:
                 print(model_key)
                 
                 held_out = float(config["test_size"]) > 0
-                n_folds_outer = int(config['n_folds_outer'])
-                n_folds_inner = int(config['n_folds_inner'])
+                n_folds_outer = config['n_folds_outer']
+                n_folds_inner = config['n_folds_inner']
 
                 if held_out:
                     n_samples_dev = int(data.shape[0] * (1 - config['test_size']))
@@ -276,13 +276,19 @@ for task in tasks:
                     CV_outer = LeaveOneOut()
                     n_samples_outer = n_samples_dev - 1
                     config["kfold_folder"] = 'loocv'
-                else:
+                elif isinstance(n_folds_outer,int):
                     CV_outer = (StratifiedKFold(n_splits=n_folds_outer, shuffle=True)
                                 if strat_col is not None
                                 else KFold(n_splits=n_folds_outer, shuffle=True))
                     n_samples_outer = int(n_samples_dev*(1-1/n_folds_outer))
                     config['kfold_folder'] = f'{n_folds_outer}_folds' 
-
+                else:
+                    CV_outer = (StratifiedShuffleSplit(n_splits=1,test_size=n_folds_outer)
+                                if strat_col is not None
+                                else ShuffleSplit(n_splits=1,test_size=n_folds_outer))
+                    n_samples_outer = int(n_samples_dev*(1-n_folds_outer))
+                    config['kfold_folder'] = f'{int(n_folds_outer*100)}pct'
+                
                 if n_folds_inner == 0:
                     n_folds_inner = int(n_samples_outer / np.unique(y).shape[0])
                     CV_inner = (StratifiedKFold(n_splits=n_folds_inner, shuffle=True)
@@ -295,13 +301,19 @@ for task in tasks:
                     config["kfold_folder"] += '_loocv'
                     n_max = n_samples_outer - 1
                 
-                else:
+                elif isinstance(n_folds_inner,int):
                     CV_inner = (StratifiedKFold(n_splits=n_folds_inner, shuffle=True)
                                 if strat_col is not None
                                 else KFold(n_splits=n_folds_inner, shuffle=True))
                     n_max = int(n_samples_outer*(1-1/n_folds_inner))
                     config["kfold_folder"] += f'_{n_folds_inner}_folds'
-                
+                else:
+                    CV_inner = (StratifiedShuffleSplit(n_splits=1,test_size=n_folds_inner)
+                                if strat_col is not None
+                                else ShuffleSplit(n_splits=1,test_size=n_folds_inner))
+                    n_max = int(n_samples_outer*(1-n_folds_inner))
+                    config["kfold_folder"] += f'_{int(n_folds_inner*100)}pct'
+
                 with open(Path(__file__).parent/'config.json', 'w') as f:
                     json.dump(config, f, indent=4)
 
@@ -393,7 +405,7 @@ for task in tasks:
                             continue
                     
                     print(f'Training model: {model_key}')
-        
+
                     all_models,outputs_best,y_dev,y_pred_best,IDs_dev = utils.nestedCVT(model_class=models_dict[config['problem_type']][model_key],
                                                                                         scaler=StandardScaler if config['scaler_name'] == 'StandardScaler' else MinMaxScaler,
                                                                                         imputer=KNNImputer,
@@ -416,7 +428,7 @@ for task in tasks:
                                                                                         calmethod=calmethod,
                                                                                         calparams=calparams,
                                                                                         round_values=round_values)
-
+                
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(parents=True, exist_ok=True)
                     with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '','config.json'),'w') as f:
                         json.dump(config,f)

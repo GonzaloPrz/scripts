@@ -8,6 +8,7 @@ import itertools
 from pathlib import Path
 from turtle import home
 from typing import Any, Dict, List, Optional, Tuple
+from scipy.stats import bootstrap
 
 import numpy as np
 import pandas as pd
@@ -141,6 +142,7 @@ def main():
     bootstrap_method = config["bootstrap_method"]
     hyp_opt = bool(config["n_iter"] > 0)
     feature_selection = bool(config["feature_selection"])
+    n_boot = int(config["n_boot"])
 
     if "Users/gp" in str(home):
         save_dir = home / 'results' / project_name / 'rocs'
@@ -176,8 +178,6 @@ def main():
 
     # Títulos para cada subplot
     subplot_titles = [
-        "Speech timing",
-        "Word properties",
         "Word properties and speech timing",
         "Neurocognitive scores"
     ]
@@ -216,7 +216,7 @@ def main():
                 ]
                 if not sel.empty:
                     model_type = sel["model_type"].unique().tolist()[0]
-                    mean_auc = sel["roc_auc"].values[0].split(', (')[0]
+                    mean_auc = sel["roc_auc"].values[0].replace(', (', ' ()')
                 try:
                     outputs_tmp, y_vec = utils._load_data(
                         results_dir, task, dimension, y_label, model_type,
@@ -245,14 +245,21 @@ def main():
 
                 if is_binary:
                     tpr_mean = np.zeros_like(fpr_grid)
-                    for r in range(y_true.shape[0]):
-                        fpr, tpr, _ = roc_curve(y_true[r], scores[r,:,1], pos_label=classes.max())
+                    for b in range(n_boot):
+                        np.random.seed(b)
+                        indices = np.random.choice(y_true.shape[0], size=y_true.shape[0], replace=True)
+                        fpr, tpr, _ = roc_curve(y_true[:,indices].ravel(), scores[:,indices,1].ravel())
                         tpr_interp = np.interp(fpr_grid, fpr, tpr)
                         tpr_mean += tpr_interp
-                        aucs.append(auc(fpr, tpr))
-                    tpr_mean /= y_true.shape[0]
+                    
+                    tpr_mean /= n_boot
                     tpr_mean[0] = 0.0
                     tpr_mean[-1] = 1.0
+
+                    #Add confidence intervals
+
+                    
+                    #Plot curves with confidence intervals
 
                     # Decide color y posición
                     if task.lower() == 'nps':
@@ -268,6 +275,14 @@ def main():
                         lw=3, color=color, alpha=0.95
                     )
                     axes[idx_subplot].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
+                    # Agregar sombreado de CI
+                    axes[idx_subplot].fill_between(
+                        fpr_grid,
+                        np.maximum(tpr_mean - 1.96 * np.std(aucs)/np.sqrt(n_boot), 0),
+                        np.minimum(tpr_mean + 1.96 * np.std(aucs)/np.sqrt(n_boot), 1),
+                        color=color, alpha=0.2,
+                        label="95% CI"
+                    )
                     # Etiquetas solo en el borde izquierdo y abajo
                     if idx_subplot % 2 == 0:
                         axes[idx_subplot].set_ylabel("True Positive Rate", fontsize=17, weight='bold')

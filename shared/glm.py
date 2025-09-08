@@ -11,7 +11,7 @@ project_name = 'MCI_classifier_unbalanced'
 datafile = 'data_matched_group.csv' if 'unbalanced' not in project_name else 'data_matched_unbalanced_group.csv'
 output = 'group'
 tasks = ['grandmean']
-subsets = ['word_properties']
+subsets = ['speech_timing']
 stats_to_remove = ['median','std','min','max','skewness','kurtosis']
 filter_outliers = False
 
