@@ -170,7 +170,7 @@ for task in tasks:
                     for i, metric in enumerate(metrics_names_):
                         est = point_estimates[i]
                         ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
-                        result_row[metric] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
+                        result_row[metric] = f"{est:.2f}, ({ci_low:.2f}, {ci_high:.2f})"
                     
                     if all_results.empty:
                         all_results = pd.DataFrame(result_row,index=[0])

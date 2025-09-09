@@ -8,7 +8,8 @@
             "target"
         ],
         "MCI_classifier_unbalanced": [
-            "group"
+            "group",
+            "bio__bio__ptau217"
         ],
         "MCI_classifier": [
             "group"
@@ -98,12 +99,7 @@
     },
     "tasks": {
         "53_ceac":[
-            "sonho_a",
-            "sonho_r",
-            "pais__sonho_a__sonho_r__dia_anterior",
-            "pais",
-            "dia_anterior",
-            "pais__dia_anterior"
+            "phq9"
         ],
         "tell_classifier": [
             "MOTOR-LIBRE"
@@ -234,13 +230,8 @@
 
     },
     "single_dimensions": {
-        "53_ceac":[    
-            "pitch_analysis",
-            "talking_intervals",
-            "sentiment",            
-            "verbosity",
-            "word_properties",
-            "phq9"
+        "53_ceac":[
+            "gemini"
         ],
         "tell_classifier": [
             "pitch",

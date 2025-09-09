@@ -189,6 +189,8 @@ for task in tasks:
 
             all_features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
 
+            all_data = all_data.dropna(subset=all_features,how='all')
+
             if len(config["avoid_stats"]) > 0:
                 all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
             
@@ -219,6 +221,9 @@ for task in tasks:
 
             y = data.pop(y_label)
 
+            if data.shape[0] == 0:
+                continue
+            
             if config['shuffle_labels'] and config['problem_type'] == 'clf':
                 np.random.seed(42)
                 zero_indices = np.where(y == 0)[0]
@@ -238,10 +243,10 @@ for task in tasks:
                 y = np.random.permutation(y)
         
             features = all_features
-            
-            
+        
             ID = data.pop(config['id_col'])
-            
+
+
             if (config['problem_type'] == 'reg') & ('group' in data.columns) & (config['stratify']):
                 strat_col = data.pop('group')
             elif (config['problem_type'] == 'clf') & (config['stratify']):
@@ -276,18 +281,20 @@ for task in tasks:
                     CV_outer = LeaveOneOut()
                     n_samples_outer = n_samples_dev - 1
                     config["kfold_folder"] = 'loocv'
-                elif isinstance(n_folds_outer,int):
-                    CV_outer = (StratifiedKFold(n_splits=n_folds_outer, shuffle=True)
-                                if strat_col is not None
-                                else KFold(n_splits=n_folds_outer, shuffle=True))
-                    n_samples_outer = int(n_samples_dev*(1-1/n_folds_outer))
-                    config['kfold_folder'] = f'{n_folds_outer}_folds' 
-                else:
+                elif n_folds_outer < 1:
                     CV_outer = (StratifiedShuffleSplit(n_splits=1,test_size=n_folds_outer)
                                 if strat_col is not None
                                 else ShuffleSplit(n_splits=1,test_size=n_folds_outer))
                     n_samples_outer = int(n_samples_dev*(1-n_folds_outer))
                     config['kfold_folder'] = f'{int(n_folds_outer*100)}pct'
+
+                else:
+                    n_folds_outer = int(n_folds_outer)
+                    CV_outer = (StratifiedKFold(n_splits=n_folds_outer, shuffle=True)
+                                if strat_col is not None
+                                else KFold(n_splits=n_folds_outer, shuffle=True))
+                    n_samples_outer = int(n_samples_dev*(1-1/n_folds_outer))
+                    config['kfold_folder'] = f'{n_folds_outer}_folds' 
                 
                 if n_folds_inner == 0:
                     n_folds_inner = int(n_samples_outer / np.unique(y).shape[0])
@@ -300,19 +307,19 @@ for task in tasks:
                     CV_inner = LeaveOneOut()
                     config["kfold_folder"] += '_loocv'
                     n_max = n_samples_outer - 1
-                
-                elif isinstance(n_folds_inner,int):
-                    CV_inner = (StratifiedKFold(n_splits=n_folds_inner, shuffle=True)
-                                if strat_col is not None
-                                else KFold(n_splits=n_folds_inner, shuffle=True))
-                    n_max = int(n_samples_outer*(1-1/n_folds_inner))
-                    config["kfold_folder"] += f'_{n_folds_inner}_folds'
-                else:
+                elif n_folds_inner < 1:
                     CV_inner = (StratifiedShuffleSplit(n_splits=1,test_size=n_folds_inner)
                                 if strat_col is not None
                                 else ShuffleSplit(n_splits=1,test_size=n_folds_inner))
                     n_max = int(n_samples_outer*(1-n_folds_inner))
                     config["kfold_folder"] += f'_{int(n_folds_inner*100)}pct'
+                else: 
+                    n_folds_inner = int(n_folds_inner)
+                    CV_inner = (StratifiedKFold(n_splits=n_folds_inner, shuffle=True)
+                                if strat_col is not None
+                                else KFold(n_splits=n_folds_inner, shuffle=True))
+                    n_max = int(n_samples_outer*(1-1/n_folds_inner))
+                    config["kfold_folder"] += f'_{n_folds_inner}_folds'
 
                 with open(Path(__file__).parent/'config.json', 'w') as f:
                     json.dump(config, f, indent=4)

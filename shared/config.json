@@ -1,85 +1,55 @@
 {
-    "project_name": "MCI_classifier_unbalanced",
+    "project_name": "53_ceac",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 10.0,
-    "n_folds_inner": 10.0,
+    "n_folds_outer": 0.2,
+    "n_folds_inner": 0.2,
     "n_iter": 15.0,
     "feature_selection": false,
-    "init_points": 50.0,
-    "n_seeds_train": 10.0,
+    "init_points": 15.0,
+    "n_seeds_train": 1.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
-    "n_boot": 10000.0,
+    "n_boot": 1000.0,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
     "filter_outliers": false,
     "early_fusion": true,
-    "overwrite": false,
+    "overwrite": true,
     "parallel": true,
-    "n_seeds_test": 0,
+    "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
     "round_values": false,
     "add_dem": false,
-    "test_size": 0.0,
-    "data_file": "data_matched_unbalanced_group.csv",
+    "test_size": 0.3,
+    "data_file": "all_data.csv",
     "tasks": [
-        "grandmean",
-        "nps"
+        "phq9"
     ],
-    "single_dimensions": {
-        "fas": [
-            "word_properties",
-            "speech_timing"
-        ],
-        "animales": [
-            "word_properties",
-            "speech_timing"
-        ],
-        "fas__animales": [
-            "word_properties",
-            "speech_timing"
-        ],
-        "grandmean": [
-            "word_properties",
-            "speech_timing"
-        ],
-        "nps": [
-            "digits__memory__TMT__mmse"
-        ],
-        "bio": [
-            "bio"
-        ]
-    },
+    "single_dimensions": [
+        "gemini"
+    ],
     "y_labels": [
-        "group"
+        "depression",
+        "anxiety"
     ],
     "avoid_stats": [],
     "stat_folder": "",
     "random_seeds_train": [
-        3,
-        9,
-        27,
-        81,
-        243,
-        729,
-        2187,
-        6561,
-        19683,
-        59049
+        3
     ],
     "random_seeds_test": [
-        ""
+        3
     ],
     "random_seeds_shuffle": [
         ""
     ],
     "bayes": true,
-    "problem_type": "clf",
-    "kfold_folder": "10_folds_10_folds",
-    "scoring_metric": "roc_auc"
+    "problem_type": "reg",
+    "kfold_folder": "20pct_20pct",
+    "scoring_metric": "r2"
 }
