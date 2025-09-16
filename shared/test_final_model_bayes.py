@@ -50,7 +50,11 @@ main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 thresholds = main_config['thresholds'][project_name]
 data_file = main_config["data_file"][project_name]
 
-covars = main_config["covars"][project_name] if problem_type == 'reg' else []
+try:
+    covars = main_config["covars"][project_name] if problem_type == 'reg' else []
+except:
+    covars = []
+    
 metrics_names_ = main_config['metrics_names'][problem_type]
 cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 
@@ -235,7 +239,7 @@ if config["test_size"] != 0:
                             stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
                             'hyp_opt' if hyp_opt else '',
                             'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
-                            f'{task}_{y_label}_{dimension}_{model_type}_test.png')
+                            f'{model_type}_test.png')
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
             plt.figure(figsize=(8, 6))

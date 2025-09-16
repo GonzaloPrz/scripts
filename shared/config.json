@@ -7,10 +7,10 @@
     "calibrate": false,
     "n_folds_outer": 0.2,
     "n_folds_inner": 0.2,
-    "n_iter": 15.0,
-    "feature_selection": false,
+    "n_iter": 30.0,
+    "feature_selection": true,
     "init_points": 15.0,
-    "n_seeds_train": 1.0,
+    "n_seeds_train": 3.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -19,7 +19,7 @@
     "n_boot_train": 0.0,
     "filter_outliers": false,
     "early_fusion": true,
-    "overwrite": true,
+    "overwrite": false,
     "parallel": true,
     "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
@@ -28,11 +28,23 @@
     "test_size": 0.3,
     "data_file": "all_data.csv",
     "tasks": [
-        "phq9"
+        "dia_anterior__phq9",
+        "dia_anterior__pais__phq9__sonho_a__sonho_r"
     ],
-    "single_dimensions": [
-        "gemini"
-    ],
+    "single_dimensions": {
+        "phq9": [
+            "gemini"
+        ],
+        "dia_anterior": [
+            "phq9__pitch_analysis__sentiment__talking_intervals__verbosity"
+        ],
+        "dia_anterior__phq9": [
+            "gemini__phq9__pitch_analysis__sentiment__verbosity"
+        ],
+        "dia_anterior__pais__phq9__sonho_a__sonho_r": [
+            "gemini__phq9__pitch_analysis__sentiment__verbosity"
+        ]
+    },
     "y_labels": [
         "depression",
         "anxiety"
@@ -40,7 +52,9 @@
     "avoid_stats": [],
     "stat_folder": "",
     "random_seeds_train": [
-        3
+        3,
+        9,
+        27
     ],
     "random_seeds_test": [
         3

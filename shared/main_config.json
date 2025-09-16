@@ -99,7 +99,8 @@
     },
     "tasks": {
         "53_ceac":[
-            "phq9"
+            "dia_anterior__phq9",
+            "dia_anterior__pais__phq9__sonho_a__sonho_r"
         ],
         "tell_classifier": [
             "MOTOR-LIBRE"
@@ -230,9 +231,11 @@
 
     },
     "single_dimensions": {
-        "53_ceac":[
-            "gemini"
-        ],
+        "53_ceac":{"phq9":["gemini"],
+            "dia_anterior":["phq9__pitch_analysis__sentiment__talking_intervals__verbosity"],
+            "dia_anterior__phq9":["gemini__phq9__pitch_analysis__sentiment__verbosity"],
+            "dia_anterior__pais__phq9__sonho_a__sonho_r":["gemini__phq9__pitch_analysis__sentiment__verbosity"]
+        },
         "tell_classifier": [
             "pitch",
             "voice_quality",

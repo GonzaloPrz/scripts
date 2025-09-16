@@ -36,8 +36,8 @@ def parse_args():
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=float, default=0.2, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=float, default=0.2, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=float, default=5, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=float, default=5, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=0,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--init_points', type=int, default=15, help='Number of random initial points to test during Bayesian optimization')
@@ -51,7 +51,7 @@ def parse_args():
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
+    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
@@ -151,12 +151,12 @@ models_dict = {'clf':{
                     'lda': LDA
                     },
                 
-                'reg':{'lasso':Lasso,
-                    #'ridge':Ridge,
+                'reg':{#'lasso':Lasso,
+                    'ridge':Ridge,
                     'elastic':ElasticNet,
                     'knnr':KNNR,
                     'svr':SVR,
-                    'xgb':xgboostr
+                    #'xgb':xgboostr
                     }
 }
 
@@ -189,7 +189,7 @@ for task in tasks:
 
             all_features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
 
-            all_data = all_data.dropna(subset=all_features,how='all')
+            all_data = all_data.dropna(subset=all_features,how='any')
 
             if len(config["avoid_stats"]) > 0:
                 all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
@@ -217,7 +217,7 @@ for task in tasks:
                 scoring_metric = 'roc_auc' if len(np.unique(data[y_label])) == 2 else 'norm_expected_cost'
 
             if config['problem_type'] == 'reg' and config['filter_outliers']:
-                all_data = all_data[np.abs(data[y_label]-data[y_label].mean()) <= (3*data[y_label].std())]
+                all_data = all_data[np.abs((all_data[y_label] - all_data[y_label].mean()) / all_data[y_label].std()) < 2]
 
             y = data.pop(y_label)
 
