@@ -3,6 +3,7 @@ import contextlib
 from pathlib import Path
 import pandas as pd
 import subprocess
+import docx2txt
 
 def get_wav_duration(filepath):
     """
@@ -14,7 +15,7 @@ def get_wav_duration(filepath):
         duration = frames / float(rate)
         return duration
 
-def create_textgrid(input_txt, output_textgrid, start_time=0.0, end_time=10.0):
+def create_textgrid(content, output_textgrid, start_time=0.0, end_time=10.0):
     """
     Converts a .txt file to a .TextGrid file with a single interval tier.
     
@@ -26,9 +27,7 @@ def create_textgrid(input_txt, output_textgrid, start_time=0.0, end_time=10.0):
     """
     try:
         # Read the text content from the .txt file
-        with open(input_txt, 'r', encoding='utf-8') as file:
-            content = file.read().strip()
-
+        
         # Escape double quotes in content
         content = content.replace('"', '""')
 
@@ -60,36 +59,40 @@ item []:
         print(f".TextGrid file created: {output_textgrid}")
 
     except FileNotFoundError:
-        print(f"Input text file not found: {input_txt}")
+        print(f"Input text file not found")
     except Exception as e:
         print(f"Error creating .TextGrid file: {e}")
 
 base_dir = Path(Path.home(),'data','redlat') if '/Users/gp' in str(Path.home()) else Path('D:\\CNC_Audio\\data\\13_redlat\\REDLAT_06-02-25')
-transcripts = pd.read_excel(Path(base_dir,"REDLAT_FUGU_transcriptions.xlsx"))
 
 centers = [folder.name for folder in base_dir.iterdir() if folder.is_dir()]
 
 for center in centers:
-    ids = [folder.name for folder in Path(base_dir,center).iterdir() if folder.is_dir()]
+    evals = [folder.name for folder in Path(base_dir,center).iterdir() if folder.is_dir()]
 
-    for id in ids:
-        filename = f'REDLAT_{id}_Fugu.wav'
-        try:
-            transcript = transcripts[transcripts["filename"] == filename]["transcript"].values[0]
-            txt_file = filename.replace('.wav','.txt')
-            with open(Path(base_dir,center,id,txt_file), 'w', encoding='utf-8') as f:
-                f.write(transcript)
-        except:
-            print(f"Transcript for {filename} not found.")
-            continue
-        
-        try:
-            duration = get_wav_duration(Path(base_dir,center,id,filename))
-            Path(base_dir,center,id,'ffmpeg').mkdir(parents=True, exist_ok=True)
+    for eval_code in evals:
+        files = [file.name for file in Path(base_dir,center,eval_code).iterdir() if file.suffix == '.wav']
 
-            subprocess.run(["ffmpeg", "-i", str(Path(base_dir,center,id,filename)),"-ar", "16000", "-ac", "1", "-sample_fmt", "s16",str(Path(base_dir,center,id,"ffmpeg",filename))], check=True)
-            textgrid_file = filename.replace('.wav','.TextGrid')
-            create_textgrid(Path(base_dir,center,id,txt_file), Path(base_dir,center,id,'ffmpeg',textgrid_file), end_time=duration)
-        except Exception as e:
-            print(f"Error processing {filename}: {e}")
-            continue
+        for filename in files:
+            txt_filename = filename.replace('_diarize.wav','_mono_16khz_diarize_loudnorm_denoised.txt')
+
+            try:
+                with open(Path(base_dir,center,eval_code,txt_filename), 'r',encoding='utf-16') as f:
+                    transcript = f.read()
+            except:
+                if not Path(base_dir,center,eval_code,txt_filename.replace('.txt','.docx')).exists():
+                    print(f"Error processing file {filename}")
+                    continue
+                
+                transcript = docx2txt.process(Path(base_dir,center,eval_code,txt_filename.replace('.txt','.docx')))
+
+            try:
+                duration = get_wav_duration(Path(base_dir,center,eval_code,filename))
+                Path(base_dir,center,eval_code).mkdir(parents=True, exist_ok=True)
+
+                #subprocess.run(["ffmpeg", "-i", str(Path(base_dir,center,eval_code,filename)),"-ar", "16000", "-ac", "1", "-sample_fmt", "s16",str(Path(base_dir,center,eval_code,"ffmpeg",filename))], check=True)
+                textgrid_file = filename.replace('.wav','.TextGrid')
+                create_textgrid(transcript, Path(base_dir,center,eval_code,textgrid_file), end_time=duration)
+            except Exception as e:
+                print(f"Error processing {filename}: {e}")
+                continue

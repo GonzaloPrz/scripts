@@ -1,6 +1,7 @@
 from textgrid import TextGrid
 from pathlib import Path
 import scipy.io.wavfile as wave
+import docx2txt
 
 def parse_word_alignments(textgrid_file):
     tg = TextGrid.fromFile(textgrid_file)
@@ -22,7 +23,7 @@ def get_sentence_boundaries(word_alignments, sentences):
     current_word_index = 0
     for sentence in sentences:
         
-        words = [word for word in sentence.split() if word not in [',',',',':',';','"','(',')']]
+        words = [word.replace(',','').replace(';','').replace('.','').lower() for word in sentence.split(' ') if word not in [',',',',':',';','"','(',')',' ']]
 
         if len(words) == 0:
             continue
@@ -30,8 +31,6 @@ def get_sentence_boundaries(word_alignments, sentences):
             sentence_start = word_alignments[current_word_index]["start"]
             sentence_end = word_alignments[current_word_index + len(words) - 1]["end"]
         except:
-            sentence_start = word_alignments[current_word_index - 1]["start"]
-            sentence_end = word_alignments[current_word_index + len(words) - 2]["end"]
             continue
         current_word_index += len(words)
         
@@ -58,18 +57,33 @@ def split_audio(audio_file, sentence_boundaries, output_dir):
         with open(output_path.replace(".wav",".txt"), 'w') as f:
             f.write(sentence.strip())
 
-base_dir = Path("/Users/gp/data/ad_mci_hc","Audios","wavs")
+base_dir = Path("/Users/gp/data/redlat") if '/Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','redlat')
+
 Path(base_dir,'sentences').mkdir(exist_ok=True)
 
 for textgrid_file in Path(base_dir,"mfa_aligned").glob('*.TextGrid'):
-    audio_file = Path(base_dir,f'{textgrid_file.stem}.wav')
+    audio_file_list = list(base_dir.rglob(f'{textgrid_file.stem}.wav'))
+    if len(audio_file_list) == 0:
+        continue
+    else:
+        audio_file = audio_file_list[0]
+    
     if not audio_file.exists():
         continue
     output_dir = Path(base_dir,'sentences')
     output_dir.mkdir(exist_ok=True)
-    with open(Path(base_dir,f'{textgrid_file.stem}.txt'), 'r',encoding='utf-16') as f:
-        original_sentences = f.read().replace("...","").split('.')
-    
+    txt_file = str(audio_file).replace('_diarize.wav','_mono_16khz_diarize_loudnorm_denoised.txt')
+
+    try:
+        with open(txt_file, 'r',encoding='utf-8') as f:
+            original_sentences = f.read().replace("...","").replace('¿','').replace('?','.').split('.')
+    except:
+
+        if not Path(txt_file.replace('.txt','.docx')).exists():
+            print(f"Error processing file {audio_file}")
+            continue
+        original_sentences = docx2txt.process(Path(txt_file.replace('.txt','.docx'))).replace("...","").replace('¿','').replace('?','.').split('. ')
+
     word_alignments = parse_word_alignments(textgrid_file)
 
     sentence_boundaries = get_sentence_boundaries(word_alignments, original_sentences)
