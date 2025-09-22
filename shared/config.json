@@ -1,16 +1,16 @@
 {
-    "project_name": "53_ceac",
+    "project_name": "Proyecto_Ivo",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 0.2,
-    "n_folds_inner": 0.2,
-    "n_iter": 30.0,
+    "n_folds_outer": 3.0,
+    "n_folds_inner": 11.0,
+    "n_iter": 15.0,
     "feature_selection": true,
-    "init_points": 15.0,
-    "n_seeds_train": 3.0,
+    "init_points": 50.0,
+    "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -18,52 +18,72 @@
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
     "filter_outliers": false,
-    "early_fusion": true,
+    "early_fusion": false,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 1.0,
-    "bootstrap_method": "bca",
+    "n_seeds_test": 0,
+    "bootstrap_method": "percentile",
     "round_values": false,
     "add_dem": false,
-    "test_size": 0.3,
+    "test_size": 0.0,
     "data_file": "all_data.csv",
     "tasks": [
-        "dia_anterior__phq9",
-        "dia_anterior__pais__phq9__sonho_a__sonho_r"
+        "nps",
+        "Animales",
+        "brain",
+        "connectivity"
     ],
     "single_dimensions": {
-        "phq9": [
-            "gemini"
+        "Animales": [
+            "properties"
         ],
-        "dia_anterior": [
-            "phq9__pitch_analysis__sentiment__talking_intervals__verbosity"
+        "P": [
+            "properties",
+            "timing"
         ],
-        "dia_anterior__phq9": [
-            "gemini__phq9__pitch_analysis__sentiment__verbosity"
+        "Animales__P": [
+            "properties",
+            "timing"
         ],
-        "dia_anterior__pais__phq9__sonho_a__sonho_r": [
-            "gemini__phq9__pitch_analysis__sentiment__verbosity"
+        "nps": [
+            "executive",
+            "mmse"
+        ],
+        "brain": [
+            "norm_brain_lit"
+        ],
+        "AAL": [
+            "norm_AAL"
+        ],
+        "connectivity": [
+            "networks"
         ]
     },
     "y_labels": [
-        "depression",
-        "anxiety"
+        "target"
     ],
     "avoid_stats": [],
     "stat_folder": "",
     "random_seeds_train": [
         3,
         9,
-        27
+        27,
+        81,
+        243,
+        729,
+        2187,
+        6561,
+        19683,
+        59049
     ],
     "random_seeds_test": [
-        3
+        ""
     ],
     "random_seeds_shuffle": [
         ""
     ],
     "bayes": true,
-    "problem_type": "reg",
-    "kfold_folder": "20pct_20pct",
-    "scoring_metric": "r2"
+    "problem_type": "clf",
+    "kfold_folder": "3_folds_11_folds",
+    "scoring_metric": "roc_auc"
 }

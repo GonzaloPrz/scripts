@@ -140,7 +140,7 @@ data_to_plot = data_to_plot[((data_to_plot["task"] == "Animales") & (data_to_plo
                             ((data_to_plot["task"] == "connectivity") & (data_to_plot["dimension"] == "networks")) 
                             ]
 
-data_to_plot["dimension"] = data_to_plot["dimension"].map({"properties":"Speech\n classifier","mmse": "Screening\n classifier","executive":"Executive\n classifier","norm_brain_lit":"Structural\n classifier", "networks":"Functional\n classifier"})
+data_to_plot["dimension"] = data_to_plot["dimension"].map({"properties":"Fluency\n classifier","mmse": "Screening\n classifier","executive":"Executive\n classifier","norm_brain_lit":"Structural\n classifier", "networks":"Functional\n classifier"})
 for metric in metrics_names:
     # Get mean values
     mean_animales = float(
@@ -205,7 +205,7 @@ for metric in metrics_names:
     
     plt.figure()
 
-    sns.violinplot(data=data_to_plot,x='dimension',y=metric, color="#1f77b4",order=['Speech\n classifier', 'Screening\n classifier', 'Executive\n classifier','Structural\n classifier','Functional\n classifier'],inner=None)
+    sns.violinplot(data=data_to_plot,x='dimension',y=metric, color="#1f77b4",order=['Fluency\n classifier', 'Screening\n classifier', 'Executive\n classifier','Structural\n classifier','Functional\n classifier'],inner=None)
     plt.errorbar(
     x=np.arange(len(data_to_plot['dimension'].unique())),
     y=means,
@@ -213,7 +213,7 @@ for metric in metrics_names:
     fmt="D", color="black", capsize=5, markersize=8
     )
 
-    plt.ylabel(metric.replace('_', ' ').capitalize())
+    plt.ylabel(metric.replace('_', ' ').upper())
     #plt.title(f"{metric.replace('_', ' ').upper()} Distribution for {model_name}")
     plt.xlabel('')
     #plt.ylim([0.6,1])

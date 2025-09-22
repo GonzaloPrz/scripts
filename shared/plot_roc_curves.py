@@ -180,7 +180,7 @@ def main():
     subplot_titles = [
         "Speech timing",
         "Word properties",
-        "Word properties and \n speech timing features",
+        "Word properties \n and speech timing features",
         "Cognitive tests"
     ]
 

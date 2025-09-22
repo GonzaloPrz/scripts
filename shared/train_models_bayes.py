@@ -36,12 +36,12 @@ def parse_args():
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=float, default=5, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=float, default=5, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_outer', type=float, default=0.2, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=float, default=0.2, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
     parser.add_argument('--feature_selection',type=int,default=0,help='Whether to perform feature selection with RFE or not')
-    parser.add_argument('--init_points', type=int, default=15, help='Number of random initial points to test during Bayesian optimization')
-    parser.add_argument('--n_seeds_train',type=int,default=1,help='Number of seeds for cross-validation training')
+    parser.add_argument('--init_points', type=int, default=30, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_seeds_train',type=int,default=3,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -144,14 +144,14 @@ else:
 
 models_dict = {'clf':{
                     'lr':LR,
-                    #'knnc':KNNC,
+                    'knnc':KNNC,
                     'xgb':xgboost,
-                    #'svc':SVC,
-                    'qda':QDA,
-                    'lda': LDA
+                    'svc':SVC,
+                   # 'qda':QDA,
+                    #'lda': LDA
                     },
                 
-                'reg':{#'lasso':Lasso,
+                'reg':{'lasso':Lasso,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
                     'knnr':KNNR,
@@ -188,8 +188,6 @@ for task in tasks:
             all_data = pd.read_csv(Path(data_dir,data_file))
 
             all_features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
-
-            all_data = all_data.dropna(subset=all_features,how='any')
 
             if len(config["avoid_stats"]) > 0:
                 all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]

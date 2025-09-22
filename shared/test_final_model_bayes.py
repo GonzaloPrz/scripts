@@ -201,8 +201,6 @@ if config["test_size"] != 0:
             except:
                 continue
             
-            best_models.loc[idx,['r_holdout','p_value_corrected_holdout','p_holdout','method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout']] = [r,np.nan,p,method,n,str(ci),str(covars),np.nan]
-
             sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
             plt.rcParams.update({
                 "font.family": "DejaVu Sans",
@@ -220,12 +218,11 @@ if config["test_size"] != 0:
             with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.pkl'),'wb') as f:
                 pickle.dump(predictions,f)
             predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.csv'),index=False)
-            '''
+        
             if all([shapiro(predictions['y_pred'])[1] > 0.05,shapiro(predictions['y_true'])[1] > 0.05]):
                 method = 'pearson'
             else:
                 method = 'spearman'
-            '''
 
             try:
                 results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
@@ -234,6 +231,8 @@ if config["test_size"] != 0:
                 r, p = pearsonr(predictions['y_pred'], predictions['y_true']) if method == 'pearson' else spearmanr(predictions['y_true'], predictions['y_pred'])
                 n = predictions.shape[0]
                 ci = np.nan
+
+            best_models.loc[idx,['r_holdout','p_value_corrected_holdout','p_holdout','method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout']] = [r,np.nan,p,method,n,str(ci),str(covars),np.nan]
 
             save_path = Path(results_dir, f'plots', task, dimension, y_label,
                             stat_folder, scoring,config["bootstrap_method"],'bayes',scoring,
@@ -284,7 +283,5 @@ if config["test_size"] != 0:
         best_models['p_holdout'] = best_models['p_holdout'].apply(lambda x: f"{x:.2e}" if x < 0.01 else f"{x:.3f}")
 
         best_models['correction_method_holdout'] = correction
-
-        best_models = best_models[['task','dimension','model_type','y_label','r','p_value_corrected','r_holdout','p_value_corrected_holdout','p_value','p_holdout','method','n','95_ci','covars','correction_method','n_holdout','95_ci_holdout','covars_holdout','correction_method_holdout','random_seed_test']]
 
     best_models.to_csv(Path(results_dir,filename.replace('.csv','_test.csv')),index=False)
