@@ -4,30 +4,26 @@ from pathlib import Path
 import numpy as np
 
 early_fusion = False
-hyp_opt = True
-feature_selection = True
 
-project_name = "arequipa_reg_mci"
 avoid_stats = ['median','std','stddev','min','max','kurtosis','skewness']
-stat_folder = '_'.join(sorted(list(set(['mean','std','stddev','median','min','max','kurtosis','skewness']) - set(avoid_stats)))) if len(avoid_stats) > 0 else ''
-scaler_name = 'StandardScaler'
-n_folds = 5
-
-if n_folds == 0:
-    kfold_folder = 'l2ocv'
-elif n_folds == -1:
-    kfold_folder = 'loocv'
-else:
-    kfold_folder = f'{n_folds}_folds'
 
 main_config = json.load(open(Path(Path(__file__).parent,'main_config.json')))
+config = json.load(open(Path(Path(__file__).parent,'config.json')))
+project_name = config["project_name"]
 
 data_file_test = main_config["data_file_test"][project_name]
-single_dimensions = main_config["single_dimensions"][project_name]
-y_labels = main_config["y_labels"][project_name]
-tasks = main_config["tasks"][project_name]
-problem_type = main_config["problem_type"][project_name]
-id_col = main_config["id_col"][project_name]
+single_dimensions = config["single_dimensions"]
+kfold_folder = config['kfold_folder']
+scaler_name = config['scaler_name']
+stat_folder = config['stat_folder']
+y_labels = config["y_labels"]
+tasks = config["tasks"]
+bayes = config['bayes']
+hyp_opt = config["n_iter"] > 0
+feature_selection = config["n_iter_features"] > 0
+
+problem_type = config['problem_type']
+id_col = config['id_col']
 
 data_dir = Path(Path.home(),"data",project_name) if "/Users/gp" in str(Path.home()) else Path("D:/CNC_Audio/gonza/data",project_name)
 results_dir = Path(str(data_dir).replace("data","results"))
@@ -62,7 +58,7 @@ for y_label, task in itertools.product(y_labels, tasks):
         ID = data.pop(id_col)
         y = data.pop(y_label)
 
-        path_to_save = Path(results_dir, task, dimension, scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else 'no_hyp_opt','feature_selection' if feature_selection else '')
+        path_to_save = Path(results_dir, task, dimension, scaler_name,kfold_folder,y_label,stat_folder,'bayes' if bayes else '',config['scoring_metric'] if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '')
         
         path_to_save.mkdir(parents=True, exist_ok=True)
 

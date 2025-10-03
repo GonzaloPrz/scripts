@@ -32,12 +32,10 @@ main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
 tasks = main_config['tasks'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
-if isinstance(scoring_metrics,str):
-    scoring_metrics = [scoring_metrics]
 
-problem_type = main_config['problem_type'][project_name]
-models = main_config['models'][project_name]
+problem_type = config['problem_type']
+scoring_metrics = ['roc_auc'] if problem_type == 'clf' else ['r2']
+
 metrics_names = main_config['metrics_names'][problem_type] 
 
 pd.options.mode.copy_on_write = True 

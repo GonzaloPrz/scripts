@@ -31,17 +31,17 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='53_ceac',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
+    parser.add_argument('--project_name', default='arequipa',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='mean', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=float, default=0.2, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=float, default=0.2, help='Number of folds for cross validation (inner loop)')
-    parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
-    parser.add_argument('--feature_selection',type=int,default=0,help='Whether to perform feature selection with RFE or not')
-    parser.add_argument('--init_points', type=int, default=30, help='Number of random initial points to test during Bayesian optimization')
-    parser.add_argument('--n_seeds_train',type=int,default=3,help='Number of seeds for cross-validation training')
+    parser.add_argument('--n_folds_outer', type=float, default=5, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=float, default=-1, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_iter', type=int, default=20, help='Number of hyperparameter iterations')
+    parser.add_argument('--init_points', type=int, default=20, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
+    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -57,6 +57,8 @@ def parse_args():
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
     parser.add_argument('--round_values',type=int,default=0,help='Whether to round predicted values for regression or not')
     parser.add_argument('--add_dem',type=int,default=0,help='Whether to add demographic features or not')
+    parser.add_argument('--cut_values',type=float,default=-1,help='Cut values above a given threshold')
+
     return parser.parse_args()
 
 def load_configuration(args):
@@ -87,7 +89,8 @@ def load_configuration(args):
         n_seeds_test = float(args.n_seeds_test) if args.n_folds_outer!= -1 else float(0),
         bootstrap_method = args.bootstrap_method,
         round_values = bool(args.round_values),
-        add_dem = bool(args.add_dem)
+        add_dem = bool(args.add_dem),
+        cut_values = float(args.cut_values)
     )
 
     return config
@@ -97,6 +100,7 @@ config = load_configuration(args)
 project_name = config['project_name']
 add_dem = config['add_dem']
 round_values = config['round_values']
+cut_values = config['cut_values']
 
 logging.info('Configuration loaded. Starting training...')
 logging.info('Training completed.')
@@ -146,16 +150,16 @@ models_dict = {'clf':{
                     'lr':LR,
                     'knnc':KNNC,
                     'xgb':xgboost,
-                    'svc':SVC,
-                   # 'qda':QDA,
-                    #'lda': LDA
+                    #'svc':SVC,
+                    #'qda':QDA,
+                    'lda': LDA
                     },
                 
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
                     'knnr':KNNR,
-                    'svr':SVR,
+                   'svr':SVR,
                     #'xgb':xgboostr
                     }
 }
@@ -186,11 +190,12 @@ for task in tasks:
 
         for dimension in dimensions:            
             all_data = pd.read_csv(Path(data_dir,data_file))
+            all_data = all_data.loc[:, ~all_data.columns.str.match(r'^Unnamed')]
 
-            all_features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
+            features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
 
             if len(config["avoid_stats"]) > 0:
-                all_features = [col for col in all_features if all(f'_{x}' not in col for x in config['avoid_stats'])]
+                features = [col for col in features if all(f'_{x}' not in col for x in config['avoid_stats'])]
             
             if config['add_dem']:
                 for col in set(['sex','age','education','handedness']).intersection(set(all_data.columns)):
@@ -199,12 +204,16 @@ for task in tasks:
 
                 demographic_features = [f'{task}__dem__{col}' for col in all_data.columns if col in ['sex','age','education','handedness']]
 
-                all_features.extend(demographic_features)
+                features.extend(demographic_features)
                 dimension = dimension + '__dem' if dimension != '' else 'dem'
             
             print(task,dimension)
-            data = all_data[all_features + [y_label, config['id_col']]]
+            data = all_data[features + [y_label, config['id_col']]]
             data.dropna(subset=y_label,inplace=True)
+            data.dropna(subset=[ft for ft in features if 'dem' not in ft], how='all',inplace=True)
+            if cut_values > 0:
+                data = data[data[y_label] <= cut_values]
+            
             data = data.reset_index(drop=True)
     
             if len(np.unique(data[y_label])) > 4:
@@ -239,12 +248,9 @@ for task in tasks:
                 np.random.seed(42)
                 #Perform random permutations of the labels
                 y = np.random.permutation(y)
-        
-            features = all_features
-        
+                    
             ID = data.pop(config['id_col'])
-
-
+            
             if (config['problem_type'] == 'reg') & ('group' in data.columns) & (config['stratify']):
                 strat_col = data.pop('group')
             elif (config['problem_type'] == 'clf') & (config['stratify']):
@@ -326,7 +332,7 @@ for task in tasks:
                     task, dimension, config['scaler_name'],
                     config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring_metric,
                     'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
-                    'filter_outliers' if config['filter_outliers'] and config['problem_type'] == 'reg' else '',
+                    'filter_outliers' if config['filter_outliers'] and config['problem_type'] == 'reg' else '','rounded' if round_values else '','cut' if cut_values > 0 else '',
                     'shuffle' if config['shuffle_labels'] else ''
                 ]
 

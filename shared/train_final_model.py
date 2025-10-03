@@ -7,6 +7,7 @@ from scipy.stats import pearsonr
 import seaborn as sns
 from statsmodels.stats.multitest import multipletests
 from sklearn.linear_model import LogisticRegression
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.svm import SVC, SVR
 from xgboost import XGBClassifier, XGBRegressor
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -67,12 +68,11 @@ tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
 
-if not isinstance(scoring_metrics,list):
-    scoring_metrics = [scoring_metrics]
+problem_type = config['problem_type']
 
-problem_type = main_config['problem_type'][project_name]
+scoring_metrics = ['roc_auc'] if problem_type == 'clf' else ['r2']
+
 overwrite = bool(config['overwrite'])
 metrics_names = main_config["metrics_names"][problem_type]
 
@@ -82,6 +82,7 @@ models_dict = {
             'svc': SVC,
             'knnc': KNeighborsClassifier,
             'xgb': XGBClassifier,
+            'lda': LDA,
             'nb':GaussianNB
         },
         'reg': {

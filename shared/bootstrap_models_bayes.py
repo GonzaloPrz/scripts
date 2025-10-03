@@ -27,6 +27,9 @@ n_boot = int(config["n_boot"])
 calibrate = bool(config["calibrate"])
 overwrite = bool(config["overwrite"])
 filter_outliers = bool(config['filter_outliers'])
+round_values = bool(config['round_values'])
+cut_values = bool(config['cut_values'] > 0)
+
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
     results_dir = home / 'results' / project_name
@@ -49,7 +52,7 @@ scorings = [config["scoring_metric"]]
 
 tasks = [folder.name for folder in Path(results_dir).iterdir() if folder.is_dir() and folder.name not in ['plots','rocs','feature_importance_bayes','feature_importance','final_models_bayes','final_models']]
 
-output_filename = f'best_models_{scorings[0]}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_shuffled_calibrated_bayes.csv'.replace('__','_')
+output_filename = f'best_models_{scorings[0]}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
                 
 if not hyp_opt:
         output_filename = output_filename.replace('_hyp_opt','')
@@ -57,6 +60,10 @@ if not feature_selection:
     output_filename = output_filename.replace('_feature_selection','')
 if not filter_outliers:
     output_filename = output_filename.replace('_filter_outliers','')
+if not round_values:
+    output_filename = output_filename.replace('_round','')
+if not cut_values:
+    output_filename = output_filename.replace('_cut','')
 if not shuffle_labels:
     output_filename = output_filename.replace('_shuffled','')
 if not calibrate:
@@ -90,7 +97,7 @@ for task in tasks:
 
             for scoring in np.unique(scorings):
                 #print(scoring)
-                path = Path(path_,scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","filter_outliers" if filter_outliers else "","shuffle" if shuffle_labels else "")
+                path = Path(path_,scoring,"hyp_opt" if hyp_opt else "","feature_selection" if feature_selection else "","filter_outliers" if filter_outliers else "","rounded" if round_values else "","cut" if cut_values else "","shuffle" if shuffle_labels else "")
 
                 if not path.exists():
                     continue
@@ -198,7 +205,7 @@ for task in tasks:
                         all_results.to_csv(Path(results_dir,output_filename),index=False)
     
 for scoring in np.unique(scorings):
-    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_shuffled_calibrated_bayes.csv'.replace('__','_')
+    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
 
     if not hyp_opt:
         output_filename = output_filename.replace('_hyp_opt','')
@@ -206,6 +213,10 @@ for scoring in np.unique(scorings):
         output_filename = output_filename.replace('_feature_selection','')
     if not filter_outliers:
         output_filename = output_filename.replace('_filter_outliers','')
+    if not round_values:
+        output_filename = output_filename.replace('_round','')
+    if not cut_values:
+        output_filename = output_filename.replace('_cut','')
     if not shuffle_labels:
         output_filename = output_filename.replace('_shuffled','')
     if not calibrate:

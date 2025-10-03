@@ -12,6 +12,7 @@ from sklearn.impute import KNNImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.naive_bayes import GaussianNB
 from xgboost import XGBClassifier
 
@@ -78,8 +79,9 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
-problem_type = main_config['problem_type'][project_name]
+
+scoring_metrics = config['scoring_metrics']
+problem_type = config['problem_type']
 if problem_type == 'clf':
     cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
 else:
@@ -106,6 +108,7 @@ models_dict = {'clf':{'lr': LogisticRegression,
                     'svc': SVC, 
                     'xgb': XGBClassifier,
                     'knnc': KNNC,
+                    'lda': LDA,
                     'nb': GaussianNB},
                 
                 'reg':{'lasso':Lasso,
@@ -134,7 +137,8 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 continue
             
             random_seeds_test = [folder.name for folder in path_to_results.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
-              
+            random_seeds_test.append('')
+            
             for random_seed_test in random_seeds_test:
                 if int(config["n_models"] == 0):
                     files = [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev',config["bootstrap_method"],'calibrated'])] if calibrate else [file for file in Path(path_to_results,random_seed_test,'bayesian' if bayesian else '').iterdir() if all(x in file.stem for x in ['all_models_','dev',config["bootstrap_method"]]) and 'calibrated' not in file.stem]
@@ -199,7 +203,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
 
                         # Define the statistic function with data baked in
                         stat_func = lambda indices: utils._calculate_metrics(
-                            indices, outputs, y_test.values, 
+                            indices, outputs, y_test, 
                             metrics_names, problem_type, cmatrix
                         )
 

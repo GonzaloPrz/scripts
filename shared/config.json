@@ -1,89 +1,75 @@
 {
-    "project_name": "Proyecto_Ivo",
-    "stats": "",
+    "project_name": "arequipa_reg_mci",
+    "stats": "mean",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 3.0,
-    "n_folds_inner": 11.0,
-    "n_iter": 15.0,
-    "feature_selection": true,
-    "init_points": 50.0,
+    "n_folds": 5.0,
+    "n_iter": 50.0,
+    "n_iter_features": 50.0,
+    "feature_sample_ratio": 0.5,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
+    "n_models": 0.0,
     "n_boot": 1000.0,
+    "bayesian": false,
+    "filter_outliers": false,
+    "early_fusion": true,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
-    "filter_outliers": false,
-    "early_fusion": false,
     "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 0,
-    "bootstrap_method": "percentile",
-    "round_values": false,
-    "add_dem": false,
-    "test_size": 0.0,
-    "data_file": "all_data.csv",
+    "n_seeds_test": 1.0,
+    "bootstrap_method": "bca",
+    "bayes": false,
+    "test_size": 0.2,
+    "data_file": "all_data_matched.csv",
     "tasks": [
-        "nps",
-        "Animales",
-        "brain",
-        "connectivity"
+        "craft",
+        "lamina2",
+        "fugu",
+        "dia_tipico",
+        "recuerdo_agradable"
     ],
-    "single_dimensions": {
-        "Animales": [
-            "properties"
-        ],
-        "P": [
-            "properties",
-            "timing"
-        ],
-        "Animales__P": [
-            "properties",
-            "timing"
-        ],
-        "nps": [
-            "executive",
-            "mmse"
-        ],
-        "brain": [
-            "norm_brain_lit"
-        ],
-        "AAL": [
-            "norm_AAL"
-        ],
-        "connectivity": [
-            "networks"
-        ]
-    },
+    "single_dimensions": [
+        "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
+    ],
+    "scoring_metrics": "r2",
+    "problem_type": "reg",
     "y_labels": [
-        "target"
+        "MOCA_TOTAL",
+        "IFS"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "kurtosis",
+        "skewness",
+        "median",
+        "std",
+        "min",
+        "max",
+        "variability"
+    ],
+    "stat_folder": "mean",
     "random_seeds_train": [
-        3,
-        9,
-        27,
-        81,
-        243,
-        729,
-        2187,
-        6561,
-        19683,
-        59049
+        3.0,
+        9.0,
+        27.0,
+        81.0,
+        243.0,
+        729.0,
+        2187.0,
+        6561.0,
+        19683.0,
+        59049.0
     ],
     "random_seeds_test": [
-        ""
+        3.0
     ],
     "random_seeds_shuffle": [
         ""
     ],
-    "bayes": true,
-    "problem_type": "clf",
-    "kfold_folder": "3_folds_11_folds",
-    "scoring_metric": "roc_auc"
+    "kfold_folder": "5_folds"
 }

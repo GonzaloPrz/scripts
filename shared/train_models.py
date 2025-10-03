@@ -9,6 +9,7 @@ from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import train_test_split
@@ -39,16 +40,16 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='GERO_Ivo',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
+    parser.add_argument('--project_name', default='arequipa',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='mean', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
     parser.add_argument('--n_folds', type=int, default=5, help='Number of folds for cross validation')
-    parser.add_argument('--n_iter', type=int, default=10, help='Number of hyperparameter iterations')
-    parser.add_argument('--n_iter_features', type=int, default=10, help='Number of feature sets to try and select from')
+    parser.add_argument('--n_iter', type=int, default=50, help='Number of hyperparameter iterations')
+    parser.add_argument('--n_iter_features', type=int, default=50, help='Number of feature sets to try and select from')
     parser.add_argument('--feature_sample_ratio', type=float, default=0.5, help='Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set')
-    parser.add_argument('--n_seeds_train',type=int,default=5,help='Number of seeds for cross-validation training')
+    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -126,8 +127,8 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
-problem_type = main_config['problem_type'][project_name]
+problem_type = 'reg' if 'reg' in project_name else 'clf'
+scoring_metrics = 'roc_auc' if problem_type == 'clf' else 'r2'
 
 config['test_size'] = float(test_size)
 config['data_file'] = data_file
@@ -160,15 +161,16 @@ else:
 models_dict = {
         'clf': {
             'lr': LR,
-            'svc': SVC,
+            #'svc': SVC,
             'knnc': KNNC,
             'xgb': xgboost,
-            'nb':GaussianNB
+            #'lda': LDA,
+            #'nb':GaussianNB
         },
         'reg': {
             'lasso': Lasso,
             'ridge': Ridge,
-            #'elastic': ElasticNet,
+            'elastic': ElasticNet,
             'svr': SVR,
             'xgb': xgboostr,
             'knnr': KNNR
@@ -178,11 +180,11 @@ models_dict = {
 with Path(Path(__file__).parent,'default_hp.json').open('rb') as f:
     default_hp = json.load(f)
 
-#C: inverse of regularization strength, 10**x, x in [-5,5]
 hp_ranges = {
         'lr': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))]},
         'svc': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'gamma': ['scale', 'auto'], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'probability': [True]},
         'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,6),range(1,3))], 'max_depth': [1, 2, 3, 4], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
+        'lda': {'solver': ['svd', 'lsqr', 'eigen']},
         'nb': {'priors':[None]},
         'ridge': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
                   'tol': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
