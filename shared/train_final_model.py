@@ -15,6 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.impute import KNNImputer
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.naive_bayes import GaussianNB
+from pingouin import partial_corr
 
 from expected_cost.calibration import calibration_train_on_test
 from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
@@ -68,6 +69,13 @@ tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 thresholds = main_config['thresholds'][project_name]
+try:
+    covars = main_config['covars'][project_name] if problem_type == 'reg' else []
+except:
+    covars = []
+    
+data_dir = str(results_dir).replace('results','data')
+covariates = pd.read_csv(Path(data_dir,'all_data.csv'))[[id_col]+covars]
 
 problem_type = config['problem_type']
 
@@ -96,7 +104,7 @@ models_dict = {
     }
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','results',project_name)
-pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','model_type','r','p_value'])
+pearsons_results = pd.DataFrame(columns=['task','dimension','y_label','set','random_seed','model_type','r','p_value_corrected','p_value','method','n','95_ci','covars','correction_method'])
 
 for scoring in scoring_metrics:    
     extremo = 1 if any(x in scoring for x in ['norm','error']) else 0
@@ -113,7 +121,7 @@ for scoring in scoring_metrics:
         best_models_file = best_models_file.replace('_calibrated','')
         
     best_models = pd.read_csv(Path(results_dir,best_models_file))
-    
+    best_models['random_seed_test'] = best_models['random_seed_test'].map(lambda x: str(x) if str(x) != 'nan' else '') 
     tasks = best_models['task'].unique()
     y_labels = best_models['y_label'].unique()
     dimensions = best_models['dimension'].unique()
@@ -136,7 +144,10 @@ for scoring in scoring_metrics:
                 print(f'Final model already exists for {task} {dimension} {y_label} {random_seed_test}. Skipping.')
                 continue
 
-            model_type = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
+            try:
+                model_type = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
+            except:
+                continue
             print(model_type)
             model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_index'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
 
@@ -201,17 +212,17 @@ for scoring in scoring_metrics:
             if not calibrate:
                 feature_importance_file = feature_importance_file.replace('_calibrated','')
 
-            Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
-            Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,).mkdir(parents=True,exist_ok=True)
+            Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,).mkdir(parents=True,exist_ok=True)
             
-            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,'final_model.pkl'),'wb') as f:
                 pickle.dump(trained_model,f)
-            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'scaler.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'scaler.pkl'),'wb') as f:
                 pickle.dump(scaler,f)
-            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'imputer.pkl'),'wb') as f:
+            with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'imputer.pkl'),'wb') as f:
                 pickle.dump(imputer,f)
             if calibrate:
-                with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'calmodel.pkl'),'wb') as f:
+                with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'calmodel.pkl'),'wb') as f:
                     pickle.dump(calmodel,f)
             
             if model_type == 'svc':
@@ -222,15 +233,15 @@ for scoring in scoring_metrics:
             if hasattr(model.model,'feature_importance'):
                 feature_importance = model.model.feature_importance
                 feature_importance = pd.DataFrame({'feature':features,'importance':feature_importance}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                feature_importance.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,feature_importance_file),index=False)
             elif hasattr(model.model,'coef_'):
                 feature_importance = np.abs(model.model.coef_[0])
                 coef = pd.DataFrame({'feature':features,'importance':feature_importance / np.sum(feature_importance)}).sort_values('importance',ascending=False)
-                coef.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                coef.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,feature_importance_file),index=False)
             elif hasattr(model.model,'get_booster'):
 
                 feature_importance = pd.DataFrame({'feature':features,'importance':model.model.feature_importances_}).sort_values('importance',ascending=False)
-                feature_importance.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',feature_importance_file),index=False)
+                feature_importance.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,feature_importance_file),index=False)
             else:
                 print(task,dimension,f'No feature importance available for {model_type}')
             
@@ -244,50 +255,78 @@ for scoring in scoring_metrics:
                     "ytick.labelsize": 12
                 })
                 
-                Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '').mkdir(parents=True,exist_ok=True)
-                IDs = pickle.load(open(Path(path_to_data,'IDs_dev.pkl'),'rb'))
+                Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test).mkdir(parents=True,exist_ok=True)
+                for set_ in ['dev','test']:
+                    try:
+                        IDs = pickle.load(open(Path(path_to_data,f'IDs_{set_}.pkl'),'rb'))
+                        
+                        outputs = pickle.load(open(Path(path_to_data,f'outputs_{model_type}.pkl'),'rb'))[:,model_index] if set_ == 'dev' else pickle.load(open(Path(path_to_data,f'outputs_test_{model_type}.pkl'),'rb'))[model_index]
+                        y = pickle.load(open(Path(path_to_data,f'y_{set_}.pkl'),'rb'))
 
-                predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs_dev.flatten(),'y_true':y_dev.flatten()})
-                predictions = predictions.drop_duplicates('ID')
+                        predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs.flatten(),'y_true':y.flatten()})
+                        predictions = predictions.drop_duplicates('ID')
 
-                with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.pkl'),'wb') as f:
-                    pickle.dump(predictions,f)
-                predictions.to_csv(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '',f'predictions_dev.csv'),index=False)
-                
-                r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+                        with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_dev.pkl'),'wb') as f:
+                            pickle.dump(predictions,f)
+                        if 'ID' in predictions.columns:
+                            predictions[id_col] = predictions.pop('ID')
 
-                plt.figure(figsize=(8, 6))
-                sns.regplot(
-                    x='y_true', y='y_pred', data=predictions,
-                    scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
-                    line_kws={'color': 'darkred', 'linewidth': 2}
-                )
+                        predictions.to_csv(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_dev.csv'),index=False)
 
-                plt.xlabel('True Value')
-                plt.ylabel('Predicted Value')
-                plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
+                        if not covariates.empty:
+                            predictions = pd.merge(predictions,covariates,on=id_col,how='inner')
+                        
+                        if 'sex' in predictions.columns:
+                            #Convert sex to 0/1
+                            predictions['sex'] = predictions['sex'].apply(lambda x: 1 if str(x).lower() in ['m','male','hombre','h','1'] else 0)
+                        
+                        method = 'pearson'
 
-                # Añadir estadística en esquina superior izquierda
-                plt.text(0.05, 0.95,
-                        f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
-                        fontsize=12,
-                        transform=plt.gca().transAxes,
-                        verticalalignment='top',
-                        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+                        if len(covars) != 0: 
+                            results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
+                            n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
+                        else:
+                            r, p = pearsonr(predictions['y_pred'], predictions['y_true'])
+                            ci = np.nan 
+                            r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+                            n = predictions.shape[0]
+                            
+                        plt.figure(figsize=(8, 6))
+                        sns.regplot(
+                            x='y_pred', y='y_true', data=predictions,
+                            scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
+                            line_kws={'color': 'darkred', 'linewidth': 2}
+                        )
 
-                # Guardar resultado y cerrar
-                pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, model_type, r, p]
+                        plt.xlabel('Predicted Value')
+                        plt.ylabel('True Value')
+                        plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
 
-                save_path = Path(results_dir, f'plots', task, dimension, y_label,
-                                stat_folder, scoring,config["bootstrap_method"],
-                                'hyp_opt' if hyp_opt else '',
-                                'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',
-                                f'{task}_{y_label}_{dimension}_{model_type}.png')
-                save_path.parent.mkdir(parents=True, exist_ok=True)
+                        # Añadir estadística en esquina superior izquierda
+                        plt.text(0.05, 0.95,
+                                f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
+                                fontsize=12,
+                                transform=plt.gca().transAxes,
+                                verticalalignment='top',
+                                bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
-                plt.tight_layout()
-                plt.savefig(save_path, dpi=300)
-                plt.close()
+                        # Guardar resultado y cerrar
+
+                        pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, set_, random_seed_test,model_type, r, np.nan,p, method, n, ci, ','.join(covars) if len(covars) > 0 else 'None', np.nan]
+
+                        save_path = Path(results_dir, f'plots', task, dimension, y_label,
+                                        stat_folder, scoring,config["bootstrap_method"],
+                                        'hyp_opt' if hyp_opt else '',
+                                        'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,
+                                        f'{model_type}_{set_}.png')
+                        
+                        save_path.parent.mkdir(parents=True, exist_ok=True)
+
+                        plt.tight_layout()
+                        plt.savefig(save_path, dpi=300)
+                        plt.close()
+                    except:
+                        print(f'Could not create plot for {task} {dimension} {y_label} {set_} {random_seed_test}')
 
     if problem_type == 'reg':
         pearsons_results_file = f'pearons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')
@@ -299,8 +338,8 @@ for scoring in scoring_metrics:
             pearsons_results_file = pearsons_results_file.replace('_shuffled','')
 
         p_vals = pearsons_results['p_value'].values
-        reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
-        pearsons_results['p_value_corrected'] = p_vals_corrected
-        pearsons_results['correction_method'] = correction
+        #reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
+        #pearsons_results['p_value_corrected'] = p_vals_corrected
+        #pearsons_results['correction_method'] = correction
 
         pearsons_results.to_csv(Path(results_dir,pearsons_results_file),index=False)

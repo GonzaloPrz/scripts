@@ -98,7 +98,8 @@
     },
     "tasks": {
         "53_ceac":[
-            "dia_anterior__phq9"
+            "phq",
+            "dia_anterior__phq"
         ],
         "tell_classifier": [
             "MOTOR-LIBRE"
@@ -212,7 +213,7 @@
         "Proyecto_Ivo": 0,
         "GeroApathy": 0.3,
         "arequipa": 0,
-        "arequipa_reg": 0.2,
+        "arequipa_reg": 0,
         "ad_mci_hc": 0.14,
         "ad_mci_hc_ct": 0,
         "ad_mci_hc_chile": 0.25,
@@ -222,18 +223,17 @@
         "MPLS": 0,
         "AKU_2": 0,
         "GeroApathy_reg": 0.3,
-        "arequipa_reg_mci": 0.2,
+        "arequipa_reg_mci": 0,
         "arequipa_reg_mci_hc": 0,
         "GERO_females":0,
         "tea_tomi_chu":0.3
 
     },
     "single_dimensions": {
-        "53_ceac":{"phq9":["gemini"],
-        "dia_anterior__phq9":["gemini__phq__sentiment"],
-        "pais__phq9__sonho_a__sonho_r":["gemini__phq__sentiment"],
-        "pais__phq9":["gemini__phq__sentiment"]
-        },
+        "53_ceac":{"phq":["gemini"],
+        "dia_anterior__phq":["gemini__phq9__sentiment"]
+    },
+
         "tell_classifier": [
             "pitch",
             "voice_quality",
@@ -410,10 +410,12 @@
             "voice_quality"
         ],
         "arequipa_reg": [
+            "composite",
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "arequipa_reg_mci": [
-            "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
+            "composite",
+            "composite__mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "arequipa_reg_mci_hc": [
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
@@ -444,18 +446,18 @@
         "GERO_Ivo_competence": "all_data.csv",
         "MPLS": "all_data.csv",
         "AKU_2": "all_data.csv",
-        "arequipa_reg": "all_data.csv",
-        "arequipa_reg_mci":"all_data_matched.csv",
-        "arequipa_reg_mci_hc":"all_data_matched.csv",
+        "arequipa_reg": "data_matched_group.csv",
+        "arequipa_reg_mci":"data_matched_group.csv",
+        "arequipa_reg_mci_hc":"data_matched_group.csv",
         "GERO_females":"all_data.csv",
         "tea_tomi_chu":"solo_columnas_clasificador_formateadas.csv"
     },
 
     "data_file_test": {
         "arequipa" : "data_unmatched_group.csv",
-        "arequipa_reg":"all_data.csv",
-        "arequipa_reg_mci":"all_data_unmatched.csv",
-        "arequipa_reg_mci_hc":"all_data_unmatched.csv"
+        "arequipa_reg":"data_unmatched_group.csv",
+        "arequipa_reg_mci":"data_unmatched_group.csv",
+        "arequipa_reg_mci_hc":"data_unmatched_group.csv"
     },
 
     "thresholds": {
@@ -487,7 +489,7 @@
     },
     "covars":{
         "53_ceac": [],
-        "arequipa_reg":["sex","age","education"],
+        "arequipa_reg":[],
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
         "GERO_females":["sex","age","education","group"],

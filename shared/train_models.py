@@ -10,6 +10,7 @@ from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor as KNNR
 from sklearn.model_selection import train_test_split
@@ -40,8 +41,8 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='arequipa',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='mean', help='Stats to be considered (default = all)')
+    parser.add_argument('--project_name', default='arequipa_reg_mci',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='mean_count_ratio', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
@@ -137,7 +138,7 @@ config['single_dimensions'] = single_dimensions
 config['scoring_metrics'] = scoring_metrics
 config['problem_type'] = problem_type
 config['y_labels'] = y_labels
-config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean', 'variability']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
+config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean', 'variability','count','ratio']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
 
 config['random_seeds_train'] = [float(3**x) for x in np.arange(1, config['n_seeds_train']+1)]
@@ -165,6 +166,7 @@ models_dict = {
             'knnc': KNNC,
             'xgb': xgboost,
             #'lda': LDA,
+            'qda': QDA,
             #'nb':GaussianNB
         },
         'reg': {
@@ -185,6 +187,8 @@ hp_ranges = {
         'svc': {'C': [x*10**y for x,y in itertools.product(range(1,9),range(-3, 2))], 'gamma': ['scale', 'auto'], 'kernel': ['rbf', 'linear', 'poly', 'sigmoid'], 'probability': [True]},
         'xgb': {'n_estimators': [x*10**y for x,y in itertools.product(range(1,6),range(1,3))], 'max_depth': [1, 2, 3, 4], 'learning_rate': [0.1, 0.3, 0.5, 0.7, 0.9]},
         'lda': {'solver': ['svd', 'lsqr', 'eigen']},
+        'qda': {'reg_param': [x*10**y for x,y in itertools.product(range(0,5),range(-4, -1))],
+                  'tol': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))]},
         'nb': {'priors':[None]},
         'ridge': {'alpha': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
                   'tol': [x*10**y for x,y in itertools.product(range(1,9),range(-4, 0))], 
@@ -245,6 +249,9 @@ for y_label, task in itertools.product(y_labels, tasks):
                     and not isinstance(data.iloc[0][col], str) 
                     and all(f'_{x}' not in col for x in config['avoid_stats'] + ['query', 'timestamp'])]
 
+        if len(features) == 0:
+            continue
+        
         if "group_as_feature" in config["project_name"] and y_label != "group":
             features = features + ["group"]
 

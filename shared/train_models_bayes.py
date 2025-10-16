@@ -32,12 +32,12 @@ def parse_args():
         description='Train models with hyperparameter optimization and feature selection'
     )
     parser.add_argument('--project_name', default='arequipa',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='mean', help='Stats to be considered (default = all)')
+    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
     parser.add_argument('--n_folds_outer', type=float, default=5, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=float, default=-1, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_folds_inner', type=float, default=5, help='Number of folds for cross validation (inner loop)')
     parser.add_argument('--n_iter', type=int, default=20, help='Number of hyperparameter iterations')
     parser.add_argument('--init_points', type=int, default=20, help='Number of random initial points to test during Bayesian optimization')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
@@ -160,7 +160,7 @@ models_dict = {'clf':{
                     'elastic':ElasticNet,
                     'knnr':KNNR,
                    'svr':SVR,
-                    #'xgb':xgboostr
+                    'xgb':xgboostr
                     }
 }
 

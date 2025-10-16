@@ -268,19 +268,19 @@ def main():
                     #Plot curves with confidence intervals
                     axes[idx_subplot].plot(fpr_grid, tpr_mean, label=f"AUC = {mean_auc}", lw=3, color=color, alpha=0.95)
                     axes[idx_subplot].fill_between(fpr_grid, tpr_low, tpr_high, color=color, alpha=0.2, label="95% CI")
-                    axes[idx_subplot].set_title(subplot_titles[idx_subplot], fontsize=18, weight='bold', pad=10)
+                    axes[idx_subplot].set_title(subplot_titles[idx_subplot], fontsize=14, pad=10)
                     # Decide color y posición
                     
                     axes[idx_subplot].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
                     
                     # Etiquetas solo en el borde izquierdo y abajo
                     if idx_subplot % 2 == 0:
-                        axes[idx_subplot].set_ylabel("True Positive Rate", fontsize=17, weight='bold')
+                        axes[idx_subplot].set_ylabel("True Positive Rate", fontsize=14)
                     else:
                         axes[idx_subplot].set_ylabel("")
                         axes[idx_subplot].set_yticklabels([])
                     if idx_subplot >= 2:
-                        axes[idx_subplot].set_xlabel("False Positive Rate", fontsize=17, weight='bold')
+                        axes[idx_subplot].set_xlabel("False Positive Rate", fontsize=14)
                     else:
                         axes[idx_subplot].set_xlabel("")
                         axes[idx_subplot].set_xticklabels([])
@@ -293,9 +293,9 @@ def main():
                     for spine in axes[idx_subplot].spines.values():
                         spine.set_edgecolor('#444444')
                         spine.set_linewidth(1.5)
-                    axes[idx_subplot].legend(loc="lower right", fontsize=15, frameon=False)
+                    axes[idx_subplot].legend(loc="lower right", fontsize=12, frameon=False)
                     # Agregar título
-                    axes[idx_subplot].set_title(subplot_titles[idx_subplot], fontsize=18, weight='bold', pad=10)
+                    axes[idx_subplot].set_title(subplot_titles[idx_subplot], fontsize=14, pad=10)
                     plot_idx += 1
 
     plt.tight_layout()

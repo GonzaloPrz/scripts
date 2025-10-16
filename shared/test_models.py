@@ -203,7 +203,7 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
 
                         # Define the statistic function with data baked in
                         stat_func = lambda indices: utils._calculate_metrics(
-                            indices, outputs, y_test, 
+                            indices, outputs, y_test.values if isinstance(y_test,pd.Series) else y_test, 
                             metrics_names, problem_type, cmatrix
                         )
 

@@ -5,7 +5,7 @@ data_dir = Path(Path.home(),'data','53_ceac') if '/Users/gp' in str(Path.home())
 
 all_data = pd.DataFrame()
 
-feature_sets = ['timing_segmented','pitch_segmented','sentiment_sentence','psycholinguistic','osv','granularity','verbosity','phq','gemini']
+feature_sets = ['timing_segmented','pitch_segmented','sentiment_sentence','psycholinguistic','osv','granularity','verbosity','phq','gemini','no_phq']
 
 for feature_set in feature_sets:
     features = pd.read_csv(Path(data_dir,f'{feature_set}_features.csv'))
@@ -19,7 +19,7 @@ for feature_set in feature_sets:
     else:
         all_data = pd.merge(all_data,features,on='id',how='left')
 
-labels = pd.read_csv(Path(data_dir,'labels.csv'))[['id','depression','anxiety']]
+labels = pd.read_csv(Path(data_dir,'labels.csv'))[['id','depression','sex','age']]
 labels['id'] = labels['id'].map(lambda x: f'CEAC_{x}')
 all_data = pd.merge(labels,all_data,on='id',how='left')
 all_data = all_data[[ft for ft in all_data.columns if 'Unnamed' not in
