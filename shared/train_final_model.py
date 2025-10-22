@@ -75,7 +75,8 @@ except:
     covars = []
     
 data_dir = str(results_dir).replace('results','data')
-covariates = pd.read_csv(Path(data_dir,'all_data.csv'))[[id_col]+covars]
+
+covariates = pd.read_csv(Path(data_dir,'all_data.csv'))[id_col]
 
 problem_type = config['problem_type']
 
@@ -336,10 +337,12 @@ for scoring in scoring_metrics:
             pearsons_results_file = pearsons_results_file.replace('_feature_selection','')
         if not shuffle_labels:
             pearsons_results_file = pearsons_results_file.replace('_shuffled','')
-
+        if len(covars) != 0:
+            pearsons_results_file = pearsons_results_file.replace('.csv',f'_covars_{"_".join(covars)}.csv')
+            
         p_vals = pearsons_results['p_value'].values
-        #reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
-        #pearsons_results['p_value_corrected'] = p_vals_corrected
-        #pearsons_results['correction_method'] = correction
+        reject, p_vals_corrected, _, _ = multipletests(p_vals, alpha=0.05, method=correction)
+        pearsons_results['p_value_corrected'] = p_vals_corrected
+        pearsons_results['correction_method'] = correction
 
         pearsons_results.to_csv(Path(results_dir,pearsons_results_file),index=False)

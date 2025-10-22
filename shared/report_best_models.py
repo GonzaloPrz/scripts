@@ -25,8 +25,8 @@ feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
 parallel = config['parallel']
 
-hyp_opt = True if config['n_iter'] > 0 else False
-feature_selection = True if config['n_iter_features'] > 0 else False
+hyp_opt = config['n_iter'] > 0 
+feature_selection = config['n_iter_features'] > 0
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 

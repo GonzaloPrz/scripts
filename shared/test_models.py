@@ -13,6 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.naive_bayes import GaussianNB
 from xgboost import XGBClassifier
 
@@ -109,6 +110,7 @@ models_dict = {'clf':{'lr': LogisticRegression,
                     'xgb': XGBClassifier,
                     'knnc': KNNC,
                     'lda': LDA,
+                    'qda':QDA,
                     'nb': GaussianNB},
                 
                 'reg':{'lasso':Lasso,

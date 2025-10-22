@@ -98,8 +98,7 @@
     },
     "tasks": {
         "53_ceac":[
-            "phq",
-            "dia_anterior__phq"
+            "phq"
         ],
         "tell_classifier": [
             "MOTOR-LIBRE"
@@ -489,7 +488,7 @@
     },
     "covars":{
         "53_ceac": [],
-        "arequipa_reg":[],
+        "arequipa_reg":["age","education","group","sex"],
         "arequipa_reg_mci":["sex","age","education"],
         "arequipa_reg_mci_hc":["sex","age","education"],
         "GERO_females":["sex","age","education","group"],

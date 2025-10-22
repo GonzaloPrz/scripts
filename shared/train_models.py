@@ -5,7 +5,7 @@ import math
 import logging, sys
 import torch
 
-from sklearn.model_selection import StratifiedKFold, KFold
+from sklearn.model_selection import StratifiedKFold, KFold, ShuffleSplit, StratifiedShuffleSplit, LeaveOneOut
 from sklearn.linear_model import LogisticRegression as LR
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier as KNNC
@@ -41,16 +41,16 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='arequipa_reg_mci',type=str,help='Project name')
-    parser.add_argument('--stats', type=str, default='mean_count_ratio', help='Stats to be considered (default = all)')
+    parser.add_argument('--project_name', default='53_ceac',type=str,help='Project name')
+    parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds', type=int, default=5, help='Number of folds for cross validation')
-    parser.add_argument('--n_iter', type=int, default=50, help='Number of hyperparameter iterations')
-    parser.add_argument('--n_iter_features', type=int, default=50, help='Number of feature sets to try and select from')
+    parser.add_argument('--n_folds', type=float, default=0.2, help='Number of folds for cross validation')
+    parser.add_argument('--n_iter', type=int, default=30, help='Number of hyperparameter iterations')
+    parser.add_argument('--n_iter_features', type=int, default=30, help='Number of feature sets to try and select from')
     parser.add_argument('--feature_sample_ratio', type=float, default=0.5, help='Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set')
-    parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
+    parser.add_argument('--n_seeds_train',type=int,default=1,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
     parser.add_argument('--id_col', type=str, default='id', help='ID column name')
@@ -62,8 +62,8 @@ def parse_args():
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
     parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap samples for holdout')
     parser.add_argument('--n_boot_train',type=int,default=0,help='Number of bootstrap samples of training samples while performing model testing')
-    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
-    parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
+    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
+    parser.add_argument('--parallel',type=int,default=0,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
 
@@ -128,7 +128,7 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-problem_type = 'reg' if 'reg' in project_name else 'clf'
+problem_type = 'reg'
 scoring_metrics = 'roc_auc' if problem_type == 'clf' else 'r2'
 
 config['test_size'] = float(test_size)
@@ -145,12 +145,7 @@ config['random_seeds_train'] = [float(3**x) for x in np.arange(1, config['n_seed
 config['random_seeds_test'] = [float(3**x) for x in np.arange(1, config['n_seeds_test']+1)] if config['test_size'] > 0 else ['']
 config['random_seeds_shuffle'] = [float(3**x) for x in np.arange(1, config['n_seeds_shuffle']+1)] if config['shuffle_labels'] else ['']
 
-if config['n_folds'] == 0:
-    config['kfold_folder'] = 'l2ocv'
-elif config['n_folds'] == -1:
-    config['kfold_folder'] = 'loocv'
-else:
-    config['kfold_folder'] = f'{int(config["n_folds"])}_folds'
+n_folds = config['n_folds']
 
 if config['calibrate']:
     calmethod = AffineCalLogLoss
@@ -209,9 +204,6 @@ hp_ranges = {
 }
 ##------------------ Main Model Training Loop ------------------##
 
-with open(Path(__file__).parent/'config.json', 'w') as f:
-    json.dump(config, f, indent=4)
-
 for y_label, task in itertools.product(y_labels, tasks):
     print(y_label)
     print(task)
@@ -269,33 +261,45 @@ for y_label, task in itertools.product(y_labels, tasks):
         # Separate features, target and ID.
         ID = data.pop(config['id_col'])
         y = data.pop(y_label)
-        
+        strat_col = y if (config['stratify'] and problem_type == 'clf') else None
+
         # Iterate over each model defined for this problem type.
         for model_key, model_class in models_dict[problem_type].items():
             # Determine held-out settings based on hyperparameter or feature iterations.
             held_out = (config['n_iter'] > 0 or config['n_iter_features'] > 0)
-            n_folds = int(config['n_folds'])
             if held_out:
                 n_samples_dev = int(data.shape[0] * (1 - config['test_size']))
             else:
                 n_samples_dev = data.shape[0]
                 n_seeds_test = 0
                 
-            if n_folds == 0:
-                n_folds = int(n_samples_dev/2)
-                n_max = n_samples_dev - 2
-            elif n_folds == -1:
-                n_folds = n_samples_dev
-                n_max = n_samples_dev - 1
-            else:
-                n_max = int(n_samples_dev*(1-1/n_folds)) - 1 
-
             random_seeds_test = config['random_seeds_test']
-            # Choose cross-validation iterator
-            CV_type = (StratifiedKFold(n_splits=int(n_folds), shuffle=True)
-                        if config['stratify'] and problem_type == 'clf'
-                        else KFold(n_splits=n_folds, shuffle=True))
-            
+
+            if n_folds == 0:
+                n_folds = int(n_samples_dev / np.unique(y).shape[0])
+                CV = (StratifiedKFold(n_splits=n_folds, shuffle=True)
+                            if strat_col is not None
+                            else KFold(n_splits=n_folds, shuffle=True))
+                config["kfold_folder"] = f'l{np.unique(y).shape[0]}ocv'
+                n_max = n_samples_dev - np.unique(y).shape[0]
+            elif n_folds == -1:
+                CV = LeaveOneOut()
+                config["kfold_folder"] = 'loocv'
+                n_max = n_samples_dev - 1
+            elif n_folds < 1:
+                CV = (StratifiedShuffleSplit(n_splits=1,test_size=n_folds)
+                            if strat_col is not None
+                            else ShuffleSplit(n_splits=1,test_size=n_folds))
+                n_max = int(n_samples_dev*(1-n_folds))
+                config["kfold_folder"] = f'{int(n_folds*100)}pct'
+            else: 
+                n_folds = int(n_folds)
+                CV = (StratifiedKFold(n_splits=n_folds, shuffle=True)
+                            if strat_col is not None
+                            else KFold(n_splits=n_folds, shuffle=True))
+                n_max = int(n_samples_dev*(1-1/n_folds))
+                config["kfold_folder"] = f'{n_folds}_folds'
+                
             # Construct a path to save results (with clear folder names)
             subfolders = [
                 task, dimension, config['scaler_name'],
@@ -314,12 +318,12 @@ for y_label, task in itertools.product(y_labels, tasks):
 
                 if test_size > 0:
                     X_train_, X_test_, y_train_, y_test_, ID_train_, ID_test_ = train_test_split(
-                        data, y, ID,
-                        test_size=config['test_size'],
-                        random_state=int(random_seed_test),
-                        shuffle=True,
-                        stratify=y if (config['stratify'] and problem_type == 'clf') else None
-                    )
+                            data, y, ID,
+                            test_size=config['test_size'],
+                            random_state=int(random_seed_test),
+                            shuffle=True,
+                            stratify=strat_col)
+                    
                     # Reset indexes after split.
                     X_train_.reset_index(drop=True, inplace=True)
                     X_test_.reset_index(drop=True, inplace=True)
@@ -335,7 +339,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                 hp_ranges.update({'knnr':{'n_neighbors': np.arange(1,n_max)}})
             
                 hyperp = utils.initialize_hyperparameters(model_key, config, default_hp, hp_ranges)
-                feature_sets = utils.generate_feature_sets(features, config, data.shape)
+                feature_sets = utils.generate_feature_sets(features, config, X_train_.shape)
                 # If shuffling is requested, perform label shuffling before training.
                 for rss, random_seed_shuffle in enumerate(config['random_seeds_shuffle']):
                     if config['shuffle_labels']:
@@ -405,6 +409,8 @@ for y_label, task in itertools.product(y_labels, tasks):
                     # Check for data leakage.
                     assert set(ID_train_).isdisjoint(set(ID_test_)), 'Data leakage detected between train and test sets!'
                     
+                    with open(Path(__file__).parent/'config.json', 'w') as f:
+                        json.dump(config, f, indent=4)
                     if (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'all_models_{model_key}.csv').exists() and config['calibrate'] == False) or (Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', f'cal_outputs_{model_key}.pkl').exists() and config['calibrate']):
                         if config['overwrite'] == False:
                             print(f'Results already exist for {task} - {y_label} - {model_key}. Skipping...')
@@ -419,7 +425,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                         imputer=KNNImputer,
                         X=X_train_,
                         y=y_train_,
-                        iterator=CV_type,
+                        iterator=CV,
                         random_seeds_train=config['random_seeds_train'],
                         hyperp=hyperp,
                         feature_sets=feature_sets,
