@@ -8,6 +8,7 @@ import seaborn as sns
 from statsmodels.stats.multitest import multipletests
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.svm import SVC, SVR
 from xgboost import XGBClassifier, XGBRegressor
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -76,7 +77,7 @@ except:
     
 data_dir = str(results_dir).replace('results','data')
 
-covariates = pd.read_csv(Path(data_dir,'all_data.csv'))[id_col]
+covariates = pd.read_csv(Path(data_dir,'all_data.csv'))[[id_col] + covars]
 
 problem_type = config['problem_type']
 
@@ -92,6 +93,7 @@ models_dict = {
             'knnc': KNeighborsClassifier,
             'xgb': XGBClassifier,
             'lda': LDA,
+            'qda': QDA,
             'nb':GaussianNB
         },
         'reg': {
@@ -258,76 +260,83 @@ for scoring in scoring_metrics:
                 
                 Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test).mkdir(parents=True,exist_ok=True)
                 for set_ in ['dev','test']:
+                    IDs = pickle.load(open(Path(path_to_data,f'IDs_{set_}.pkl'),'rb'))
+                    
                     try:
-                        IDs = pickle.load(open(Path(path_to_data,f'IDs_{set_}.pkl'),'rb'))
-                        
                         outputs = pickle.load(open(Path(path_to_data,f'outputs_{model_type}.pkl'),'rb'))[:,model_index] if set_ == 'dev' else pickle.load(open(Path(path_to_data,f'outputs_test_{model_type}.pkl'),'rb'))[model_index]
-                        y = pickle.load(open(Path(path_to_data,f'y_{set_}.pkl'),'rb'))
-
-                        predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs.flatten(),'y_true':y.flatten()})
-                        predictions = predictions.drop_duplicates('ID')
-
-                        with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_dev.pkl'),'wb') as f:
-                            pickle.dump(predictions,f)
-                        if 'ID' in predictions.columns:
-                            predictions[id_col] = predictions.pop('ID')
-
-                        predictions.to_csv(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_dev.csv'),index=False)
-
-                        if not covariates.empty:
-                            predictions = pd.merge(predictions,covariates,on=id_col,how='inner')
-                        
-                        if 'sex' in predictions.columns:
-                            #Convert sex to 0/1
-                            predictions['sex'] = predictions['sex'].apply(lambda x: 1 if str(x).lower() in ['m','male','hombre','h','1'] else 0)
-                        
-                        method = 'pearson'
-
-                        if len(covars) != 0: 
-                            results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
-                            n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
-                        else:
-                            r, p = pearsonr(predictions['y_pred'], predictions['y_true'])
-                            ci = np.nan 
-                            r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
-                            n = predictions.shape[0]
-                            
-                        plt.figure(figsize=(8, 6))
-                        sns.regplot(
-                            x='y_pred', y='y_true', data=predictions,
-                            scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
-                            line_kws={'color': 'darkred', 'linewidth': 2}
-                        )
-
-                        plt.xlabel('Predicted Value')
-                        plt.ylabel('True Value')
-                        plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
-
-                        # Añadir estadística en esquina superior izquierda
-                        plt.text(0.05, 0.95,
-                                f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
-                                fontsize=12,
-                                transform=plt.gca().transAxes,
-                                verticalalignment='top',
-                                bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
-
-                        # Guardar resultado y cerrar
-
-                        pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, set_, random_seed_test,model_type, r, np.nan,p, method, n, ci, ','.join(covars) if len(covars) > 0 else 'None', np.nan]
-
-                        save_path = Path(results_dir, f'plots', task, dimension, y_label,
-                                        stat_folder, scoring,config["bootstrap_method"],
-                                        'hyp_opt' if hyp_opt else '',
-                                        'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,
-                                        f'{model_type}_{set_}.png')
-                        
-                        save_path.parent.mkdir(parents=True, exist_ok=True)
-
-                        plt.tight_layout()
-                        plt.savefig(save_path, dpi=300)
-                        plt.close()
                     except:
-                        print(f'Could not create plot for {task} {dimension} {y_label} {set_} {random_seed_test}')
+                        continue
+                    y = pickle.load(open(Path(path_to_data,f'y_{set_}.pkl'),'rb'))
+
+                    if isinstance(IDs,pd.Series):
+                        IDs = IDs.values
+                    if isinstance(y,pd.Series):
+                        y = y.values
+                    if isinstance(outputs,pd.Series):
+                        outputs = outputs.values
+                        
+                    predictions = pd.DataFrame({'ID':IDs.flatten(),'y_pred':outputs.flatten(),'y_true':y.flatten()})
+                    predictions = predictions.drop_duplicates('ID')
+
+                    with open(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_dev.pkl'),'wb') as f:
+                        pickle.dump(predictions,f)
+                    if 'ID' in predictions.columns:
+                        predictions[id_col] = predictions.pop('ID')
+
+                    predictions.to_csv(Path(results_dir,f'final_model',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_dev.csv'),index=False)
+
+                    if not covariates.empty:
+                        predictions = pd.merge(predictions,covariates,on=id_col,how='inner')
+                    
+                    if 'sex' in predictions.columns:
+                        #Convert sex to 0/1
+                        predictions['sex'] = predictions['sex'].apply(lambda x: 1 if str(x).lower() in ['m','male','hombre','h','1'] else 0)
+                    
+                    method = 'pearson'
+
+                    if len(covars) != 0: 
+                        results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
+                        n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
+                    else:
+                        r, p = pearsonr(predictions['y_pred'], predictions['y_true'])
+                        ci = np.nan 
+                        r, p = pearsonr(predictions['y_true'], predictions['y_pred'])
+                        n = predictions.shape[0]
+                        
+                    plt.figure(figsize=(8, 6))
+                    sns.regplot(
+                        x='y_pred', y='y_true', data=predictions,
+                        scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
+                        line_kws={'color': 'darkred', 'linewidth': 2}
+                    )
+
+                    plt.xlabel('Predicted Value')
+                    plt.ylabel('True Value')
+                    plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
+
+                    # Añadir estadística en esquina superior izquierda
+                    plt.text(0.05, 0.95,
+                            f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
+                            fontsize=12,
+                            transform=plt.gca().transAxes,
+                            verticalalignment='top',
+                            bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+                    # Guardar resultado y cerrar
+
+                    pearsons_results.loc[len(pearsons_results)] = [task, dimension, y_label, set_, random_seed_test,model_type, r, np.nan,p, method, n, ci, ','.join(covars) if len(covars) > 0 else 'None', np.nan]
+
+                    save_path = Path(results_dir, f'plots', task, dimension, y_label,
+                                    stat_folder, scoring,config["bootstrap_method"],
+                                    'hyp_opt' if hyp_opt else '',
+                                    'feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,
+                                    f'{model_type}_{set_}.png')
+                    
+                    save_path.parent.mkdir(parents=True, exist_ok=True)
+
+                    plt.tight_layout()
+                    plt.savefig(save_path, dpi=300)
+                    plt.close()
 
     if problem_type == 'reg':
         pearsons_results_file = f'pearons_results_{scoring}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled.csv'.replace('__','_')

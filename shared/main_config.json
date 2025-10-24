@@ -1,5 +1,8 @@
 {
     "y_labels": {
+        "fugu_AD_HC": [
+            "group"
+        ],
         "53_ceac":[
             "depression"
                 ],
@@ -97,6 +100,9 @@
         
     },
     "tasks": {
+        "fugu_AD_HC": [
+            "fugu"
+        ],
         "53_ceac":[
             "phq"
         ],
@@ -129,7 +135,9 @@
             "lamina2",
             "fugu",
             "dia_tipico",
-            "recuerdo_agradable"
+            "recuerdo_agradable",
+            "craft__fugu__lamina2",
+            "dia_tipico__recuerdo_agradable"
         ],
         "ad_mci_hc": [
             "fugu"
@@ -177,7 +185,9 @@
             "lamina2",
             "fugu",
             "dia_tipico",
-            "recuerdo_agradable"
+            "recuerdo_agradable",
+            "craft__fugu__lamina2",
+            "dia_tipico__recuerdo_agradable"
         ],
         "arequipa_reg_mci_hc": [
             "craft",
@@ -205,6 +215,7 @@
         ]
     },
     "test_size": {
+        "fugu_AD_HC": 0.2,
         "53_ceac": 0.3,
         "tell_classifier": 0.3,
         "MCI_classifier_unbalanced": 0,
@@ -229,7 +240,10 @@
 
     },
     "single_dimensions": {
-        "53_ceac":{"phq":["gemini"],
+        "fugu_AD_HC": {
+            "fugu": ["semantic"]
+        },
+        "53_ceac":{"phq":["gemini","gemini__dem"],
         "dia_anterior__phq":["gemini__phq9__sentiment"]
     },
 
@@ -333,6 +347,7 @@
             "talking-intervals"
         ],
         "arequipa": [
+            "composite",
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "ad_mci_hc":{
@@ -429,6 +444,7 @@
         ]
     },
     "data_file": {
+        "fugu_AD_HC": "all_data.csv",
         "53_ceac": "all_data.csv",
         "tell_classifier": "data_MOTOR-LIBRE.csv",
         "MCI_classifier_unbalanced": "data_matched_unbalanced_group.csv",
@@ -460,6 +476,7 @@
     },
 
     "thresholds": {
+        "fugu_AD_HC": [null],
         "53_ceac": [null],
         "tell_classifier": [null],
         "MCI_classifier_unbalanced": [null],
@@ -497,6 +514,7 @@
         "AKU_2":["sex","age","education","number_of_languages"]
     },
     "cmatrix":{
+        "fugu_AD_HC":null,
         "53_ceac":null,
         "MCI_classifier_unbalanced":null,
         "MCI_classifier":null,

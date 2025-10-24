@@ -1,15 +1,15 @@
 {
-    "project_name": "53_ceac",
-    "stats": "",
+    "project_name": "arequipa",
+    "stats": "count_mean_ratio",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
     "n_folds": 5.0,
-    "n_iter": 100.0,
-    "n_iter_features": 100.0,
+    "n_iter": 20.0,
+    "n_iter_features": 20.0,
     "feature_sample_ratio": 0.5,
-    "n_seeds_train": 5.0,
+    "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
@@ -17,43 +17,59 @@
     "n_boot": 1000.0,
     "bayesian": false,
     "filter_outliers": false,
-    "early_fusion": true,
+    "early_fusion": false,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
-    "overwrite": true,
+    "overwrite": false,
     "parallel": true,
     "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
     "bayes": false,
-    "test_size": 0.3,
-    "data_file": "all_data.csv",
+    "add_dem": false,
+    "test_size": 0.0,
+    "data_file": "data_matched_group.csv",
     "tasks": [
-        "phq"
+        "craft",
+        "lamina2",
+        "fugu",
+        "dia_tipico",
+        "recuerdo_agradable",
+        "craft__fugu__lamina2",
+        "dia_tipico__recuerdo_agradable"
     ],
-    "single_dimensions": {
-        "phq": [
-            "gemini"
-        ],
-        "dia_anterior__phq": [
-            "gemini__phq9__sentiment"
-        ]
-    },
-    "scoring_metrics": "r2",
-    "problem_type": "reg",
+    "single_dimensions": [
+        "composite",
+        "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
+    ],
+    "scoring_metrics": "roc_auc",
+    "problem_type": "clf",
     "y_labels": [
-        "depression"
+        "group"
     ],
-    "avoid_stats": [],
-    "stat_folder": "",
+    "avoid_stats": [
+        "variability",
+        "min",
+        "kurtosis",
+        "skewness",
+        "max",
+        "median",
+        "std"
+    ],
+    "stat_folder": "count_mean_ratio",
     "random_seeds_train": [
         3.0,
         9.0,
         27.0,
         81.0,
-        243.0
+        243.0,
+        729.0,
+        2187.0,
+        6561.0,
+        19683.0,
+        59049.0
     ],
     "random_seeds_test": [
-        3.0
+        ""
     ],
     "random_seeds_shuffle": [
         ""

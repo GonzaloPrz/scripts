@@ -184,7 +184,7 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
                     
                     return result_row
                 
-                parallel_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(parallel_process)(index) for index in np.arange(n_models))
+                parallel_results = Parallel(n_jobs=1 if parallel else 1)(delayed(parallel_process)(index) for index in np.arange(n_models))
                 all_results = pd.concat((pd.DataFrame(parallel_result,index=[0]) for parallel_result in parallel_results),ignore_index=True)
                 
                 all_results.to_csv(Path(path,random_seed,filename_to_save))

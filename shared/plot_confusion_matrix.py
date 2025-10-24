@@ -21,6 +21,8 @@ kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 stat_folder = config['stat_folder']
 hyp_opt = bool(config['n_iter'])
+scoring_metrics = config['scoring_metrics']
+
 if 'feature_selection' in config.keys():
     feature_selection = bool(config['feature_selection'])
 else:
@@ -41,7 +43,6 @@ y_labels = main_config['y_labels'][project_name]
 tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
 thresholds = main_config['thresholds'][project_name]
-scoring_metrics = main_config['scoring_metrics'][project_name]
 data_file = main_config['data_file'][project_name]
 
 if not isinstance(scoring_metrics,list):

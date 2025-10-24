@@ -235,59 +235,59 @@ for scoring in np.unique(scorings):
     extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
     ascending = any(x in scoring for x in ['error','norm'])
 
-
-    for task,random_seed_test in itertools.product(tasks,random_seeds_test):
-        if not Path(results_dir,task).exists():
-            continue
-        
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-        for dimension in dimensions:
-            
-            if isinstance(y_labels,dict):
-                y_labels_ = y_labels[task]
-            else:
-                y_labels_ = y_labels
-            
-            for y_label in y_labels_:
-                best_best_models_ = all_results[(all_results['task'] == task) & (all_results['y_label'] == y_label) & (all_results['dimension'] == dimension) & (all_results['random_seed_test'].astype(str) == str(random_seed_test))]
-
-                if best_best_models_.shape[0] == 0:
-                    continue
-                try:
-                    best_best_models_[scoring_col] = best_best_models_[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-                except:
-                    best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-
-                best_best_models_.dropna(subset=[scoring_col], inplace=True)
-                
-                try:
-                    best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
-                except:
-                    print(f"WARNING: No valid models found for {task}/{dimension}/{y_label} with random seed {random_seed_test}. Skipping...")
-                    continue
-
-                best_best_models.loc[best_best_models.shape[0],:] = best_best_models_append
-
-    try:
-        best_best_models[scoring_col] = best_best_models[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-    except:
-        best_best_models[scoring_col] = best_best_models[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
-
-    best_best_models = best_best_models.sort_values(by=['y_label',scoring_col],ascending=ascending).reset_index(drop=True)
-
-    best_best_best_models = pd.DataFrame(columns=best_best_models.columns)
-    if isinstance(y_labels,dict):
-        y_labels_ = sum(y_labels.values(),[])
-    else:
-        y_labels_ = y_labels
-
-    for y_label,task in itertools.product(y_labels_,tasks):
-        dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-        for dimension in dimensions:
-            try:
-                idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task) & (best_best_models['dimension'] == dimension)].index[0]
-                best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
-            except:
+    for random_seed_test in random_seeds_test: 
+        for task in tasks:
+            if not Path(results_dir,task).exists():
                 continue
+            
+            dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+            for dimension in dimensions:
+                
+                if isinstance(y_labels,dict):
+                    y_labels_ = y_labels[task]
+                else:
+                    y_labels_ = y_labels
+                
+                for y_label in y_labels_:
+                    best_best_models_ = all_results[(all_results['task'] == task) & (all_results['y_label'] == y_label) & (all_results['dimension'] == dimension) & (all_results['random_seed_test'].astype(str) == str(random_seed_test))]
 
-    best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)
+                    if best_best_models_.shape[0] == 0:
+                        continue
+                    try:
+                        best_best_models_[scoring_col] = best_best_models_[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+                    except:
+                        best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+
+                    best_best_models_.dropna(subset=[scoring_col], inplace=True)
+                    
+                    try:
+                        best_best_models_append = best_best_models_.sort_values(by=scoring_col,ascending=ascending).iloc[0]
+                    except:
+                        print(f"WARNING: No valid models found for {task}/{dimension}/{y_label} with random seed {random_seed_test}. Skipping...")
+                        continue
+
+                    best_best_models.loc[best_best_models.shape[0],:] = best_best_models_append
+
+        try:
+            best_best_models[scoring_col] = best_best_models[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+        except:
+            best_best_models[scoring_col] = best_best_models[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+
+        best_best_models = best_best_models.sort_values(by=['y_label',scoring_col],ascending=ascending).reset_index(drop=True)
+
+        best_best_best_models = pd.DataFrame(columns=best_best_models.columns)
+        if isinstance(y_labels,dict):
+            y_labels_ = sum(y_labels.values(),[])
+        else:
+            y_labels_ = y_labels
+
+        for y_label,task in itertools.product(y_labels_,tasks):
+            dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
+            for dimension in dimensions:
+                try:
+                    idx = best_best_models[(best_best_models['y_label'] == y_label) & (best_best_models['task'] == task) & (best_best_models['dimension'] == dimension)].index[0]
+                    best_best_best_models.loc[best_best_best_models.shape[0],:] = best_best_models.loc[idx,:]
+                except:
+                    continue
+
+        best_best_best_models.to_csv(Path(results_dir,f'best_{output_filename}'),index=False)

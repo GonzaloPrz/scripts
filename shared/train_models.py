@@ -41,14 +41,14 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='53_ceac',type=str,help='Project name')
+    parser.add_argument('--project_name', default='arequipa',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds', type=float, default=0.2, help='Number of folds for cross validation')
-    parser.add_argument('--n_iter', type=int, default=30, help='Number of hyperparameter iterations')
-    parser.add_argument('--n_iter_features', type=int, default=30, help='Number of feature sets to try and select from')
+    parser.add_argument('--n_folds', type=float, default=5, help='Number of folds for cross validation')
+    parser.add_argument('--n_iter', type=int, default=20, help='Number of hyperparameter iterations')
+    parser.add_argument('--n_iter_features', type=int, default=20, help='Number of feature sets to try and select from')
     parser.add_argument('--feature_sample_ratio', type=float, default=0.5, help='Feature-to-sample ratio: number of features in each feature set = ratio * number of samples in the training set')
     parser.add_argument('--n_seeds_train',type=int,default=1,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
@@ -59,14 +59,14 @@ def parse_args():
     parser.add_argument('--bayesian',type=int,default=0,help='Whether to calculate bayesian credible intervals or bootstrap confidence intervals')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
+    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
     parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap samples for holdout')
     parser.add_argument('--n_boot_train',type=int,default=0,help='Number of bootstrap samples of training samples while performing model testing')
     parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
-    parser.add_argument('--parallel',type=int,default=0,help='Whether to parallelize processes or not')
+    parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
-
+    parser.add_argument('--add_dem',type=int,default=0,help='Whether to add demographics as covariates')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -97,7 +97,8 @@ def load_configuration(args):
         parallel = bool(args.parallel),
         n_seeds_test = float(args.n_seeds_test) if args.n_folds != -1 else float(0),
         bootstrap_method = args.bootstrap_method,
-        bayes = False
+        bayes = False,
+        add_dem = bool(args.add_dem)
     )
 
     return config
@@ -128,7 +129,7 @@ test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
-problem_type = 'reg'
+problem_type = 'reg' if any(x in project_name.lower() for x in ['ceac','reg']) else 'clf'
 scoring_metrics = 'roc_auc' if problem_type == 'clf' else 'r2'
 
 config['test_size'] = float(test_size)
@@ -247,6 +248,16 @@ for y_label, task in itertools.product(y_labels, tasks):
         if "group_as_feature" in config["project_name"] and y_label != "group":
             features = features + ["group"]
 
+        if config['add_dem']:
+            for col in set(['sex','age','education','handedness']).intersection(set(data.columns)):
+                
+                data[f'{task}__dem__{col}'] = data[col]
+
+            demographic_features = [f'{task}__dem__{col}' for col in data.columns if col in ['sex','age','education','handedness']]
+
+            features.extend(demographic_features)
+            dimension = dimension + '__dem' if dimension != '' else 'dem'
+        
         # Select only the desired features along with the target and id
         data = data[features + [y_label, config['id_col']]]
         data = data.dropna(subset=[y_label])
