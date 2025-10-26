@@ -28,7 +28,7 @@ stat_folder = config['stat_folder']
 hyp_opt = config['n_iter'] > 0
 feature_selection = config['n_iter_features'] > 0
 filter_outliers = config['filter_outliers']
-n_models = int(config["n_models"])
+n_models = float(config["n_models"])
 n_boot = int(config["n_boot"])
 calibrate = bool(config["calibrate"])
 overwrite = bool(config["overwrite"])
@@ -120,10 +120,10 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
                         scorings_i = np.empty((outputs.shape[0],outputs.shape[2]))
                         for j,r in itertools.product(range(outputs.shape[0]),range(outputs.shape[2])):
                             if problem_type == 'clf':
-                                metrics, _ = get_metrics_clf(outputs[j,i,r], y_dev[j,r], [scoring], cmatrix)
+                                metrics, _ = utils.get_metrics_clf(outputs[j,i,r], y_dev[j,r], [scoring], cmatrix)
                                 scorings_i[j,r] = metrics[scoring]
                             else:
-                                metrics = get_metrics_reg(outputs[j,i,r], y_dev[j,r],[scoring])
+                                metrics = utils.get_metrics_reg(outputs[j,i,r], y_dev[j,r],[scoring])
                                 scorings_i[j,r] = metrics[scoring]
                         scorings[i] = np.nanmean(scorings_i.flatten())
                     
@@ -131,7 +131,7 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
 
                     best_models = np.argsort(scorings)[:n_models]
                 
-                    all_models = all_models.iloc[:,best_models].reset_index(drop=True)
+                    all_models = all_models.iloc[best_models].reset_index(drop=True)
                     all_models['idx'] = best_models
                     outputs = outputs[:,best_models]
                     n_models = len(best_models)

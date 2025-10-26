@@ -96,7 +96,8 @@
         ],
         "tea_tomi_chu":[
             "Grupo"
-        ]
+        ],
+        "ch_co__v_tp__window_feature":["group"]
         
     },
     "tasks": {
@@ -212,7 +213,8 @@
         "tea_tomi_chu":[
             "IG",
             "IR"
-        ]
+        ],
+        "ch_co__v_tp__window_feature":["pataka"]
     },
     "test_size": {
         "fugu_AD_HC": 0.2,
@@ -236,7 +238,8 @@
         "arequipa_reg_mci": 0,
         "arequipa_reg_mci_hc": 0,
         "GERO_females":0,
-        "tea_tomi_chu":0.3
+        "tea_tomi_chu":0.3,
+        "ch_co__v_tp__window_feature":0.2
 
     },
     "single_dimensions": {
@@ -441,7 +444,8 @@
 
         "tea_tomi_chu":
         ["nada"
-        ]
+        ],
+        "ch_co__v_tp__window_feature":["phoneme_feature"]
     },
     "data_file": {
         "fugu_AD_HC": "all_data.csv",
@@ -465,7 +469,8 @@
         "arequipa_reg_mci":"data_matched_group.csv",
         "arequipa_reg_mci_hc":"data_matched_group.csv",
         "GERO_females":"all_data.csv",
-        "tea_tomi_chu":"solo_columnas_clasificador_formateadas.csv"
+        "tea_tomi_chu":"solo_columnas_clasificador_formateadas.csv",
+        "ch_co__v_tp__window_feature":"ch_co__v_tp__window_feature.csv"
     },
 
     "data_file_test": {
@@ -497,7 +502,8 @@
         "arequipa_reg_mci": [null],
         "arequipa_reg_mci_hc": [null],
         "GERO_females":[null],
-        "tea_tomi_chu":[null]
+        "tea_tomi_chu":[null],
+        "ch_co__v_tp__window_feature":[null]
     },
     "metrics_names": {
         "clf": ["roc_auc","accuracy","f1","recall","precision","norm_expected_cost","norm_cross_entropy"],
@@ -530,6 +536,7 @@
         "tea_tomi_chu":null,
         "AKU_2":null,
         "arequipa":null,
-        "arequipa_reg":null
+        "arequipa_reg":null,
+        "ch_co__v_tp__window_feature":null
     }
 }
