@@ -13,7 +13,7 @@
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
-    "n_models": 0.0,
+    "n_models": 0.2,
     "n_boot": 1000.0,
     "bayesian": false,
     "filter_outliers": false,

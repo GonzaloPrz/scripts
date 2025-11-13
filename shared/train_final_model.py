@@ -23,7 +23,7 @@ from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinnin
 
 import pickle
 
-sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
+sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(r'C:\Users\CNC Audio','gonza','scripts_generales')))
 
 import utils
 
@@ -125,10 +125,11 @@ for scoring in scoring_metrics:
         
     best_models = pd.read_csv(Path(results_dir,best_models_file))
     best_models['random_seed_test'] = best_models['random_seed_test'].map(lambda x: str(x) if str(x) != 'nan' else '') 
-    tasks = best_models['task'].unique()
+    #tasks = best_models['task'].unique()
+    tasks = ['craft__fugu__lamina2']
     y_labels = best_models['y_label'].unique()
     dimensions = best_models['dimension'].unique()
-
+    
     for task,dimension,y_label in itertools.product(tasks,dimensions,y_labels):
         print(task,dimension,y_label)
         path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
@@ -324,16 +325,6 @@ for scoring in scoring_metrics:
 
                     plt.tight_layout()
                     plt.grid(False)
-
-                    plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
-
-                    # Añadir estadística en esquina superior izquierda
-                    plt.text(0.05, 0.95,
-                            f'$r$ = {r:.2f}\n$p$ = {p:.2e}',
-                            fontsize=12,
-                            transform=plt.gca().transAxes,
-                            verticalalignment='top',
-                            bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
                     # Guardar resultado y cerrar
 
