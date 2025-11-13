@@ -75,9 +75,8 @@ else:
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
-tasks = main_config['tasks'][project_name]
+tasks = config['tasks']
 test_size = main_config['test_size'][project_name]
-single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
 thresholds = main_config['thresholds'][project_name]
 
@@ -127,8 +126,8 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
     extremo = 1 if any(x in scoring for x in ['norm','error']) else 0
     ascending = True if extremo == 1 else False
 
-    dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
-
+    #dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
+    dimensions = ["mlu__universal_dependencies__verbosity__word_properties__talking_intervals"]
     for dimension in dimensions:
         print(task,dimension)
         for y_label in y_labels:
@@ -156,6 +155,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                 X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))   
                 y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
                 IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
+                
+                if X_test.shape[0] == 0:
+                    continue
                 
                 for file in files:
                     model_name = file.stem.split('_')[2]
@@ -199,7 +201,6 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                             params_dict['random_state'] = int(params_dict['random_state'])
                         
                         outputs = utils.test_model(models_dict[problem_type][model_name],params_dict,scaler,imputer, X_dev[features], y_dev, X_test[features], problem_type=problem_type)
-
                         # Prepare data for bootstrap: a tuple of index arrays to resample
                         data_indices = (np.arange(y_test.shape[-1]),)
 
@@ -247,7 +248,9 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
                         
                         return result_row, outputs
                     
+                    
                     parallel_results = Parallel(n_jobs=-1 if parallel else 1)(delayed(parallel_process)(index) for index in np.arange(n_models))
+                    
                     all_results = pd.concat((pd.DataFrame(result[0],index=[0]) for result in parallel_results),ignore_index=True)
                     
                     all_results.to_csv(Path(path_to_results,random_seed_test,filename_to_save))

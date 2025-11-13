@@ -83,15 +83,9 @@ for scoring in scoring_metrics:
     
     best_models = pd.read_csv(Path(results_dir,best_models_file))
     index_list = itertools.combinations(best_models.index,2)
-    '''
-    extremo = 1 if 'norm' in scoring else 0
-    ascending = True if extremo == 1 else False
-    scoring_col = f'{scoring}_extremo'
-    best_models[scoring_col] = best_models[scoring].apply(lambda x: x.split('(')[1].replace(')','').split(', ')[extremo])
-    best_models = best_models[best_models[scoring_col].astype(str) != 'nan'].reset_index(drop=True)
-    '''
-    all_results = pd.DataFrame()
 
+    all_results = pd.DataFrame()
+    
     for index in index_list:
         for y_label in y_labels:
 
@@ -100,13 +94,23 @@ for scoring in scoring_metrics:
             dimensions = [best_models.loc[index[0],'dimension'], best_models.loc[index[1],'dimension']]
             best1 = best_models[(best_models.task == best_models.loc[index[0],'task']) & (best_models.dimension == best_models.loc[index[0],'dimension']) & (best_models.y_label == y_label)].iloc[0]
             best2 = best_models[(best_models.task == best_models.loc[index[1],'task']) & (best_models.dimension == best_models.loc[index[1],'dimension']) & (best_models.y_label == y_label)].iloc[0]
-
+            
             if best1.empty or best2.empty:
                 continue
 
             # Load data for both models
-            outputs1, y_dev1 = utils._load_data(results_dir,tasks[0],dimensions[0],y_label,best1.model_type,'',config, bayes=True, scoring=scoring)
-            outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
+            IDs1, outputs1, y_dev1 = utils._load_data(results_dir,tasks[0],dimensions[0],y_label,best1.model_type,'',config, bayes=True, scoring=scoring)
+            IDs2, outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
+
+            # Align outputs based on IDs
+            common_IDs = np.intersect1d(IDs1, IDs2)
+            idx1 = np.isin(IDs1, common_IDs)
+            idx2 = np.isin(IDs2, common_IDs)
+            n = int(np.min((idx1.sum()/idx1.shape[0],idx2.sum()/idx2.shape[0])))
+            outputs1 = outputs1[idx1].reshape((outputs1.shape[0],n,outputs1.shape[2]))
+            y_dev1 = y_dev1[idx1].reshape((y_dev1.shape[0],n))
+            outputs2 = outputs2[idx2].reshape((outputs2.shape[0],n,outputs2.shape[2]))
+            y_dev2 = y_dev2[idx2].reshape((y_dev2.shape[0],n))
 
             # Ensure the datasets are comparable
             try:
@@ -164,7 +168,7 @@ for scoring in scoring_metrics:
                 distribution = res.bootstrap_distribution[i] if est > 0 else -res.bootstrap_distribution[i]
                 ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
                 result_row[metric] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
-                result_row[f'p_value_{metric}'] = 2*np.round(percentileofscore(distribution,0) / 100.0,3)
+                result_row[f'p_value_{metric}'] = np.round(percentileofscore(distribution,0) / 100.0,3)
             
             if all_results.empty:
                 all_results = pd.DataFrame(columns=result_row.keys())

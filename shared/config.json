@@ -2,7 +2,7 @@
     "project_name": "arequipa_reg",
     "stats": "count_mean_ratio",
     "shuffle_labels": false,
-    "shuffle_all": true,
+    "shuffle_all": false,
     "stratify": true,
     "calibrate": false,
     "n_folds": 5.0,
@@ -13,7 +13,7 @@
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
-    "n_models": 0.2,
+    "n_models": 0.0,
     "n_boot": 1000.0,
     "bayesian": false,
     "filter_outliers": false,
@@ -29,16 +29,9 @@
     "test_size": 0.0,
     "data_file": "data_matched_group.csv",
     "tasks": [
-        "craft",
-        "lamina2",
-        "fugu",
-        "dia_tipico",
-        "recuerdo_agradable",
-        "craft__fugu__lamina2",
-        "dia_tipico__recuerdo_agradable"
+        "craft__fugu__lamina2"
     ],
     "single_dimensions": [
-        "composite",
         "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
     ],
     "scoring_metrics": "r2",
@@ -48,12 +41,12 @@
         "MOCA_TOTAL"
     ],
     "avoid_stats": [
-        "std",
-        "max",
-        "skewness",
-        "median",
         "min",
+        "skewness",
+        "std",
         "variability",
+        "median",
+        "max",
         "kurtosis"
     ],
     "stat_folder": "count_mean_ratio",

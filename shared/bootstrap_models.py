@@ -63,7 +63,7 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
 
     for dimension in dimensions:
-        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
+        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '',"shuffle" if shuffle_labels else "")
         
         if not path.exists():  
             continue

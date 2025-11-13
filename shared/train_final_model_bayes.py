@@ -182,11 +182,13 @@ for threshold in thresholds:
                         predictions = pd.merge(predictions,covariates,on=id_col,how='inner')
                     
                     
-                    if all([shapiro(predictions['y_pred'])[1] > 0.1,shapiro(predictions['y_true'])[1] > 0.1]):
-                        method = 'pearson'
-                    else:
-                        method = 'spearman'
+                    #if all([shapiro(predictions['y_pred'])[1] > 0.1,shapiro(predictions['y_true'])[1] > 0.1]):
+                    #    method = 'pearson'
+                    #else:
+                    #    method = 'spearman'
                     
+                    method = 'pearson'
+
                     if len(covars) != 0: 
                         results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
                         n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']

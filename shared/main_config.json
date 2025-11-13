@@ -1,5 +1,9 @@
 {
     "y_labels": {
+        "impact_dementia":[
+        "rudas",
+        "ad8"
+        ],
         "fugu_AD_HC": [
             "group"
         ],
@@ -101,11 +105,12 @@
         
     },
     "tasks": {
+        "impact_dementia":["rutina","rutina__video_retelling","agradable__rutina","agradable__rutina__video_retelling"],
         "fugu_AD_HC": [
             "fugu"
         ],
         "53_ceac":[
-            "phq"
+           "phq__cachorro"
         ],
         "tell_classifier": [
             "MOTOR-LIBRE"
@@ -182,14 +187,8 @@
             "video_retelling"
         ],
         "arequipa_reg": [
-            "craft",
-            "lamina2",
-            "fugu",
-            "dia_tipico",
-            "recuerdo_agradable",
-            "craft__fugu__lamina2",
-            "dia_tipico__recuerdo_agradable"
-        ],
+            "craft__fugu__lamina2"
+                ],
         "arequipa_reg_mci_hc": [
             "craft",
             "lamina2",
@@ -217,6 +216,7 @@
         "ch_co__v_tp__window_feature":["pataka"]
     },
     "test_size": {
+        "impact_dementia": 0,
         "fugu_AD_HC": 0.2,
         "53_ceac": 0.3,
         "tell_classifier": 0.3,
@@ -243,11 +243,25 @@
 
     },
     "single_dimensions": {
+        "impact_dementia":["sentiment","speech_timing","word_properties"],
         "fugu_AD_HC": {
             "fugu": ["semantic"]
         },
-        "53_ceac":{"phq":["gemini","gemini__dem"],
-        "dia_anterior__phq":["gemini__phq9__sentiment"]
+        "53_ceac":{"phq":["gemini"],
+        "cachorro":["phq9__sentiment__verbosity"],
+        "pais":["phq9__sentiment__verbosity"],
+        "sobremesa":["phq9__sentiment__verbosity"],
+        "cachorro__pais":["phq9__sentiment__verbosity"],
+        "cachorro__sobremesa":["phq9__sentiment__verbosity"],
+        "pais__sobremesa":["phq9__sentiment__verbosity"],
+        "cachorro__pais__phq__sobremesa":["phq9__sentiment__verbosity"],
+        "phq__cachorro":["gemini__phq9__sentiment__verbosity"],
+        "phq__pais":["gemini__phq9__sentiment__verbosity"],
+        "phq__sobremesa":["gemini__phq9__sentiment__verbosity"],
+        "phq__cachorro__pais":["gemini__phq9__sentiment__verbosity"],
+        "phq__cachorro__sobremesa":["gemini__phq9__sentiment__verbosity"],
+        "phq__pais__sobremesa":["gemini__phq9__sentiment__verbosity"],
+        "phq__cachorro__pais__sobremesa":["gemini__phq9__sentiment__verbosity"]
     },
 
         "tell_classifier": [
@@ -320,13 +334,18 @@
         },
         "Proyecto_Ivo": {
             "Animales": [
-                "properties"
+                "properties",
+                "timing"
             ],
             "P": [
                 "properties",
                 "timing"
             ],
             "Animales__P": [
+                "properties",
+                "timing"
+            ],
+            "grandmean": [
                 "properties",
                 "timing"
             ],
@@ -427,7 +446,6 @@
             "voice_quality"
         ],
         "arequipa_reg": [
-            "composite",
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "arequipa_reg_mci": [
@@ -448,12 +466,13 @@
         "ch_co__v_tp__window_feature":["phoneme_feature"]
     },
     "data_file": {
+        "impact_dementia":"all_data.csv",
         "fugu_AD_HC": "all_data.csv",
         "53_ceac": "all_data.csv",
         "tell_classifier": "data_MOTOR-LIBRE.csv",
         "MCI_classifier_unbalanced": "data_matched_unbalanced_group.csv",
         "MCI_classifier": "data_matched_group.csv",
-        "Proyecto_Ivo": "all_data.csv",
+        "Proyecto_Ivo": "all_data_with_means.csv",
         "GeroApathy": "data_matched_agradable",
         "arequipa": "data_matched_group.csv",
         "ad_mci_hc": "data_matched_group.csv",
@@ -481,6 +500,7 @@
     },
 
     "thresholds": {
+        "impact_dementia":[null],
         "fugu_AD_HC": [null],
         "53_ceac": [null],
         "tell_classifier": [null],
@@ -510,6 +530,7 @@
         "reg": [ "r2_score","mean_absolute_error","mean_squared_error"]
     },
     "covars":{
+        "impact_dementia":[],
         "53_ceac": [],
         "arequipa_reg":["age","education","group","sex"],
         "arequipa_reg_mci":["sex","age","education"],
@@ -520,6 +541,7 @@
         "AKU_2":["sex","age","education","number_of_languages"]
     },
     "cmatrix":{
+        "impact_dementia":null,
         "fugu_AD_HC":null,
         "53_ceac":null,
         "MCI_classifier_unbalanced":null,

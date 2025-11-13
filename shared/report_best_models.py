@@ -31,7 +31,7 @@ feature_selection = config['n_iter_features'] > 0
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
-tasks = main_config['tasks'][project_name]
+tasks = config['tasks']
 
 problem_type = config['problem_type']
 scoring_metrics = ['roc_auc'] if problem_type == 'clf' else ['r2']
@@ -42,7 +42,8 @@ pd.options.mode.copy_on_write = True
 
 results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path.home()) else Path('D:/','CNC_Audio','gonza','results',project_name)
 for scoring in scoring_metrics:
-    best_models = pd.DataFrame()
+    best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test','fusion'] + [f'{metric}_dev' for metric in metrics_names] + [f'{metric}_holdout' for metric in metrics_names])
+    best_best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test','fusion'] + [f'{metric}_dev' for metric in metrics_names] + [f'{metric}_holdout' for metric in metrics_names])
 
     for task in tasks:
 
@@ -50,7 +51,7 @@ for scoring in scoring_metrics:
         ascending = any(x in scoring for x in ['error','norm'])
 
         dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-
+        
         for dimension in dimensions:
             print(task,dimension)
             path = Path(results_dir,task,dimension,scaler_name,kfold_folder)
@@ -90,18 +91,20 @@ for scoring in scoring_metrics:
                         else:
                             files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'test_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem] 
                             if len(files) == 0:
-                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'dev_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem]
-                            if len(files) == 0:
                                 files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_',f'test_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem] 
                             if len(files) == 0:
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models_',f'dev_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem]
+                            if len(files) == 0:
                                 files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['best_models_',f'dev_{config["bootstrap_method"]}']) and 'calibrated' not in file.stem] 
+                            if len(files) == 0:
+                                files = [file for file in Path(path,random_seed_test,late_fusion_folder).iterdir() if all(x in file.stem for x in ['all_models','dev']) and 'calibrated' not in file.stem] 
                         
                         if len(files) == 0:
                             continue
                         
                         best = None
                         for file in files:
-                            if file.suffix != '.csv' or 'knn' in file.name:
+                            if file.suffix != '.csv':
                                 continue
 
                             df = pd.read_csv(file)
@@ -115,6 +118,14 @@ for scoring in scoring_metrics:
                             df = df.sort_values(by=scoring_col,ascending=ascending)
                             
                             print(f"{file.stem.split('_')[2]}:{df.iloc[0,:][scoring_col]}")
+                            
+                            dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':file.stem.split('_')[2],'model_index':df['idx'][0],'random_seed_test':random_seed_test,'fusion':fusion}
+
+                            dict_append.update(dict((f'{metric}_dev',df.iloc[0][metric]) for metric in metrics_names))
+
+                            dict_append.update(dict((f'{metric}_holdout',df.iloc[0][f'{metric}_holdout']) for metric in metrics_names) if all([f'{x}_holdout' in df.columns for x in metrics_names]) else dict((f'{metric}_holdout',np.nan) for metric in metrics_names))
+                            best_models.loc[len(best_models),:] = dict_append
+
                             if best is None:
                                 best = df.iloc[0,:]
                                 
@@ -148,13 +159,12 @@ for scoring in scoring_metrics:
                         dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':best['model_type'],'model_index':best['model_index'],'random_seed_test':random_seed_test,'fusion':fusion}
                         dict_append.update(dict((f'{metric}_dev',best[metric]) for metric in metrics_names))
 
-                        if all([f'{x}_holdout' in best.keys() for x in metrics_names]):
-                            dict_append.update(dict((f'{metric}_holdout',best[f'{metric}_holdout']) for metric in metrics_names))
+                        dict_append.update(dict((f'{metric}_holdout',best[f'{metric}_holdout']) for metric in metrics_names) if all([f'{x}_holdout' in best.keys() for x in metrics_names]) else dict((f'{metric}_holdout',np.nan) for metric in metrics_names))
 
-                        if best_models.empty:
-                            best_models = pd.DataFrame(columns=dict_append.keys())
+                        if best_best_models.empty:
+                            best_best_models = pd.DataFrame(columns=dict_append.keys())
                         
-                        best_models.loc[len(best_models),:] = dict_append
+                        best_best_models.loc[len(best_best_models),:] = dict_append
 
     filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
 
@@ -170,3 +180,4 @@ for scoring in scoring_metrics:
     best_models = best_models.dropna(axis=1,how='all')
     #best_models.dropna(subset=['model_index'],inplace=True)
     best_models.to_csv(Path(results_dir,filename_to_save),index=False)
+    best_best_models.to_csv(Path(results_dir,f'best_{filename_to_save}'),index=False)

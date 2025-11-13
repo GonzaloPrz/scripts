@@ -121,7 +121,7 @@ for task in tasks:
                         if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
                             continue
                         
-                        outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_type,random_seed,config,bayes=True,scoring=scoring)
+                        _,outputs, y_dev = utils._load_data(results_dir,task,dimension,y_label,model_type,random_seed,config,bayes=True,scoring=scoring)
 
                         if len(np.unique(y_dev)) > 4:
                             problem_type = 'reg'

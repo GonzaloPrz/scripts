@@ -150,9 +150,9 @@ models_dict = {'clf':{
                     'lr':LR,
                     'knnc':KNNC,
                     'xgb':xgboost,
-                    #'svc':SVC,
+                    'svc':SVC,
                     #'qda':QDA,
-                    'lda': LDA
+                    #'lda': LDA
                     },
                 
                 'reg':{'lasso':Lasso,
@@ -160,7 +160,7 @@ models_dict = {'clf':{
                     'elastic':ElasticNet,
                     'knnr':KNNR,
                    'svr':SVR,
-                    'xgb':xgboostr
+                    #'xgb':xgboostr
                     }
 }
 
@@ -210,7 +210,6 @@ for task in tasks:
             print(task,dimension)
             data = all_data[features + [y_label, config['id_col']]]
             data.dropna(subset=y_label,inplace=True)
-            data.dropna(subset=[ft for ft in features if 'dem' not in ft], how='all',inplace=True)
             if cut_values > 0:
                 data = data[data[y_label] <= cut_values]
             

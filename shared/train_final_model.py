@@ -152,12 +152,12 @@ for scoring in scoring_metrics:
             except:
                 continue
             print(model_type)
-            model_index = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_index'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0]
+            model_index = int(best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_index'].values[0]) if random_seed_test != '' else int(best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_index'].values[0])
 
-            if not Path(path,random_seed_test,f'all_models_{model_type}_dev_{config["bootstrap_method"]}.csv').exists():
+            if not Path(path,random_seed_test,f'all_models_{model_type}_dev_{config["bootstrap_method"]}.csv' if config['n_models'] == 0 else f'best_models_{model_type}_dev_{config["bootstrap_method"]}_{scoring}.csv' ).exists():
                 continue
 
-            all_models = pd.read_csv(Path(path,random_seed_test,f'all_models_{model_type}_dev_{config["bootstrap_method"]}.csv'))
+            all_models = pd.read_csv(Path(path,random_seed_test,f'all_models_{model_type}_dev_{config["bootstrap_method"]}.csv' if config['n_models'] == 0 else f'best_models_{model_type}_dev_{config["bootstrap_method"]}_{scoring}.csv' ))
             scoring_col = f'{scoring}_extremo'
 
             try:
@@ -306,12 +306,25 @@ for scoring in scoring_metrics:
                     plt.figure(figsize=(8, 6))
                     sns.regplot(
                         x='y_pred', y='y_true', data=predictions,
-                        scatter_kws={'alpha': 0.6, 's': 50, 'color': '#1f77b4'},  # color base
-                        line_kws={'color': 'darkred', 'linewidth': 2}
+                        scatter_kws={'alpha': 0.6, 's': 50, 'color': "#9f19c4"},  # color base
+                        line_kws={'color': 'black', 'linewidth': 2}
                     )
 
                     plt.xlabel('Predicted Value')
                     plt.ylabel('True Value')
+
+                    plt.text(0.05, 0.95,
+                            f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
+                            fontsize=30,
+                            transform=plt.gca().transAxes,
+                            verticalalignment='top',
+                            bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+                    plt.title(f'{task} | {y_label}', fontsize=25, pad=15)
+
+                    plt.tight_layout()
+                    plt.grid(False)
+
                     plt.title(f'{dimension} | {y_label.replace("_"," ")}', fontsize=16, pad=15)
 
                     # Añadir estadística en esquina superior izquierda
