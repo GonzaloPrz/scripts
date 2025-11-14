@@ -137,13 +137,7 @@
             "agradable"
         ],
         "arequipa": [
-            "craft",
-            "lamina2",
-            "fugu",
-            "dia_tipico",
-            "recuerdo_agradable",
-            "craft__fugu__lamina2",
-            "dia_tipico__recuerdo_agradable"
+            "craft__fugu__lamina2"
         ],
         "ad_mci_hc": [
             "fugu"
@@ -369,7 +363,6 @@
             "talking-intervals"
         ],
         "arequipa": [
-            "composite",
             "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "ad_mci_hc":{

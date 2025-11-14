@@ -237,91 +237,90 @@ def main():
                         model_index = sel["model_index"].values[0]
 
                 try:
-                    _, outputs_dev, y_dev, _, outputs_test, y_test = utils._load_data(
+                    _, _, y_vec = utils._load_data(
                         results_dir, task, dimension, y_label, model_type,
                         seed, config, bayes=bayes, scoring=scoring
                     )
                 except Exception as e:
                     print(f"[WARN] No se pudo cargar datos para {task}/{dimension}/{y_label}/{seed}: {e}")
                     continue
+
+                y_true = _to_numpy(y_vec)
+                classes = np.unique(y_true)
+                is_binary = classes.size == 2
+
+                try:
+                    _,outputs, _ = utils._load_data(
+                        results_dir, task, dimension, y_label, model_type,
+                        seed, config, bayes=bayes, scoring=scoring
+                    )
+                except Exception as e:
+                    print(f"[WARN] _load_data falló para {model_type} en {task}/{dimension}/{y_label}/{seed}: {e}")
+                    continue
+
+                scores = _to_numpy(outputs)
+                fpr_grid = np.linspace(0, 1, 100)
                 
-                for y,outputs in zip([y_dev, y_test],[outputs_dev,outputs_test]):
-                    if y is None:
-                        print(f"[WARN] y es None para {task}/{dimension}/{y_label}/{seed}")
-                        continue
+                '''
+                if task.lower() == 'nps':
+                    idx_subplot = 3  # abajo a la derecha
+                    color = '#FFD700'  # gold
+                else:
+                    idx_subplot = plot_idx if plot_idx < 3 else 2
+                    color = '#1565c0'  # azul más vistoso
+                '''
+                if is_binary:
+                    tpr = np.zeros((n_boot, fpr_grid.size))
+                    for b in range(n_boot):
+                        np.random.seed(b)
+                        indices = np.random.choice(y_true.shape[-1], size=y_true.shape[-1], replace=True)
+                        
+                        if not bayes:
+                            fpr, tpr_, _ = roc_curve(y_true[:,:,indices].ravel(), scores[:,model_index,:,indices,1].ravel())
+                            auc_roc = roc_auc_score(y_true[:,:,indices].ravel(), scores[:,model_index,:,indices,1].ravel())
+                        else:
+                            fpr, tpr_, _ = roc_curve(y_true[:,indices].ravel(), scores[:,indices,1].ravel())
 
-                    y_true = _to_numpy(y)
-                    while y_true.ndim < 3:
-                        y_true = y_true[np.newaxis, :]
-                        outputs = outputs[np.newaxis, :]
-            
-                    classes = np.unique(y_true)
-                    is_binary = classes.size == 2
+                        tpr_interp = np.interp(fpr_grid, fpr, tpr_)
+                        tpr[b,:] = tpr_interp
+                        tpr[b,0] = 0.0
+                        tpr[b,-1] = 1.0
+                    tpr_mean = np.mean(tpr, axis=0)
+                    tpr_low = np.percentile(tpr, 2.5, axis=0)
+                    tpr_high = np.percentile(tpr, 97.5, axis=0)
 
-                    scores = _to_numpy(outputs)
-                    fpr_grid = np.linspace(0, 1, 100)
+                    #Plot curves with confidence intervals
+                    axes[plot_idx].plot(fpr_grid, tpr_mean, label=f"AUC = {mean_auc}", lw=3, color='#1565c0', alpha=0.95)
+                    axes[plot_idx].fill_between(fpr_grid, tpr_low, tpr_high, color='#1565c0', alpha=0.2, label="95% CI")
+                    axes[plot_idx].set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
+                    # Decide color y posición
                     
-                    '''
-                    if task.lower() == 'nps':
-                        idx_subplot = 3  # abajo a la derecha
-                        color = '#FFD700'  # gold
+                    axes[plot_idx].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
+                    
+                    # Etiquetas solo en el borde izquierdo y abajo
+                    if plot_idx % 2 == 0:
+                        axes[plot_idx].set_ylabel("True Positive Rate", fontsize=14)
                     else:
-                        idx_subplot = plot_idx if plot_idx < 3 else 2
-                        color = '#1565c0'  # azul más vistoso
-                    '''
-                    if is_binary:
-                        tpr = np.zeros((n_boot,y_true.shape[0],y_true.shape[1],fpr_grid.size))
-
-                        for j,r in itertools.product(range(y_true.shape[0]),range(y_true.shape[1])):
-
-                            for b in range(n_boot):
-                                np.random.seed(b)
-                                indices = np.random.choice(y_true.shape[-1], size=y_true.shape[-1], replace=True)
-                                try:
-                                    fpr, tpr_, _ = roc_curve(y_true[j,r,indices], scores[j,model_index,r,indices,1].ravel())
-                                except:
-                                    fpr, tpr_, _ = roc_curve(y_true[j,r,indices], scores[j,r,model_index,indices,1].ravel())
-                                
-                                tpr_interp = np.interp(fpr_grid, fpr, tpr_)
-                                tpr[b,j,r,:] = tpr_interp
-                                tpr[b,j,r,0] = 0.0
-                                tpr[b,j,r,-1] = 1.0
-                        tpr_mean = np.mean(tpr.reshape((n_boot*y_true.shape[0]*y_true.shape[1],tpr.shape[-1])), axis=0)
-                        tpr_low = np.percentile(tpr.reshape((n_boot*y_true.shape[0]*y_true.shape[1],tpr.shape[-1])), 2.5, axis=0)
-                        tpr_high = np.percentile(tpr.reshape((n_boot*y_true.shape[0]*y_true.shape[1],tpr.shape[-1])), 97.5, axis=0)
-
-                        #Plot curves with confidence intervals
-                        axes[plot_idx].plot(fpr_grid, tpr_mean, label=f"AUC = {mean_auc}", lw=3, color='#1565c0', alpha=0.95)
-                        axes[plot_idx].fill_between(fpr_grid, tpr_low, tpr_high, color='#1565c0', alpha=0.2, label="95% CI")
-                        axes[plot_idx].set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
-                        # Decide color y posición
-                        
-                        axes[plot_idx].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
-                        
-                        # Etiquetas solo en el borde izquierdo y abajo
-                        if plot_idx % 2 == 0:
-                            axes[plot_idx].set_ylabel("True Positive Rate", fontsize=14)
-                        else:
-                            axes[plot_idx].set_ylabel("")
-                            axes[plot_idx].set_yticklabels([])
-                        if plot_idx >= 2:
-                            axes[plot_idx].set_xlabel("False Positive Rate", fontsize=14)
-                        else:
-                            axes[plot_idx].set_xlabel("")
-                            axes[plot_idx].set_xticklabels([])
-                        axes[plot_idx].set_xlim([0, 1])
-                        axes[plot_idx].set_ylim([0, 1])
-                        # Quitar grid
-                        axes[plot_idx].grid(False)
-                        # Mejorar bordes y fondo
-                        axes[plot_idx].set_facecolor('white')
-                        for spine in axes[plot_idx].spines.values():
-                            spine.set_edgecolor('#444444')
-                            spine.set_linewidth(1.5)
-                        axes[plot_idx].legend(loc="lower right", fontsize=12, frameon=False)
-                        # Agregar título
-                        axes[plot_idx].set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
-                        plot_idx += 1
+                        axes[plot_idx].set_ylabel("")
+                        axes[plot_idx].set_yticklabels([])
+                    if plot_idx >= 2:
+                        axes[plot_idx].set_xlabel("False Positive Rate", fontsize=14)
+                    else:
+                        axes[plot_idx].set_xlabel("")
+                        axes[plot_idx].set_xticklabels([])
+                    axes[plot_idx].set_xlim([0, 1])
+                    axes[plot_idx].set_ylim([0, 1])
+                    # Quitar grid
+                    axes[plot_idx].grid(False)
+                    # Mejorar bordes y fondo
+                    axes[plot_idx].set_facecolor('white')
+                    for spine in axes[plot_idx].spines.values():
+                        spine.set_edgecolor('#444444')
+                        spine.set_linewidth(1.5)
+                    axes[plot_idx].legend(loc="lower right", fontsize=12, frameon=False)
+                    # Agregar título
+                    axes[plot_idx].set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
+                    plot_idx += 1
 
     plt.tight_layout()
     out_path_png = Path(save_dir) / "roc_grid.png"

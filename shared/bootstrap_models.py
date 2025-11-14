@@ -20,6 +20,7 @@ import utils
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
 project_name = config["project_name"]
+
 scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
@@ -95,16 +96,17 @@ for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):
                 print(task,model,dimension,y_label)
 
                 all_models = pd.read_csv(Path(path,random_seed,f'all_models_{model}.csv'))
-                outputs = pickle.load(open(Path(path,random_seed,f'cal_outputs_{model}.pkl' if calibrate else f'outputs_{model}.pkl'),'rb')) 
+
+                outputs = pickle.load(open(Path(path,random_seed,f'cal_outputs_{model}.pkl' if calibrate else f'outputs_{model}.pkl'),'rb'),fix_imports=False, encoding="latin1") 
                 
-                y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb'))
+                y_dev = pickle.load(open(Path(path,random_seed,'y_dev.pkl'),'rb'),fix_imports=False, encoding="latin1")
                 
                 if np.unique(y_dev).shape[0] > 2:
                     metrics_names = list(set(metrics_names_) - set(['roc_auc','presicion','recall','f1']))
                 else:
                     metrics_names = metrics_names_
 
-                IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'))
+                IDs_dev = pickle.load(open(Path(path,random_seed,'IDs_dev.pkl'),'rb'),fix_imports=False, encoding="latin1")
 
                 scorings = np.empty(outputs.shape[1])
                 
