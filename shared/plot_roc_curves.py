@@ -116,11 +116,12 @@ def _path_leaf(results_dir: Path, task: str, dimension: str, config: Dict[str, A
     stat_folder  = config['stat_folder']
     scoring      = config['scoring_metric']
     hyp_opt      = True if int(config['n_iter']) > 0 else False
-    feature_sel  = bool(config['feature_selection'])
+    feature_sel  = bool(config['feature_selection']) if 'feature_selection' in config else config['n_iter_features'] > 0
+    config["feature_selection"] = feature_sel  # Asegurar que esté en config
     shuffle_lab  = bool(config['shuffle_labels'])
 
     sub = [
-        task, dimension, scaler_name, kfold_folder, y_label, stat_folder, "bayes", scoring,
+        task, dimension, scaler_name, kfold_folder, y_label, stat_folder, "bayes" if config["bayes"] else "", scoring if config["bayes"] else "",
         "hyp_opt" if hyp_opt else "",
         "feature_selection" if feature_sel else "",
         "shuffle" if shuffle_lab else "",
@@ -216,9 +217,10 @@ def main():
 
             for seed in seeds:
                 combo_dir = leaf / seed if seed else leaf
+                print(combo_dir)
                 if not combo_dir.exists():
                     continue
-
+                
                 sel = best_df[
                     (best_df["task"]==task) &
                     (best_df["dimension"]==dimension) &

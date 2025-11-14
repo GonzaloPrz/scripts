@@ -34,7 +34,7 @@
     "single_dimensions": [
         "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
     ],
-    "scoring_metrics": "auc_roc",
+    "scoring_metric": "roc_auc",
     "problem_type": "clf",
     "y_labels": [
         "group"
