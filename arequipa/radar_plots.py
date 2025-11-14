@@ -2,7 +2,7 @@ import re
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from pathlib import Path
 
 # -----------------------------
 # 1. Funciones auxiliares
@@ -52,15 +52,16 @@ def add_ci_columns(df, col_name, new_prefix):
 # -----------------------------
 # 2. Cargar datos desde CSV
 # -----------------------------
+base_dir = Path('D:','CNC_Audio','gonza','results','arequipa')
 filename = "best_best_models_roc_auc_5_folds_StandardScaler_count_mean_ratio_bca_hyp_opt_feature_selection.csv"
 filename_shuffle = "best_models_roc_auc_5_folds_StandardScaler_count_mean_ratio_bca_hyp_opt_feature_selection_shuffled.csv"
 
-dev_holdout = pd.read_csv(filename)
+dev_holdout = pd.read_csv(Path(base_dir,filename))
 
 dev = dev_holdout[['task'] + [col for col in dev_holdout.columns if col.endswith('_dev')]]
 holdout = dev_holdout[['task'] + [col for col in dev_holdout.columns if col.endswith('_holdout')]]
 
-shuffle = pd.read_csv(filename_shuffle).rename(columns=lambda x: x.replace('_dev',''))
+shuffle = pd.read_csv(Path(base_dir,filename_shuffle)).rename(columns=lambda x: x.replace('_dev',''))
 
 # -----------------------------
 # 3. Extraer AUC + IC en dev y holdout
@@ -71,25 +72,25 @@ shuffle = pd.read_csv(filename_shuffle).rename(columns=lambda x: x.replace('_dev
 dev.columns = ['task'] + [c.replace('_dev','') for c in dev.columns if c != 'task']
 holdout = holdout.rename(columns=lambda x: x.replace('_holdout', '') if x != 'task' else x)
 
-dev = add_ci_columns(dev, 'auc', 'auc')
-holdout = add_ci_columns(holdout, 'auc', 'auc')
-shuffle = add_ci_columns(shuffle, 'auc_shuffle_dev', 'auc_shuffle')
+dev = add_ci_columns(dev, 'roc_auc', 'auc')
+holdout = add_ci_columns(holdout, 'roc_auc', 'auc')
+shuffle = add_ci_columns(shuffle, 'roc_auc', 'auc_shuffle')
 # -----------------------------
 # 5. Construir tabla final por tarea
 # -----------------------------
 summary = pd.DataFrame(index=dev['task'].unique())
 
-summary['auc_dev_mean'] = dev['auc_mean']
-summary['auc_dev_low'] = dev['auc_low']
-summary['auc_dev_high'] = dev['auc_high']
+summary['auc_dev_mean'] = dev['auc_mean'].values
+summary['auc_dev_low'] = dev['auc_low'].values
+summary['auc_dev_high'] = dev['auc_high'].values
 
-summary['auc_holdout_mean'] = holdout['auc_mean']
-summary['auc_holdout_low'] = holdout['auc_low']
-summary['auc_holdout_high'] = holdout['auc_high']
+summary['auc_holdout_mean'] = holdout['auc_mean'].values
+summary['auc_holdout_low'] = holdout['auc_low'].values
+summary['auc_holdout_high'] = holdout['auc_high'].values
 
-summary['auc_shuffle_mean'] = shuffle['auc_shuffle_mean']
-summary['auc_shuffle_low'] = shuffle['auc_shuffle_low']
-summary['auc_shuffle_high'] = shuffle['auc_shuffle_high']
+summary['auc_shuffle_mean'] = shuffle['auc_shuffle_mean'].values
+summary['auc_shuffle_low'] = shuffle['auc_shuffle_low'].values
+summary['auc_shuffle_high'] = shuffle['auc_shuffle_high'].values
 
 # Opcional: ordenar tareas (para que el radar sea más legible)
 summary = summary.sort_index()
@@ -98,7 +99,7 @@ summary = summary.sort_index()
 # -----------------------------
 # 6. Función para radar plot
 # -----------------------------
-def radar_plot_auc(summary_df, use_ci=True, title="AUC por tarea (dev, holdout, shuffle)"):
+def radar_plot_auc(summary_df, use_ci, path_to_save,title="AUC"):
     """
     Crea un radar plot con:
       - Ejes = tareas
@@ -130,24 +131,25 @@ def radar_plot_auc(summary_df, use_ci=True, title="AUC por tarea (dev, holdout, 
     ax.set_xticklabels(tasks, fontsize=9)
 
     # Rango radial aproximado para AUC
-    min_val = np.nanmin([summary_df['auc_dev_mean'],
-                         summary_df['auc_holdout_mean'],
-                         summary_df['auc_shuffle_mean']].values)
-    max_val = np.nanmax([summary_df['auc_dev_mean'],
-                         summary_df['auc_holdout_mean'],
-                         summary_df['auc_shuffle_mean']].values)
+    min_val = np.nanmin(np.concat((summary_df['auc_dev_mean'].values,
+                         #summary_df['auc_holdout_mean'].values,
+                         summary_df['auc_shuffle_mean'].values)))
+    
+    max_val = np.nanmax(np.concat((summary_df['auc_dev_mean'].values,
+                         #summary_df['auc_holdout_mean'].values,
+                         summary_df['auc_shuffle_mean'].values)))
 
     # Un pequeño margen
-    r_min = max(0.0, min_val - 0.05)
-    r_max = min(1.0, max_val + 0.05)
+    r_min = np.round(max(0.0, min_val - 0.05),1)
+    r_max = 1
 
     ax.set_ylim(r_min, r_max)
     ax.set_yticklabels([])  # quitar etiquetas radiales para que no ensucie
 
     # Dibujar curvas
-    ax.plot(angles, dev_vals, linewidth=2, linestyle='solid', label='Development (AUC)')
-    ax.plot(angles, hold_vals, linewidth=2, linestyle='solid', label='Holdout (AUC)')
-    ax.plot(angles, shuf_vals, linewidth=2, linestyle='solid', label='Shuffle (AUC)')
+    ax.plot(angles, dev_vals, linewidth=2, linestyle='solid', label='Actual labels')
+    #ax.plot(angles, hold_vals, linewidth=2, linestyle='solid', label='Holdout (AUC)')
+    ax.plot(angles, shuf_vals, linewidth=2, linestyle='solid', label='Shuffled labels')
 
     if use_ci:
         # Dev CI
@@ -156,21 +158,27 @@ def radar_plot_auc(summary_df, use_ci=True, title="AUC por tarea (dev, holdout, 
         ax.fill_between(angles, dev_low, dev_high, alpha=0.15)
 
         # Holdout CI
-        hold_low = values_for('auc_holdout_low')
-        hold_high = values_for('auc_holdout_high')
-        ax.fill_between(angles, hold_low, hold_high, alpha=0.15)
+        #hold_low = values_for('auc_holdout_low')
+        #hold_high = values_for('auc_holdout_high')
+        #ax.fill_between(angles, hold_low, hold_high, alpha=0.15)
 
         # Shuffle CI
         shuf_low = values_for('auc_shuffle_low')
         shuf_high = values_for('auc_shuffle_high')
         ax.fill_between(angles, shuf_low, shuf_high, alpha=0.15)
 
-    ax.set_title(title, fontsize=12, pad=20)
+    #Add references for values
+
+    ax.set_yticks([0.4,0.6,0.8,1])
+    ax.set_yticklabels([str(v) for v in [0.4,0.6,0.8,1]], fontsize=12, color='grey')
+    ax.set_xticklabels(tasks, fontsize=14,)
+    ax.yaxis.grid(True)
+    ax.set_title(title, fontsize=20, pad=20)
     ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.1))
 
     plt.tight_layout()
-    plt.show()
-
+    plt.savefig(path_to_save,dpi=300)
+    plt.savefig(path_to_save.with_suffix('.svg'),dpi=300)
 
 # -----------------------------
 # 7. Ejecutar las dos variantes
@@ -178,8 +186,4 @@ def radar_plot_auc(summary_df, use_ci=True, title="AUC por tarea (dev, holdout, 
 
 # Con intervalos de confianza
 radar_plot_auc(summary, use_ci=True,
-               title="AUC (best model) por tarea con IC - dev, holdout y shuffle")
-
-# Sin intervalos de confianza
-radar_plot_auc(summary, use_ci=False,
-               title="AUC (best model) por tarea SIN IC - dev, holdout y shuffle")
+               path_to_save=Path(base_dir,'radarplot.png'))
