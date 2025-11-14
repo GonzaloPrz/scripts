@@ -141,9 +141,14 @@ def main():
     stat_folder = config["stat_folder"]
     bootstrap_method = config["bootstrap_method"]
     hyp_opt = bool(config["n_iter"] > 0)
-    feature_selection = bool(config["feature_selection"])
-    n_boot = int(config["n_boot"])
+    try:
+        feature_selection = bool(config["feature_selection"])
+    except:
+        feature_selection = config["n_iter_features"] > 0
 
+    n_boot = int(config["n_boot"])
+    bayes = bool(config["bayes"])
+ 
     if "Users/gp" in str(home):
         save_dir = home / 'results' / project_name / 'rocs'
     else:
@@ -160,6 +165,8 @@ def main():
     # Si se usa --only-best, localizamos el CSV de mejores
     best_csv = f"best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{bootstrap_method}_hyp_opt_feature_selection_bayes.csv".replace("__","_")
 
+    if not bayes:
+        best_csv = best_csv.replace("_bayes", "")
     if not hyp_opt:
         best_csv = best_csv.replace("_hyp_opt", "")
     if not feature_selection:
@@ -173,16 +180,17 @@ def main():
     plt.style.use('ggplot')
     sns.set_context("paper", font_scale=1.7)
     sns.set_palette("deep")
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    axes = axes.flatten()
-
+    
     # Títulos para cada subplot
     subplot_titles = [
-        "Speech timing",
-        "Word properties",
-        "Word properties \n and speech timing features",
-        "Cognitive tests"
+        "Development",
+        "Holdout"
     ]
+
+    ncolumns = int(np.ceil(np.sqrt(len(subplot_titles))))
+    nrows = int(np.ceil(len(subplot_titles)/ncolumns))
+    fig, axes = plt.subplots(nrows, ncolumns, figsize=(12, 10))
+    axes = axes.flatten()
 
     # Colores y orden
     plot_idx = 0
@@ -235,7 +243,7 @@ def main():
                 try:
                     outputs, y_check = utils._load_data(
                         results_dir, task, dimension, y_label, model_type,
-                        seed, config, bayes=True, scoring=scoring
+                        seed, config, bayes=bayes, scoring=scoring
                     )
                 except Exception as e:
                     print(f"[WARN] _load_data falló para {model_type} en {task}/{dimension}/{y_label}/{seed}: {e}")
@@ -243,14 +251,15 @@ def main():
 
                 scores = _to_numpy(outputs)
                 fpr_grid = np.linspace(0, 1, 100)
-
+                
+                '''
                 if task.lower() == 'nps':
                     idx_subplot = 3  # abajo a la derecha
                     color = '#FFD700'  # gold
                 else:
                     idx_subplot = plot_idx if plot_idx < 3 else 2
                     color = '#1565c0'  # azul más vistoso
-
+                '''
                 if is_binary:
                     tpr = np.zeros((n_boot, fpr_grid.size))
                     for b in range(n_boot):
@@ -266,36 +275,36 @@ def main():
                     tpr_high = np.percentile(tpr, 97.5, axis=0)
 
                     #Plot curves with confidence intervals
-                    axes[idx_subplot].plot(fpr_grid, tpr_mean, label=f"AUC = {mean_auc}", lw=3, color=color, alpha=0.95)
-                    axes[idx_subplot].fill_between(fpr_grid, tpr_low, tpr_high, color=color, alpha=0.2, label="95% CI")
-                    axes[idx_subplot].set_title(subplot_titles[idx_subplot], fontsize=14, pad=10)
+                    axes[plot_idx].plot(fpr_grid, tpr_mean, label=f"AUC = {mean_auc}", lw=3, color='#1565c0', alpha=0.95)
+                    axes[plot_idx].fill_between(fpr_grid, tpr_low, tpr_high, color='#1565c0', alpha=0.2, label="95% CI")
+                    axes[plot_idx].set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
                     # Decide color y posición
                     
-                    axes[idx_subplot].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
+                    axes[plot_idx].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
                     
                     # Etiquetas solo en el borde izquierdo y abajo
-                    if idx_subplot % 2 == 0:
-                        axes[idx_subplot].set_ylabel("True Positive Rate", fontsize=14)
+                    if plot_idx % 2 == 0:
+                        axes[plot_idx].set_ylabel("True Positive Rate", fontsize=14)
                     else:
-                        axes[idx_subplot].set_ylabel("")
-                        axes[idx_subplot].set_yticklabels([])
-                    if idx_subplot >= 2:
-                        axes[idx_subplot].set_xlabel("False Positive Rate", fontsize=14)
+                        axes[plot_idx].set_ylabel("")
+                        axes[plot_idx].set_yticklabels([])
+                    if plot_idx >= 2:
+                        axes[plot_idx].set_xlabel("False Positive Rate", fontsize=14)
                     else:
-                        axes[idx_subplot].set_xlabel("")
-                        axes[idx_subplot].set_xticklabels([])
-                    axes[idx_subplot].set_xlim([0, 1])
-                    axes[idx_subplot].set_ylim([0, 1])
+                        axes[plot_idx].set_xlabel("")
+                        axes[plot_idx].set_xticklabels([])
+                    axes[plot_idx].set_xlim([0, 1])
+                    axes[plot_idx].set_ylim([0, 1])
                     # Quitar grid
-                    axes[idx_subplot].grid(False)
+                    axes[plot_idx].grid(False)
                     # Mejorar bordes y fondo
-                    axes[idx_subplot].set_facecolor('white')
-                    for spine in axes[idx_subplot].spines.values():
+                    axes[plot_idx].set_facecolor('white')
+                    for spine in axes[plot_idx].spines.values():
                         spine.set_edgecolor('#444444')
                         spine.set_linewidth(1.5)
-                    axes[idx_subplot].legend(loc="lower right", fontsize=12, frameon=False)
+                    axes[plot_idx].legend(loc="lower right", fontsize=12, frameon=False)
                     # Agregar título
-                    axes[idx_subplot].set_title(subplot_titles[idx_subplot], fontsize=14, pad=10)
+                    axes[plot_idx].set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
                     plot_idx += 1
 
     plt.tight_layout()

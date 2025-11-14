@@ -1,5 +1,5 @@
 {
-    "project_name": "arequipa_reg",
+    "project_name": "arequipa",
     "stats": "count_mean_ratio",
     "shuffle_labels": false,
     "shuffle_all": false,
@@ -34,11 +34,10 @@
     "single_dimensions": [
         "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
     ],
-    "scoring_metrics": "r2",
-    "problem_type": "reg",
+    "scoring_metrics": "auc_roc",
+    "problem_type": "clf",
     "y_labels": [
-        "IFS",
-        "MOCA_TOTAL"
+        "group"
     ],
     "avoid_stats": [
         "min",
