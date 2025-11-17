@@ -137,7 +137,13 @@
             "agradable"
         ],
         "arequipa": [
-            "craft__fugu__lamina2"
+            "craft",
+            "fugu",
+            "lamina2",
+            "dia_tipico",
+            "recuerdo_agradable",
+            "craft__fugu__lamina2",
+            "dia_tipico__recuerdo_agradable"
         ],
         "ad_mci_hc": [
             "fugu"

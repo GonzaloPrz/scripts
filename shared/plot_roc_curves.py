@@ -114,7 +114,7 @@ def _path_leaf(results_dir: Path, task: str, dimension: str, config: Dict[str, A
     scaler_name = config['scaler_name']
     kfold_folder = config['kfold_folder']
     stat_folder  = config['stat_folder']
-    scoring      = config['scoring_metric']
+    scoring      = config['scoring_metrics']
     hyp_opt      = True if int(config['n_iter']) > 0 else False
     feature_sel  = bool(config['feature_selection']) if 'feature_selection' in config else config['n_iter_features'] > 0
     config["feature_selection"] = feature_sel  # Asegurar que esté en config
@@ -136,7 +136,7 @@ def main():
     config = json.load((here / "config.json").open())
 
     project_name = config["project_name"]
-    scoring = config["scoring_metric"]
+    scoring = config["scoring_metrics"]
     kfold_folder = config["kfold_folder"]
     scaler_name = config["scaler_name"]
     stat_folder = config["stat_folder"]
@@ -234,7 +234,7 @@ def main():
                         mean_auc = sel["roc_auc"].values[0].replace(', (', ' (')
                     else:
                         mean_auc = sel["roc_auc_dev"].values[0].replace(', (', ' (')
-                        model_index = sel["model_index"].values[0]
+                        model_index = int(sel["model_index"].values[0])
 
                 try:
                     _, outputs_dev, y_dev, _, outputs_test, y_test = utils._load_data(

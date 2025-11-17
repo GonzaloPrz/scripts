@@ -31,7 +31,7 @@ feature_selection = config['n_iter_features'] > 0
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
-tasks = config['tasks']
+tasks = main_config['tasks'][project_name]
 
 problem_type = config['problem_type']
 scoring_metrics = ['roc_auc'] if problem_type == 'clf' else ['r2']
@@ -44,7 +44,7 @@ results_dir = Path(Path.home(),'results',project_name) if 'Users/gp' in str(Path
 for scoring in scoring_metrics:
     best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test','fusion'] + [f'{metric}_dev' for metric in metrics_names] + [f'{metric}_holdout' for metric in metrics_names])
     best_best_models = pd.DataFrame(columns=['task','dimension','y_label','model_type','model_index','random_seed_test','fusion'] + [f'{metric}_dev' for metric in metrics_names] + [f'{metric}_holdout' for metric in metrics_names])
-
+    
     for task in tasks:
 
         extremo = 1 if any(x in scoring for x in ['error','norm']) else 0
@@ -119,7 +119,7 @@ for scoring in scoring_metrics:
                             
                             print(f"{file.stem.split('_')[2]}:{df.iloc[0,:][scoring_col]}")
                             
-                            dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':file.stem.split('_')[2],'model_index':df['idx'][0],'random_seed_test':random_seed_test,'fusion':fusion}
+                            dict_append = {'task':task,'dimension':dimension,'y_label':y_label,'model_type':file.stem.split('_')[2],'model_index':df.index[0],'random_seed_test':random_seed_test,'fusion':fusion}
 
                             dict_append.update(dict((f'{metric}_dev',df.iloc[0][metric]) for metric in metrics_names))
 

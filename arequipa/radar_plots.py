@@ -95,94 +95,79 @@ summary['auc_shuffle_high'] = shuffle['auc_shuffle_high'].values
 # Opcional: ordenar tareas (para que el radar sea más legible)
 summary = summary.sort_index()
 
-
-# -----------------------------
-# 6. Función para radar plot
-# -----------------------------
-def radar_plot_auc(summary_df, use_ci, path_to_save,title="AUC"):
-    """
-    Crea un radar plot con:
-      - Ejes = tareas
-      - Curvas = dev, holdout, shuffle
-      - use_ci=True: se rellena con los intervalos de confianza
-    """
+def radar_plot_auc(summary_df, use_ci, path_to_save, title="AUC"):
+    summary_df = summary_df.sort_values(by='auc_dev_mean', ascending=False)
     tasks = list(summary_df.index)
     n = len(tasks)
 
-    # Ángulos para cada eje
     angles = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
-    # Cerramos el círculo
     angles += angles[:1]
 
     def values_for(col):
         vals = summary_df[col].tolist()
         return vals + vals[:1]
 
-    # Curvas principales
-    dev_vals = values_for('auc_dev_mean')
-    hold_vals = values_for('auc_holdout_mean')
+    dev_vals  = values_for('auc_dev_mean')
     shuf_vals = values_for('auc_shuffle_mean')
 
-    fig = plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(8, 8))
     ax = plt.subplot(111, polar=True)
 
-    # Etiquetas de los ejes
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(tasks, fontsize=9)
-
-    # Rango radial aproximado para AUC
-    min_val = np.nanmin(np.concat((summary_df['auc_dev_mean'].values,
-                         #summary_df['auc_holdout_mean'].values,
-                         summary_df['auc_shuffle_mean'].values)))
+    ax.spines['polar'].set_visible(False)
+    # --- rango radial ---
+    min_val = np.nanmin(np.concatenate((summary_df['auc_dev_mean'].values,
+                                        summary_df['auc_shuffle_mean'].values)))
     
-    max_val = np.nanmax(np.concat((summary_df['auc_dev_mean'].values,
-                         #summary_df['auc_holdout_mean'].values,
-                         summary_df['auc_shuffle_mean'].values)))
-
-    # Un pequeño margen
-    r_min = np.round(max(0.0, min_val - 0.05),1)
+    r_min = np.round(max(0.0, min_val - 0.05), 1)
     r_max = 1
 
-    ax.set_ylim(r_min, r_max)
-    ax.set_yticklabels([])  # quitar etiquetas radiales para que no ensucie
+    # margen extra para poner los labels
+    r_margin = (r_max - r_min) * 0.08   # ajusta 0.08 a gusto
+    r_labels = r_max + r_margin
 
-    # Dibujar curvas
-    ax.plot(angles, dev_vals, linewidth=2, linestyle='solid', label='Actual labels')
-    #ax.plot(angles, hold_vals, linewidth=2, linestyle='solid', label='Holdout (AUC)')
+    # ahora el límite llega hasta los labels, no hasta el último círculo
+    ax.set_ylim(r_min, 1)
+
+    # círculos radiales (el último sigue en r_max)
+    ax.set_yticks([0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+    ax.set_yticklabels(['0.4', '0.5', '0.6', '0.7','0.8', '0.9','1'],
+                       fontsize=12, color='grey')
+
+    # quitamos los xticks por defecto
+    ax.set_xticks([])
+
+    # textos en el radio r_labels (un pelín por fuera del círculo)
+    for ang, task in zip(angles[:-1], tasks):
+        angle_deg = np.degrees(ang)
+        rot = angle_deg + 90
+        if 90 < rot < 270:
+            rot += 180
+
+        ax.text(ang, r_labels, task,
+                ha='center', va='center',
+                fontsize=14,
+                rotation=rot,
+                rotation_mode='anchor')
+
+    # resto del plot igual
+    ax.yaxis.grid(True)
+    ax.plot(angles, dev_vals,  linewidth=2, linestyle='solid', label='Actual labels')
     ax.plot(angles, shuf_vals, linewidth=2, linestyle='solid', label='Shuffled labels')
 
     if use_ci:
-        # Dev CI
-        dev_low = values_for('auc_dev_low')
+        dev_low  = values_for('auc_dev_low')
         dev_high = values_for('auc_dev_high')
-        ax.fill_between(angles, dev_low, dev_high, alpha=0.15)
-
-        # Holdout CI
-        #hold_low = values_for('auc_holdout_low')
-        #hold_high = values_for('auc_holdout_high')
-        #ax.fill_between(angles, hold_low, hold_high, alpha=0.15)
-
-        # Shuffle CI
         shuf_low = values_for('auc_shuffle_low')
-        shuf_high = values_for('auc_shuffle_high')
+        shuf_high= values_for('auc_shuffle_high')
+        ax.fill_between(angles, dev_low,  dev_high,  alpha=0.15)
         ax.fill_between(angles, shuf_low, shuf_high, alpha=0.15)
 
-    #Add references for values
-
-    ax.set_yticks([0.4,0.6,0.8,1])
-    ax.set_yticklabels([str(v) for v in [0.4,0.6,0.8,1]], fontsize=12, color='grey')
-    ax.set_xticklabels(tasks, fontsize=14,)
-    ax.yaxis.grid(True)
-    ax.set_title(title, fontsize=20, pad=20)
-    ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.1))
+    plt.suptitle(title, fontsize=24, y=1.05)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.1), fontsize=16)
 
     plt.tight_layout()
-    plt.savefig(path_to_save,dpi=300)
-    plt.savefig(path_to_save.with_suffix('.svg'),dpi=300)
-
-# -----------------------------
-# 7. Ejecutar las dos variantes
-# -----------------------------
+    plt.savefig(path_to_save, dpi=300)
+    plt.savefig(path_to_save.with_suffix('.svg'), dpi=300)
 
 # Con intervalos de confianza
 radar_plot_auc(summary, use_ci=True,
