@@ -135,11 +135,12 @@ def main():
     sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
 
     plt.rcParams.update({
-        "font.family": "Arial",
-        "axes.titlesize": 16,
-        "axes.labelsize": 14,
-        "xtick.labelsize": 14,
-        "ytick.labelsize": 14
+    "font.family": "Arial",
+    "axes.titlesize": 20,
+    "axes.labelsize": 24,
+    "xtick.labelsize": 20,
+    "ytick.labelsize": 20,
+    "legend.fontsize":20
     })
     
     # Cargar config y main_config como en tu pipeline

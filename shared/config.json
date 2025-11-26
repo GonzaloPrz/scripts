@@ -27,6 +27,8 @@
     "bayes": false,
     "add_dem": false,
     "regress_out": false,
+    "round_values": false,
+    "cut_values": false,
     "test_size": 0.0,
     "data_file": "data_matched_group.csv",
     "tasks": [

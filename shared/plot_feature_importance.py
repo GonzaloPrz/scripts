@@ -4,14 +4,15 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 import json, itertools
 
-sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
+sns.set_theme(style="white")  # white background without grid
 
 plt.rcParams.update({
     "font.family": "Arial",
-    "axes.titlesize": 16,
-    "axes.labelsize": 14,
-    "xtick.labelsize": 14,
-    "ytick.labelsize": 14
+    "axes.titlesize": 20,
+    "axes.labelsize": 24,
+    "xtick.labelsize": 20,
+    "ytick.labelsize": 20,
+    "legend.fontsize":20
 })
 
 results_dir = Path(Path.home(),'results') if 'Users/gp' in str(Path.home()) else Path('D','CNC_Audio','gonza','results')
@@ -71,9 +72,10 @@ def load_feature_importance(results_dir: Path, project_name: str, task: str, dim
 
 def bar_plot_feature_importance(feature_importance, feature_col='feature', importance_col='importance',
                                 top_n: int = 10, sort_desc: bool = True, horizontal: bool = True,
-                                figsize=(10, 6), cmap: str = 'viridis', title: str = None,
+                                figsize=(10, 6), cmap: str = 'Blues', title: str = None,
                                 xlabel: str = 'Importance', ylabel: str = 'Feature',
-                                ax=None, save_path: str = None, show: bool = True, normalize: bool = False):
+                                ax=None, save_path: str = None, show: bool = True, normalize: bool = False,
+                                reverse_palette: bool = True, bar_color: str = '#1f77b4'):
     """Create a bar plot (horizontal by default) for feature importance.
 
     - feature_importance: pd.DataFrame or CSV path
@@ -81,8 +83,11 @@ def bar_plot_feature_importance(feature_importance, feature_col='feature', impor
     - top_n: number of top features to keep (None for all)
     - sort_desc: sort by importance descending
     - normalize: scale importance to sum to 1 (optional)
+    - cmap: str or list - color palette for bars. Can be a seaborn/matplotlib palette name (e.g., 'Blues', 'viridis') or a list of color hex codes. Default is 'Blues'.
     - save_path: optional file path where to save the figure
     - show: whether to call plt.show()
+    - reverse_palette: if True, reverse the generated palette so higher importance bars are darker.
+    - bar_color: hex color or Matplotlib color string to use for all bars (if set, overrides `cmap` and palette)
     Returns the matplotlib Axes object.
     """
     if isinstance(feature_importance, (str, Path)):
@@ -123,12 +128,40 @@ def bar_plot_feature_importance(feature_importance, feature_col='feature', impor
     else:
         fig = ax.figure
 
+    # Build palette dynamically so colors follow the number of bars and default to shades of blue
+    n_colors = len(fi)
+    # If a user passes a list/tuple, use it directly
+    if isinstance(cmap, (list, tuple)):
+        palette = cmap
+    elif isinstance(cmap, str):
+        try:
+            palette = sns.color_palette(cmap, n_colors=n_colors)
+        except Exception:
+            # Fallback to a Blues palette if the provided cmap is invalid
+            palette = sns.color_palette('Blues', n_colors=n_colors)
+    else:
+        palette = sns.color_palette('Blues', n_colors=n_colors)
+    # Optionally reverse palette so bars reflect intensity in descending order
+    if reverse_palette:
+        palette = palette[::-1]
+
+    # Configure axis appearance: white background, no grid
+    ax.set_facecolor('white')
+    ax.grid(False)
+    sns.despine(ax=ax, offset=0)
+
     if horizontal:
-        sns.barplot(x=importance_col, y=feature_col, data=fi, palette=cmap, ax=ax)
+        if bar_color:
+            sns.barplot(x=importance_col, y=feature_col, data=fi, color=bar_color, ax=ax)
+        else:
+            sns.barplot(x=importance_col, y=feature_col, data=fi, palette=palette, ax=ax)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
     else:
-        sns.barplot(x=feature_col, y=importance_col, data=fi, palette=cmap, ax=ax)
+        if bar_color:
+            sns.barplot(x=feature_col, y=importance_col, data=fi, color=bar_color, ax=ax)
+        else:
+            sns.barplot(x=feature_col, y=importance_col, data=fi, palette=palette, ax=ax)
         ax.set_ylabel(xlabel)
         ax.set_xlabel(ylabel)
         plt.xticks(rotation=45, ha='right')
@@ -139,7 +172,7 @@ def bar_plot_feature_importance(feature_importance, feature_col='feature', impor
     plt.tight_layout()
 
     if save_path:
-        plt.savefig(save_path, dpi=200)
+        plt.savefig(save_path, dpi=500)
     if show:
         plt.show()
 
@@ -148,9 +181,9 @@ def bar_plot_feature_importance(feature_importance, feature_col='feature', impor
 
 if __name__ == '__main__':
     # example usage: iterate config combinations and plot the top 10 features
-    plt.style.use('ggplot')
+    plt.style.use('default')
     sns.set_context('paper', font_scale=1.2)
-    sns.set_palette('deep')
+    sns.set_palette('Blues')
 
     for task, dimension, y_label in itertools.product(tasks, dimensions, y_labels):
         try:
