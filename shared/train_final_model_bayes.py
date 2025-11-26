@@ -171,7 +171,7 @@ for threshold in thresholds:
                 if problem_type == 'reg':
                     sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
                     plt.rcParams.update({
-                        "font.family": "DejaVu Sans",
+                        "font.family": "Arial",
                         "axes.titlesize": 26,
                         "axes.labelsize": 20,
                         "xtick.labelsize": 20,

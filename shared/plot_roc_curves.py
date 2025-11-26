@@ -140,7 +140,7 @@ def main():
     "axes.labelsize": 24,
     "xtick.labelsize": 20,
     "ytick.labelsize": 20,
-    "legend.fontsize":20
+    "legend.fontsize":24
     })
     
     # Cargar config y main_config como en tu pipeline
@@ -189,11 +189,6 @@ def main():
     best_df = pd.read_csv(Path(results_dir,best_csv))
 
     save_dir.mkdir(parents=True, exist_ok=True)
-
-    # Estilo tipo ggplot
-    plt.style.use('ggplot')
-    sns.set_context("paper", font_scale=1.7)
-    sns.set_palette("deep")
     
     # Títulos para cada subplot
     subplot_titles = [
@@ -313,7 +308,7 @@ def main():
                         #Plot curves with confidence intervals
                         axes.plot(fpr_grid, tpr_mean, label=f"AUC = {auc_values[k]}", lw=3, color='#1565c0', alpha=0.95)
                         #axes.fill_between(fpr_grid, tpr_low, tpr_high, color='#1565c0', alpha=0.2, label="95% CI")
-                        axes.set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
+                        axes.set_title(subplot_titles[plot_idx], pad=10)
                         # Decide color y posición
                         axes.plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
                         
@@ -330,8 +325,8 @@ def main():
                             axes.set_xlabel("")
                             axes.set_xticklabels([])
                         '''
-                        axes.set_ylabel("True Positive Rate", fontsize=14)
-                        axes.set_xlabel("False Positive Rate", fontsize=14)
+                        axes.set_ylabel("True Positive Rate")
+                        axes.set_xlabel("False Positive Rate")
                         axes.set_xlim([0, 1])
                         axes.set_ylim([0, 1])
                         # Quitar grid
@@ -339,19 +334,19 @@ def main():
                         # Mejorar bordes y fondo
                         axes.set_facecolor('white')
                         for spine in axes.spines.values():
-                            spine.set_edgecolor('#444444')
-                            spine.set_linewidth(1.5)
-                        axes.legend(loc="lower right", fontsize=12, frameon=False)
+                            spine.set_edgecolor("#000000")
+                            #spine.set_linewidth(1)
+                        axes.legend(loc="lower right", frameon=False)
                         # Agregar título
-                        axes.set_title(subplot_titles[k], fontsize=14, pad=10)
+                        axes.set_title(subplot_titles[k], pad=10)
                         #plot_idx += 1
 
                     plt.tight_layout()
                     out_path_png = Path(save_dir) / f"roc_grid_{subplot_titles[k]}.png"
                     out_path_svg = Path(save_dir) / f"roc_grid_{subplot_titles[k]}.svg"
 
-                    plt.savefig(out_path_png, dpi=300, bbox_inches="tight")
-                    plt.savefig(out_path_svg, dpi=300, bbox_inches="tight")
+                    plt.savefig(out_path_png, dpi=500, bbox_inches="tight")
+                    plt.savefig(out_path_svg, dpi=500, bbox_inches="tight")
                     plt.close()
                     print("[OK] Guardado:", out_path_png)
 

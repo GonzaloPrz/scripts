@@ -12,8 +12,8 @@ plt.rcParams.update({
     "axes.labelsize": 24,
     "xtick.labelsize": 20,
     "ytick.labelsize": 20,
-    "legend.fontsize":20
-})
+    "legend.fontsize":40
+    })
 
 results_dir = Path(Path.home(),'results') if 'Users/gp' in str(Path.home()) else Path('D','CNC_Audio','gonza','results')
 
@@ -181,8 +181,6 @@ def bar_plot_feature_importance(feature_importance, feature_col='feature', impor
 
 if __name__ == '__main__':
     # example usage: iterate config combinations and plot the top 10 features
-    plt.style.use('default')
-    sns.set_context('paper', font_scale=1.2)
     sns.set_palette('Blues')
 
     for task, dimension, y_label in itertools.product(tasks, dimensions, y_labels):

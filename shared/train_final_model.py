@@ -260,11 +260,12 @@ for scoring in scoring_metrics:
             if problem_type == 'reg':
                 sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
                 plt.rcParams.update({
-                    "font.family": "Arial",
-                    "axes.titlesize": 16,
-                    "axes.labelsize": 14,
-                    "xtick.labelsize": 14,
-                    "ytick.labelsize": 14
+                "font.family": "Arial",
+                "axes.titlesize": 20,
+                "axes.labelsize": 24,
+                "xtick.labelsize": 20,
+                "ytick.labelsize": 20,
+                "legend.fontsize":40
                 })
                 
                 Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test).mkdir(parents=True,exist_ok=True)
@@ -319,8 +320,8 @@ for scoring in scoring_metrics:
                         line_kws={'color': 'black', 'linewidth': 2}
                     )
 
-                    plt.xlabel('Predicted Value',fontsize=14)
-                    plt.ylabel('True Value',fontsize=14)
+                    plt.xlabel('Predicted Value')
+                    plt.ylabel('True Value')
                     plt.text(0.05, 0.95,
                             f'$r$ = {r:.2f}\n$p$ = {np.round(p,2) if p > .001 else "< .001"}',
                             fontsize=20,
@@ -329,10 +330,10 @@ for scoring in scoring_metrics:
                             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
                     for spine in ax.spines.values():
-                            spine.set_edgecolor('#444444')
-                            spine.set_linewidth(1.5)
+                            spine.set_edgecolor('#000000')
+                            spine.set_linewidth(1)
 
-                    plt.title(f'{task} | {y_label}', fontsize=14, pad=15)
+                    plt.title(f'{task} | {y_label}', pad=10)
 
                     plt.tight_layout()
                     plt.grid(False)
