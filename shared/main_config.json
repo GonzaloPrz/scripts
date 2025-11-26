@@ -81,8 +81,7 @@
             "mint_total"
         ],
         "arequipa_reg": [
-            "IFS",
-            "MOCA_TOTAL"
+            "IFS"
         ],
         "arequipa_reg_mci": [
             "MOCA_TOTAL",
@@ -139,10 +138,9 @@
         "arequipa": [
             "craft",
             "fugu",
-            "lamina2",
+            "craft__fugu",
             "dia_tipico",
             "recuerdo_agradable",
-            "craft__fugu__lamina2",
             "dia_tipico__recuerdo_agradable"
         ],
         "ad_mci_hc": [
@@ -369,7 +367,9 @@
             "talking-intervals"
         ],
         "arequipa": [
-            "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
+            "verbosity__word_properties__talking_intervals",
+            "mlu__verbosity__word_properties__talking_intervals",
+            "universal_dependencies__verbosity__word_properties__talking_intervals"
         ],
         "ad_mci_hc":{
             "fugu":[

@@ -3,10 +3,22 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
+import seaborn as sns
 
 # -----------------------------
 # 1. Funciones auxiliares
 # -----------------------------
+
+sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
+
+plt.rcParams.update({
+    "font.family": "Arial",
+    "axes.titlesize": 16,
+    "axes.labelsize": 14,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14
+})
+
 def parse_ci_cell(x):
     """
     Convierte cadenas del tipo:
@@ -53,7 +65,7 @@ def add_ci_columns(df, col_name, new_prefix):
 # 2. Cargar datos desde CSV
 # -----------------------------
 base_dir = Path('D:','CNC_Audio','gonza','results','arequipa')
-filename = "best_best_models_roc_auc_5_folds_StandardScaler_count_mean_ratio_bca_hyp_opt_feature_selection.csv"
+filename = "best_best_models_roc_auc_5_folds_count_mean_ratio_bca_hyp_opt_feature_selection.csv"
 filename_shuffle = "best_models_roc_auc_5_folds_StandardScaler_count_mean_ratio_bca_hyp_opt_feature_selection_shuffled.csv"
 
 dev_holdout = pd.read_csv(Path(base_dir,filename))
@@ -78,6 +90,14 @@ shuffle = add_ci_columns(shuffle, 'roc_auc', 'auc_shuffle')
 # -----------------------------
 # 5. Construir tabla final por tarea
 # -----------------------------
+labels_dict = {'craft': 'Story retelling',
+               'fugu':'Video narration',
+               'lamina2': 'Picture description',
+               'dia_tipico': 'Routine description',
+               'recuerdo_agradable': 'Memory narration',
+               'dia_tipico__recuerdo_agradable': 'All prompt-free \ntasks',
+               'craft__fugu__lamina2': 'All prompt-based \ntasks'}
+
 summary = pd.DataFrame(index=dev['task'].unique())
 
 summary['auc_dev_mean'] = dev['auc_mean'].values
@@ -91,6 +111,8 @@ summary['auc_holdout_high'] = holdout['auc_high'].values
 summary['auc_shuffle_mean'] = shuffle['auc_shuffle_mean'].values
 summary['auc_shuffle_low'] = shuffle['auc_shuffle_low'].values
 summary['auc_shuffle_high'] = shuffle['auc_shuffle_high'].values
+
+summary.index = summary.index.map(labels_dict)
 
 # Opcional: ordenar tareas (para que el radar sea más legible)
 summary = summary.sort_index()
@@ -119,18 +141,18 @@ def radar_plot_auc(summary_df, use_ci, path_to_save, title="AUC"):
                                         summary_df['auc_shuffle_mean'].values)))
     
     r_min = np.round(max(0.0, min_val - 0.05), 1)
-    r_max = 1
+    r_max = 0.9
 
     # margen extra para poner los labels
     r_margin = (r_max - r_min) * 0.08   # ajusta 0.08 a gusto
     r_labels = r_max + r_margin
 
     # ahora el límite llega hasta los labels, no hasta el último círculo
-    ax.set_ylim(r_min, 1)
+    ax.set_ylim(r_min,r_max)
 
     # círculos radiales (el último sigue en r_max)
-    ax.set_yticks([0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
-    ax.set_yticklabels(['0.4', '0.5', '0.6', '0.7','0.8', '0.9','1'],
+    ax.set_yticks([0.5, 0.6, 0.7, 0.8, 0.9])
+    ax.set_yticklabels(['0.5', '0.6','0.7','0.8','0.9'],
                        fontsize=12, color='grey')
 
     # quitamos los xticks por defecto

@@ -58,6 +58,7 @@ n_boot_test = int(config["n_boot_test"])
 n_boot_train = int(config["n_boot_train"])
 calibrate = bool(config["calibrate"])
 overwrite = bool(config["overwrite"])
+regress_out = config["regress_out"]
 
 if calibrate:    
     calmethod = AffineCalLogLoss
@@ -126,13 +127,12 @@ for task,scoring in itertools.product(tasks,scoring_metrics):
     extremo = 1 if any(x in scoring for x in ['norm','error']) else 0
     ascending = True if extremo == 1 else False
 
-    #dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
-    dimensions = ["mlu__universal_dependencies__verbosity__word_properties__talking_intervals"]
+    dimensions = [folder.name for folder in Path(save_dir,task).iterdir() if folder.is_dir()]
     for dimension in dimensions:
         print(task,dimension)
         for y_label in y_labels:
             print(y_label)
-            path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
+            path_to_results = Path(save_dir,task,dimension,kfold_folder, y_label,stat_folder,'hyp_opt' if hyp_opt else '', 'feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"regress_out" if regress_out else "","shuffle" if shuffle_labels else "")
 
             if not path_to_results.exists():
                 continue

@@ -17,7 +17,6 @@ import utils
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
 project_name = config["project_name"]
-scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 stat_folder = config['stat_folder']
@@ -29,6 +28,7 @@ overwrite = bool(config["overwrite"])
 filter_outliers = bool(config['filter_outliers'])
 round_values = bool(config['round_values'])
 cut_values = bool(config['cut_values'] > 0)
+regress_out = bool(config['regress_out'])
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -52,7 +52,7 @@ scorings = [config["scoring_metric"]]
 
 tasks = [folder.name for folder in Path(results_dir).iterdir() if folder.is_dir() and folder.name not in ['plots','rocs','feature_importance_bayes','feature_importance','final_models_bayes','final_models']]
 
-output_filename = f'best_models_{scorings[0]}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
+output_filename = f'best_models_{scorings[0]}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
                 
 if not hyp_opt:
         output_filename = output_filename.replace('_hyp_opt','')
@@ -89,7 +89,7 @@ for task in tasks:
         
         for y_label in y_labels_:      
             #print(y_label)      
-            path_ = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,"bayes")
+            path_ = Path(results_dir,task,dimension,kfold_folder,y_label,stat_folder)
             if not path_.exists():
                 continue
             
@@ -205,7 +205,7 @@ for task in tasks:
                         all_results.to_csv(Path(results_dir,output_filename),index=False)
     
 for scoring in np.unique(scorings):
-    output_filename = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
+    output_filename = f'best_models_{scoring}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
 
     if not hyp_opt:
         output_filename = output_filename.replace('_hyp_opt','')

@@ -17,7 +17,7 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 target_vars = ['group']
 
 filenames = [
-             'filtered_data.csv'
+             'transcripts_fugu.csv'
             ]
 
 for filename in filenames:
@@ -40,13 +40,10 @@ for filename in filenames:
 
         data.dropna(subset=[target_var] ,inplace=True)
 
-        for fact_var in fact_vars:
-            data[fact_var] = data   [fact_var].astype('category').cat.codes
-
         for var in matching_vars:
             data.dropna(subset=var,inplace=True)
 
-        caliper = 0.05
+        caliper = 0.005
 
         matched_data = perform_three_way_matching(data, output_var,matching_vars,fact_vars,treatment_values=('CN','AD','FTD'),caliper=caliper)
         matched_data = matched_data.drop_duplicates(subset='id')

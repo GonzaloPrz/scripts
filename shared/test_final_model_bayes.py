@@ -40,6 +40,7 @@ calibrate = bool(config["calibrate"])
 overwrite = bool(config["overwrite"])
 scoring = config['scoring_metric']
 problem_type = config['problem_type']
+regress_out = bool(config['regress_out']) if problem_type == 'reg' else False
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -72,7 +73,7 @@ covariates = pd.read_csv(Path(data_dir,data_file))[[config["id_col"]]+covars]
 
 method = 'pearson'
 
-filename = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes_corr_{covars[-1]}.csv'.replace('__','_') if len(covars) > 0 else f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
+filename = f'best_best_models_{scoring}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes_corr_{covars[-1]}.csv'.replace('__','_') if len(covars) > 0 else f'best_best_models_{scoring}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
 
 if not hyp_opt:
     filename = filename.replace("_hyp_opt","")
@@ -110,7 +111,7 @@ for r, row in best_models.iterrows():
     except:
         continue
 
-    path_to_results = Path(save_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt','feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
+    path_to_results = Path(save_dir,task,dimension,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt','feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
 
     X_train = pickle.load(open(Path(path_to_results,random_seed_test,'X_train.pkl'),'rb'))
     y_train = pickle.load(open(Path(path_to_results,random_seed_test,'y_train.pkl'),'rb'))

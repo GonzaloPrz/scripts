@@ -101,7 +101,7 @@ for threshold in thresholds:
     if str(threshold) == 'None':
         threshold = None
 
-    ending = f'_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
+    ending = f'_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
         ending = ending.replace('_hyp_opt','')
     if not feature_selection:
@@ -131,7 +131,7 @@ for threshold in thresholds:
             model_type = row.model_type
 
             print(task,dimension,y_label,model_type)
-            path_to_results_ = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'bayes')
+            path_to_results_ = Path(results_dir,task,dimension,kfold_folder,y_label,stat_folder)
             
             path_to_results = Path(path_to_results_,scoring,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '')
             random_seeds = [folder.name for folder in path_to_results.iterdir() if 'random_seed' in folder.name]
@@ -219,7 +219,7 @@ for threshold in thresholds:
 
                     plt.text(0.05, 0.95,
                             f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
-                            fontsize=30,
+                            fontsize=20,
                             transform=plt.gca().transAxes,
                             verticalalignment='top',
                             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))

@@ -67,6 +67,8 @@ def parse_args():
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
     parser.add_argument('--add_dem',type=int,default=0,help='Whether to add demographics as covariates')
+    parser.add_argument('--regress_out',type=int,default=0,help='Whether to regress out covariates from target variable before training')
+
     return parser.parse_args()
 
 def load_configuration(args):
@@ -98,7 +100,8 @@ def load_configuration(args):
         n_seeds_test = float(args.n_seeds_test) if args.n_folds != -1 else float(0),
         bootstrap_method = args.bootstrap_method,
         bayes = False,
-        add_dem = bool(args.add_dem)
+        add_dem = bool(args.add_dem),
+        regress_out = bool(args.regress_out)
     )
 
     return config
@@ -313,11 +316,11 @@ for y_label, task in itertools.product(y_labels, tasks):
                 
             # Construct a path to save results (with clear folder names)
             subfolders = [
-                task, dimension, config['scaler_name'],
+                task, dimension,
                 config['kfold_folder'], y_label, config['stat_folder'],
                 'hyp_opt' if config['n_iter'] > 0 else '',
                 'feature_selection' if config['n_iter_features'] > 0 else '',
-                'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
+                'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '','regress_out' if config['regress_out'] else '',
                 'shuffle' if config['shuffle_labels'] else ''
             ]
             path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
@@ -380,7 +383,7 @@ for y_label, task in itertools.product(y_labels, tasks):
                             feature_sets = [list(x) for x in set(tuple(x) for x in feature_sets)]
                             hyperp = hyperp.drop_duplicates()     
                         else:
-                            best_models_file_name = f"best_models_{scoring_metrics}_{config['kfold_folder']}_{config['scaler_name']}_{config['stat_folder']}_{config['bootstrap_method']}_hyp_opt_feature_selection.csv".replace('__','_')
+                            best_models_file_name = f"best_models_{scoring_metrics}_{config['kfold_folder']}_{config['stat_folder']}_{config['bootstrap_method']}_hyp_opt_feature_selection.csv".replace('__','_')
                             
                             if config['n_iter'] == 0:
                                 best_models_file_name = best_models_file_name.replace('hyp_opt','no_hyp_opt')

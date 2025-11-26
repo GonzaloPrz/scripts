@@ -58,7 +58,7 @@ def parse_args():
     parser.add_argument('--round_values',type=int,default=0,help='Whether to round predicted values for regression or not')
     parser.add_argument('--add_dem',type=int,default=0,help='Whether to add demographic features or not')
     parser.add_argument('--cut_values',type=float,default=-1,help='Cut values above a given threshold')
-
+    parser.add_argument('--regress_out',type=int,default=0,help='Whether to regress out demographic variables from target variable or not')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -90,7 +90,8 @@ def load_configuration(args):
         bootstrap_method = args.bootstrap_method,
         round_values = bool(args.round_values),
         add_dem = bool(args.add_dem),
-        cut_values = float(args.cut_values)
+        cut_values = float(args.cut_values),
+        regress_out = bool(args.regress_out)
     )
 
     return config
@@ -328,8 +329,8 @@ for task in tasks:
                     json.dump(config, f, indent=4)
 
                 subfolders = [
-                    task, dimension, config['scaler_name'],
-                    config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring_metric,
+                    task, dimension,
+                    config['kfold_folder'], f'{y_label}_res' if config['regress_out'] and config['problem_type'] == 'reg' else y_label, config['stat_folder'],scoring_metric,
                     'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                     'filter_outliers' if config['filter_outliers'] and config['problem_type'] == 'reg' else '','rounded' if round_values else '','cut' if cut_values > 0 else '',
                     'shuffle' if config['shuffle_labels'] else ''
@@ -437,7 +438,8 @@ for task in tasks:
                                                                                         feature_selection=bool(config['feature_selection']),
                                                                                         calmethod=calmethod,
                                                                                         calparams=calparams,
-                                                                                        round_values=round_values)
+                                                                                        round_values=round_values,
+                                                                                        regress_out=config['regress_out'])
                 
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(parents=True, exist_ok=True)
                     with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '','config.json'),'w') as f:

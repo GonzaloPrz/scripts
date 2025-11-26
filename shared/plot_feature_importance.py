@@ -1,0 +1,171 @@
+import pandas as pd
+from pathlib import Path
+import seaborn as sns
+from matplotlib import pyplot as plt
+import json, itertools
+
+sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
+
+plt.rcParams.update({
+    "font.family": "Arial",
+    "axes.titlesize": 16,
+    "axes.labelsize": 14,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14
+})
+
+results_dir = Path(Path.home(),'results') if 'Users/gp' in str(Path.home()) else Path('D','CNC_Audio','gonza','results')
+
+# Load configuration from the same folder as this script
+with open(Path(__file__).parent / 'config.json', 'r') as f:
+    config = json.load(f)
+
+project_name = config['project_name']
+
+project_name = config["project_name"]
+scoring = config["scoring_metrics"]
+kfold_folder = config["kfold_folder"]
+stat_folder = config["stat_folder"]
+bootstrap_method = config["bootstrap_method"]
+hyp_opt = bool(config["n_iter"] > 0)
+try:
+    feature_selection = bool(config["feature_selection"])
+except:
+    feature_selection = config["n_iter_features"] > 0
+
+n_boot = int(config["n_boot"])
+bayes = bool(config["bayes"])
+
+tasks = config['tasks']
+dimensions = config['single_dimensions']
+y_labels = config['y_labels']
+
+def _path_no_empty(*parts):
+    """Join path parts ignoring empty parts."""
+    parts = [p for p in parts if p not in (None, '', [])]
+    return Path(*parts)
+
+
+def load_feature_importance(results_dir: Path, project_name: str, task: str, dimension: str, y_label: str,
+                            stat_folder: str, scoring: str, bootstrap_method: str,
+                            hyp_opt: bool = False, feature_selection: bool = False,
+                            filename: str = 'feature_importance_lr_top10.csv') -> pd.DataFrame:
+    """Load feature importance CSV into a DataFrame. Builds path safely.
+
+    Parameters
+    - results_dir, project_name, task, dimension, y_label, stat_folder, scoring, bootstrap_method: strings/paths
+    - hyp_opt, feature_selection: add these folders if True
+    - filename: CSV filename
+    """
+    folder_parts = [results_dir, project_name, 'feature_importance', task, dimension, y_label, stat_folder, scoring, bootstrap_method]
+    if hyp_opt:
+        folder_parts.append('hyp_opt')
+    if feature_selection:
+        folder_parts.append('feature_selection')
+    folder = _path_no_empty(*folder_parts)
+    file_path = folder / filename
+    if not file_path.exists():
+        raise FileNotFoundError(f"Feature importance file not found: {file_path}")
+    return pd.read_csv(file_path)
+
+
+def bar_plot_feature_importance(feature_importance, feature_col='feature', importance_col='importance',
+                                top_n: int = 10, sort_desc: bool = True, horizontal: bool = True,
+                                figsize=(10, 6), cmap: str = 'viridis', title: str = None,
+                                xlabel: str = 'Importance', ylabel: str = 'Feature',
+                                ax=None, save_path: str = None, show: bool = True, normalize: bool = False):
+    """Create a bar plot (horizontal by default) for feature importance.
+
+    - feature_importance: pd.DataFrame or CSV path
+    - feature_col, importance_col: column names containing labels and numeric importance
+    - top_n: number of top features to keep (None for all)
+    - sort_desc: sort by importance descending
+    - normalize: scale importance to sum to 1 (optional)
+    - save_path: optional file path where to save the figure
+    - show: whether to call plt.show()
+    Returns the matplotlib Axes object.
+    """
+    if isinstance(feature_importance, (str, Path)):
+        fi = pd.read_csv(feature_importance)
+    elif isinstance(feature_importance, pd.DataFrame):
+        fi = feature_importance.copy()
+    else:
+        raise ValueError('feature_importance must be a DataFrame or path to CSV')
+
+    if feature_col not in fi.columns:
+        raise KeyError(f"feature column '{feature_col}' not found in DataFrame")
+    if importance_col not in fi.columns:
+        # attempt to find a numeric column automatically
+        numeric_cols = fi.select_dtypes(include=['number']).columns
+        if len(numeric_cols) == 0:
+            raise KeyError("No numeric column found for importance values")
+        importance_col = numeric_cols[0]
+
+    # Keep only relevant columns
+    fi = fi[[feature_col, importance_col]].dropna()
+    fi = fi.groupby(feature_col, as_index=False)[importance_col].mean()
+
+    if normalize:
+        total = fi[importance_col].sum()
+        if total != 0:
+            fi[importance_col] = fi[importance_col] / total
+
+    if sort_desc:
+        fi = fi.sort_values(importance_col, ascending=False)
+    else:
+        fi = fi.sort_values(importance_col, ascending=True)
+
+    if top_n:
+        fi = fi.head(top_n)
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    else:
+        fig = ax.figure
+
+    if horizontal:
+        sns.barplot(x=importance_col, y=feature_col, data=fi, palette=cmap, ax=ax)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+    else:
+        sns.barplot(x=feature_col, y=importance_col, data=fi, palette=cmap, ax=ax)
+        ax.set_ylabel(xlabel)
+        ax.set_xlabel(ylabel)
+        plt.xticks(rotation=45, ha='right')
+
+    if title:
+        ax.set_title(title)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=200)
+    if show:
+        plt.show()
+
+    return ax
+
+
+if __name__ == '__main__':
+    # example usage: iterate config combinations and plot the top 10 features
+    plt.style.use('ggplot')
+    sns.set_context('paper', font_scale=1.2)
+    sns.set_palette('deep')
+
+    for task, dimension, y_label in itertools.product(tasks, dimensions, y_labels):
+        try:
+            fi = load_feature_importance(results_dir, project_name, task, dimension, y_label, stat_folder, scoring, bootstrap_method,
+                                         hyp_opt=hyp_opt, feature_selection=feature_selection,
+                                         filename='feature_importance_lr_top10.csv')
+        except FileNotFoundError as e:
+            print(e)
+            continue
+        title = f"Feature importance {task} | {dimension} | {y_label}"
+        # create figure and save to the results path for this combination
+        folder_parts = [results_dir, project_name, 'plots', 'feature_importance', task, dimension, y_label]
+        out_dir = _path_no_empty(*folder_parts)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / 'feature_importance_top10.png'
+        bar_plot_feature_importance(fi, top_n=10, normalize=False, title=title, save_path=out_file, show=False)
+        print(f"Saved plot: {out_file}")
+    

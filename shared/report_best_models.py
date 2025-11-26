@@ -15,7 +15,6 @@ bayesian = False
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
 project_name = config['project_name']
-scaler_name = config['scaler_name']
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 calibrate = config['calibrate']
@@ -24,7 +23,7 @@ hyp_opt = True if config['n_iter'] > 0 else False
 feature_selection = True if config['n_iter_features'] > 0 else False
 filter_outliers = config['filter_outliers']
 parallel = config['parallel']
-
+regress_out = config['regress_out']
 hyp_opt = config['n_iter'] > 0 
 feature_selection = config['n_iter_features'] > 0
 
@@ -54,13 +53,13 @@ for scoring in scoring_metrics:
         
         for dimension in dimensions:
             print(task,dimension)
-            path = Path(results_dir,task,dimension,scaler_name,kfold_folder)
+            path = Path(results_dir,task,dimension,kfold_folder)
 
             if not path.exists():
                 continue
             
             for y_label in y_labels:
-                path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+                path = Path(results_dir,task,dimension,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','regress_out' if regress_out else '','shuffle' if shuffle_labels else '')
                 if not path.exists():
                     continue
                 random_seeds_test = [folder.name for folder in path.iterdir() if folder.is_dir() if 'random_seed' in folder.name]
@@ -166,7 +165,7 @@ for scoring in scoring_metrics:
                         
                         best_best_models.loc[len(best_best_models),:] = dict_append
 
-    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    filename_to_save = f'best_models_{scoring}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
 
     if not hyp_opt:
         filename_to_save = filename_to_save.replace('_hyp_opt','')

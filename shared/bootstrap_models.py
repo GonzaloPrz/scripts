@@ -35,6 +35,7 @@ calibrate = bool(config["calibrate"])
 overwrite = bool(config["overwrite"])
 parallel = bool(config["parallel"])
 bootstrap_method = config["bootstrap_method"]
+regress_out = config["regress_out"]
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -62,9 +63,9 @@ else:
 for task,y_label,scoring in itertools.product(tasks,y_labels,scoring_metrics):    
 
     dimensions = [folder.name for folder in Path(results_dir,task).iterdir() if folder.is_dir()]
-
+    #dimensions = ["verbosity__word_properties__talking_intervals"]
     for dimension in dimensions:
-        path = Path(results_dir,task,dimension,scaler_name, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '',"shuffle" if shuffle_labels else "")
+        path = Path(results_dir,task,dimension, kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '',"regress_out" if regress_out else "","shuffle" if shuffle_labels else "")
         
         if not path.exists():  
             continue

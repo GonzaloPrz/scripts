@@ -2,7 +2,7 @@
     "project_name": "arequipa",
     "stats": "count_mean_ratio",
     "shuffle_labels": false,
-    "shuffle_all": false,
+    "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
     "n_folds": 5.0,
@@ -20,12 +20,13 @@
     "early_fusion": false,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
-    "overwrite": false,
+    "overwrite": true,
     "parallel": true,
     "n_seeds_test": 1.0,
     "bootstrap_method": "bca",
     "bayes": false,
     "add_dem": false,
+    "regress_out": false,
     "test_size": 0.0,
     "data_file": "data_matched_group.csv",
     "tasks": [
@@ -40,13 +41,13 @@
         "group"
     ],
     "avoid_stats": [
-        "std",
-        "kurtosis",
+        "variability",
         "max",
-        "min",
+        "std",
         "skewness",
-        "median",
-        "variability"
+        "min",
+        "kurtosis",
+        "median"
     ],
     "stat_folder": "count_mean_ratio",
     "random_seeds_train": [

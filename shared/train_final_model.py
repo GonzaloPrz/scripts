@@ -17,9 +17,10 @@ from sklearn.impute import KNNImputer
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
 from sklearn.naive_bayes import GaussianNB
 from pingouin import partial_corr
-
+from sklearn.model_selection import StratifiedKFold, KFold
 from expected_cost.calibration import calibration_train_on_test
 from psrcal.calibration import AffineCalLogLoss, AffineCalBrier, HistogramBinningCal
+from expected_cost.ec import CostMatrix
 
 import pickle
 
@@ -39,7 +40,7 @@ calibrate = config['calibrate']
 avoid_stats = config['avoid_stats']
 stat_folder = config['stat_folder']
 hyp_opt = bool(config['n_iter'] > 0)
-
+regress_out = bool(config['regress_out'])
 feature_selection = bool(config['n_iter_features'] > 0)
 filter_outliers = config['filter_outliers']
 n_models = int(config['n_models'])
@@ -66,7 +67,8 @@ else:
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
-tasks = main_config['tasks'][project_name]
+#tasks = main_config['tasks'][project_name]
+tasks = ['craft__fugu__lamina2']
 test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 thresholds = main_config['thresholds'][project_name]
@@ -113,7 +115,7 @@ for scoring in scoring_metrics:
     extremo = 1 if any(x in scoring for x in ['norm','error']) else 0
     ascending = True if extremo == 1 else False
 
-    best_models_file = f'best_models_{scoring.replace("_score","")}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
+    best_models_file = f'best_best_models_{scoring.replace("_score","")}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated.csv'.replace('__','_')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','')
     if not feature_selection:
@@ -126,13 +128,13 @@ for scoring in scoring_metrics:
     best_models = pd.read_csv(Path(results_dir,best_models_file))
     best_models['random_seed_test'] = best_models['random_seed_test'].map(lambda x: str(x) if str(x) != 'nan' else '') 
     #tasks = best_models['task'].unique()
-    tasks = ['craft__fugu__lamina2']
+    #tasks = ['craft__fugu']
     y_labels = best_models['y_label'].unique()
-    dimensions = best_models['dimension'].unique()
-    
+    #dimensions = best_models['dimension'].unique()
+    dimensions = ['mlu__universal_dependencies__verbosity__word_properties__talking_intervals']
     for task,dimension,y_label in itertools.product(tasks,dimensions,y_labels):
         print(task,dimension,y_label)
-        path = Path(results_dir,task,dimension,scaler_name,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '')
+        path = Path(results_dir,task,dimension,kfold_folder,y_label,stat_folder,'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','regress_out' if regress_out else '', 'shuffle' if shuffle_labels else '')
         
         if not Path(path).exists():
             continue
@@ -144,9 +146,9 @@ for scoring in scoring_metrics:
         for random_seed_test in random_seeds_test:
             path_to_data = Path(path,random_seed_test)
             
-            if Path(results_dir,f'final_models',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl').exists() and not overwrite:
-                print(f'Final model already exists for {task} {dimension} {y_label} {random_seed_test}. Skipping.')
-                continue
+            #if Path(results_dir,f'final_models',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','final_model.pkl').exists() and not overwrite:
+            #    print(f'Final model already exists for {task} {dimension} {y_label} {random_seed_test}. Skipping.')
+            #    continue
 
             try:
                 model_type = best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['random_seed_test'] == random_seed_test) & (best_models['y_label'] == y_label)]['model_type'].values[0] if random_seed_test != '' else best_models[(best_models['task'] == task) & (best_models['dimension'] == dimension) & (best_models['y_label'] == y_label)]['model_type'].values[0]
@@ -231,9 +233,15 @@ for scoring in scoring_metrics:
             
             if model_type == 'svc':
                 model.model.kernel = 'linear'
-        
-            model.train(X_dev[features],y_dev[0,0])
 
+            model.train(X_dev[features],y_dev[0,0])
+            '''
+            n_folds = kfold_folder.split('_')[0]
+
+            iterator = StratifiedKFold(n_splits=int(n_folds),shuffle=True,random_state=42) if problem_type == 'clf' else KFold(n_splits=int(n_folds),shuffle=True,random_state=42)
+            best_features, best_score = utils.rfe(model,X_dev[features],y_dev[0,0].values if isinstance(y_dev,pd.Series) else y_dev[0,0],None,scoring,problem_type,cmatrix=CostMatrix.zero_one_costs(K=outputs_dev.shape[-1]),priors=None,threshold=None,round_values=False)
+            
+            '''
             if hasattr(model.model,'feature_importance'):
                 feature_importance = model.model.feature_importance
                 feature_importance = pd.DataFrame({'feature':features,'importance':feature_importance}).sort_values('importance',ascending=False)
@@ -248,15 +256,15 @@ for scoring in scoring_metrics:
                 feature_importance.to_csv(Path(results_dir,f'feature_importance',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test,feature_importance_file),index=False)
             else:
                 print(task,dimension,f'No feature importance available for {model_type}')
-            
+
             if problem_type == 'reg':
                 sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
                 plt.rcParams.update({
-                    "font.family": "DejaVu Sans",
+                    "font.family": "Arial",
                     "axes.titlesize": 16,
                     "axes.labelsize": 14,
-                    "xtick.labelsize": 12,
-                    "ytick.labelsize": 12
+                    "xtick.labelsize": 14,
+                    "ytick.labelsize": 14
                 })
                 
                 Path(results_dir,f'plots',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','shuffle' if shuffle_labels else '',random_seed_test).mkdir(parents=True,exist_ok=True)
@@ -305,23 +313,26 @@ for scoring in scoring_metrics:
                         n = predictions.shape[0]
                         
                     plt.figure(figsize=(8, 6))
-                    sns.regplot(
+                    ax = sns.regplot(
                         x='y_pred', y='y_true', data=predictions,
-                        scatter_kws={'alpha': 0.6, 's': 50, 'color': "#9f19c4"},  # color base
+                        scatter_kws={'alpha': 0.6, 's': 50, 'color': "#0f51df"},  # color base
                         line_kws={'color': 'black', 'linewidth': 2}
                     )
 
-                    plt.xlabel('Predicted Value')
-                    plt.ylabel('True Value')
-
+                    plt.xlabel('Predicted Value',fontsize=14)
+                    plt.ylabel('True Value',fontsize=14)
                     plt.text(0.05, 0.95,
-                            f'$r$ = {r:.2f}\n$p$ = {np.round(p,3) if p > .001 else "< .001"}',
-                            fontsize=30,
+                            f'$r$ = {r:.2f}\n$p$ = {np.round(p,2) if p > .001 else "< .001"}',
+                            fontsize=20,
                             transform=plt.gca().transAxes,
                             verticalalignment='top',
                             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
-                    plt.title(f'{task} | {y_label}', fontsize=25, pad=15)
+                    for spine in ax.spines.values():
+                            spine.set_edgecolor('#444444')
+                            spine.set_linewidth(1.5)
+
+                    plt.title(f'{task} | {y_label}', fontsize=14, pad=15)
 
                     plt.tight_layout()
                     plt.grid(False)

@@ -121,7 +121,7 @@ def _path_leaf(results_dir: Path, task: str, dimension: str, config: Dict[str, A
     shuffle_lab  = bool(config['shuffle_labels'])
 
     sub = [
-        task, dimension, scaler_name, kfold_folder, y_label, stat_folder, "bayes" if config["bayes"] else "", scoring if config["bayes"] else "",
+        task, dimension, kfold_folder, y_label, stat_folder, "bayes" if config["bayes"] else "", scoring if config["bayes"] else "",
         "hyp_opt" if hyp_opt else "",
         "feature_selection" if feature_sel else "",
         "shuffle" if shuffle_lab else "",
@@ -131,6 +131,17 @@ def _path_leaf(results_dir: Path, task: str, dimension: str, config: Dict[str, A
 # ---------------------- Lógica principal ---------------------- #
 
 def main():
+
+    sns.set_theme(style="whitegrid")  # Fondo blanco con grid sutil
+
+    plt.rcParams.update({
+        "font.family": "Arial",
+        "axes.titlesize": 16,
+        "axes.labelsize": 14,
+        "xtick.labelsize": 14,
+        "ytick.labelsize": 14
+    })
+    
     # Cargar config y main_config como en tu pipeline
     here = Path(__file__).parent
     config = json.load((here / "config.json").open())
@@ -160,12 +171,12 @@ def main():
     y_labels_cfg = main_config["y_labels"][project_name]
     test_size = main_config["test_size"][project_name]
 
-    tasks = config["tasks"]
-
+    #tasks = config["tasks"]
+    tasks = ['craft__fugu__lamina2']
     results_dir = _build_results_dir_from_config(config)
 
     # Si se usa --only-best, localizamos el CSV de mejores
-    best_csv = f"best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{bootstrap_method}_hyp_opt_feature_selection_bayes.csv".replace("__","_")
+    best_csv = f"best_best_models_{scoring}_{kfold_folder}_{stat_folder}_{bootstrap_method}_hyp_opt_feature_selection_bayes.csv".replace("__","_")
 
     if not bayes:
         best_csv = best_csv.replace("_bayes", "")
@@ -189,16 +200,19 @@ def main():
         "Holdout"
     ]
 
-    ncolumns = int(np.ceil(np.sqrt(len(subplot_titles))))
-    nrows = int(np.ceil(len(subplot_titles)/ncolumns))
-    fig, axes = plt.subplots(nrows, ncolumns, figsize=(12, 10))
-    axes = axes.flatten()
+    auc_values = ['0.82 (0.67, 0.91)', '0.86']
+    #ncolumns = int(np.ceil(np.sqrt(len(subplot_titles))))
+    ncolumns = 1
+    #nrows = int(np.ceil(len(subplot_titles)/ncolumns))
+    nrows = 1
+    #fig, axes = plt.subplots(nrows, ncolumns, figsize=(12, 10))
+    #axes = axes.flatten()
 
     # Colores y orden
     plot_idx = 0
     for task in tasks:
         #dims = _list_dimensions(results_dir, task)
-        dims = config["single_dimensions"]
+        dims = best_df['dimension'].unique()
         if isinstance(y_labels_cfg, dict):
             y_labels = y_labels_cfg[task]
         else:
@@ -245,7 +259,12 @@ def main():
                     print(f"[WARN] No se pudo cargar datos para {task}/{dimension}/{y_label}/{seed}: {e}")
                     continue
                 
-                for y,outputs in zip([y_dev, y_test],[outputs_dev,outputs_test]):
+                for k, (y,outputs) in enumerate(zip([y_dev, y_test],[outputs_dev,outputs_test])):
+                    plt.figure(figsize=(8, 6))
+                    fig, axes = plt.subplots(nrows, ncolumns, figsize=(8, 6))
+                    #axes = axes.flatten()
+                    plot_idx = 0
+
                     if y is None:
                         print(f"[WARN] y es None para {task}/{dimension}/{y_label}/{seed}")
                         continue
@@ -278,58 +297,62 @@ def main():
                                 np.random.seed(b)
                                 indices = np.random.choice(y_true.shape[-1], size=y_true.shape[-1], replace=True)
                                 try:
-                                    fpr, tpr_, _ = roc_curve(y_true[j,r,indices], scores[j,model_index,r,indices,1].ravel())
+                                    fpr, tpr_, _ = roc_curve(y_true[j,r,indices], scores[j,model_index if k ==0 or config['n_models'] == 0 else 0,r,indices,1].ravel())
                                 except:
-                                    fpr, tpr_, _ = roc_curve(y_true[j,r,indices], scores[j,r,model_index,indices,1].ravel())
+                                    fpr, tpr_, _ = roc_curve(y_true[j,r,indices], scores[j,r,model_index if k ==0 or config['n_models'] == 0 else 0,indices,1].ravel())
                                 
                                 tpr_interp = np.interp(fpr_grid, fpr, tpr_)
                                 tpr[b,j,r,:] = tpr_interp
                                 tpr[b,j,r,0] = 0.0
                                 tpr[b,j,r,-1] = 1.0
                         tpr_mean = np.mean(tpr.reshape((n_boot*y_true.shape[0]*y_true.shape[1],tpr.shape[-1])), axis=0)
-                        tpr_low = np.percentile(tpr.reshape((n_boot*y_true.shape[0]*y_true.shape[1],tpr.shape[-1])), 2.5, axis=0)
-                        tpr_high = np.percentile(tpr.reshape((n_boot*y_true.shape[0]*y_true.shape[1],tpr.shape[-1])), 97.5, axis=0)
+                        #tpr_low = np.nanpercentile(tpr.reshape((n_boot*y_true.shape[0]*y_true.shape[1],tpr.shape[-1])), 2.5, axis=0)
+                        #tpr_high = np.nanpercentile(tpr.reshape((n_boot*y_true.shape[0]*y_true.shape[1],tpr.shape[-1])), 97.5, axis=0)
 
                         #Plot curves with confidence intervals
-                        axes[plot_idx].plot(fpr_grid, tpr_mean, label=f"AUC = {mean_auc}", lw=3, color='#1565c0', alpha=0.95)
-                        axes[plot_idx].fill_between(fpr_grid, tpr_low, tpr_high, color='#1565c0', alpha=0.2, label="95% CI")
-                        axes[plot_idx].set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
+                        axes.plot(fpr_grid, tpr_mean, label=f"AUC = {auc_values[k]}", lw=3, color='#1565c0', alpha=0.95)
+                        #axes.fill_between(fpr_grid, tpr_low, tpr_high, color='#1565c0', alpha=0.2, label="95% CI")
+                        axes.set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
                         # Decide color y posición
-                        
-                        axes[plot_idx].plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
+                        axes.plot([0,1],[0,1], linestyle="--", label='Chance', color='#888888', lw=2, alpha=0.7)
                         
                         # Etiquetas solo en el borde izquierdo y abajo
+                        '''
                         if plot_idx % 2 == 0:
-                            axes[plot_idx].set_ylabel("True Positive Rate", fontsize=14)
+                            axes.set_ylabel("True Positive Rate", fontsize=14)
                         else:
                             axes[plot_idx].set_ylabel("")
                             axes[plot_idx].set_yticklabels([])
                         if plot_idx >= 2:
                             axes[plot_idx].set_xlabel("False Positive Rate", fontsize=14)
                         else:
-                            axes[plot_idx].set_xlabel("")
-                            axes[plot_idx].set_xticklabels([])
-                        axes[plot_idx].set_xlim([0, 1])
-                        axes[plot_idx].set_ylim([0, 1])
+                            axes.set_xlabel("")
+                            axes.set_xticklabels([])
+                        '''
+                        axes.set_ylabel("True Positive Rate", fontsize=14)
+                        axes.set_xlabel("False Positive Rate", fontsize=14)
+                        axes.set_xlim([0, 1])
+                        axes.set_ylim([0, 1])
                         # Quitar grid
-                        axes[plot_idx].grid(False)
+                        axes.grid(False)
                         # Mejorar bordes y fondo
-                        axes[plot_idx].set_facecolor('white')
-                        for spine in axes[plot_idx].spines.values():
+                        axes.set_facecolor('white')
+                        for spine in axes.spines.values():
                             spine.set_edgecolor('#444444')
                             spine.set_linewidth(1.5)
-                        axes[plot_idx].legend(loc="lower right", fontsize=12, frameon=False)
+                        axes.legend(loc="lower right", fontsize=12, frameon=False)
                         # Agregar título
-                        axes[plot_idx].set_title(subplot_titles[plot_idx], fontsize=14, pad=10)
-                        plot_idx += 1
+                        axes.set_title(subplot_titles[k], fontsize=14, pad=10)
+                        #plot_idx += 1
 
-    plt.tight_layout()
-    out_path_png = Path(save_dir) / "roc_grid.png"
-    out_path_pdf = Path(save_dir) / "roc_grid.pdf"
-    plt.savefig(out_path_png, dpi=300, bbox_inches="tight")
-    plt.savefig(out_path_pdf, dpi=300, bbox_inches="tight")
-    plt.close()
-    print("[OK] Guardado:", out_path_png, out_path_pdf)
+                    plt.tight_layout()
+                    out_path_png = Path(save_dir) / f"roc_grid_{subplot_titles[k]}.png"
+                    out_path_svg = Path(save_dir) / f"roc_grid_{subplot_titles[k]}.svg"
+
+                    plt.savefig(out_path_png, dpi=300, bbox_inches="tight")
+                    plt.savefig(out_path_svg, dpi=300, bbox_inches="tight")
+                    plt.close()
+                    print("[OK] Guardado:", out_path_png)
 
 if __name__ == "__main__":
     main()
