@@ -10,14 +10,14 @@ sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str
 
 from matching_module import *
 
-project_name = 'ad_mci_hc_ct'
+project_name = 'affective_pitch'
 
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
 
 target_vars = ['group']
 
 filenames = [
-             'image_pleasant_memory__features.csv'
+             'filtered_data.csv'
             ]
 
 for filename in filenames:
@@ -28,19 +28,19 @@ for filename in filenames:
     for target_var in target_vars:
         print(target_var)
         # Define variables
-        vars = ['sex','age','education', target_var, 'id']
+        vars = ['sex','age','education','site',target_var, 'id']
         output_var = target_var
         
-        matching_vars = ['age','sex','education']
+        matching_vars = ['age','sex','site']
 
-        fact_vars = ['sex']
-        cont_vars = ['age','education']
+        fact_vars = ['sex','site']
+        cont_vars = ['age']
 
         data = pd.read_csv(Path(data_dir,filename))
 
         data.dropna(subset=[target_var] ,inplace=True)
 
-        data[target_var] = data[target_var].map({0:"HC",1:"MCI",2:"AD"})
+        data[target_var] = data[target_var]
         for fact_var in fact_vars:
             data[fact_var] = data   [fact_var].astype('category').cat.codes
 
@@ -49,7 +49,7 @@ for filename in filenames:
 
         caliper = 0.5
 
-        matched_data = perform_three_way_matching(data, output_var,matching_vars,fact_vars,treatment_values=('AD','MCI','HC'),caliper=caliper)
+        matched_data = perform_three_way_matching(data, output_var,matching_vars,fact_vars,treatment_values=('AD','FTD','CN'),caliper=caliper)
         matched_data = matched_data.drop_duplicates(subset='id')
 
         # Save tables and matched data

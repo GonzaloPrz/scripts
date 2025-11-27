@@ -181,7 +181,7 @@ def radar_plot_auc(summary_df, use_ci, path_to_save, title="AUC"):
         dev_high = values_for('auc_dev_high')
         shuf_low = values_for('auc_shuffle_low')
         shuf_high= values_for('auc_shuffle_high')
-        ax.fill_between(angles, dev_low,  dev_high,  alpha=0.15)
+        ax.fill_between(angles, dev_low,  dev_high,  alpha=0.15, label='95% CI')
         ax.fill_between(angles, shuf_low, shuf_high, alpha=0.15)
 
     plt.suptitle(title, fontsize=24, y=1.05)
