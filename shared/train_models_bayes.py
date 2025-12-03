@@ -121,13 +121,18 @@ main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 y_labels = main_config['y_labels'][project_name]
 tasks = main_config['tasks'][project_name]
-test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
+
+try:
+    test_size = main_config['test_size'][project_name]
+except:
+    test_size = 0
+
 try:
     thresholds = main_config['thresholds'][project_name]
 except:
-    trhesholds = [None]
+    thresholds = [None]
 
 try:
     cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
