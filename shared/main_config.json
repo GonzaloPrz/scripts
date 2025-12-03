@@ -209,7 +209,7 @@
                 "tell_classifier": "data_MOTOR-LIBRE.csv",
                 "MCI_classifier_unbalanced": "data_matched_unbalanced_group.csv",
                 "MCI_classifier": "data_matched_group.csv",
-                "Proyecto_Ivo": "all_data_with_means.csv",
+                "Proyecto_Ivo": "all_data.csv",
                 "arequipa": "data_matched_group.csv",
                 "GERO_Ivo": "all_data.csv",
                 "MPLS": "all_data.csv",
