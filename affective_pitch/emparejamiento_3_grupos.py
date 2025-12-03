@@ -17,8 +17,10 @@ data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home(
 target_vars = ['group']
 
 filenames = [
-             'transcripts_fugu.csv'
+             'transcripts_fugu_matched_group.csv'
             ]
+
+groups = ['AD','CN']
 
 for filename in filenames:
     try:
@@ -38,23 +40,25 @@ for filename in filenames:
 
         data = pd.read_csv(Path(data_dir,filename))
 
+        data = data[data[target_var].isin(groups)]
+        
         data.dropna(subset=[target_var] ,inplace=True)
 
         for var in matching_vars:
             data.dropna(subset=var,inplace=True)
 
-        caliper = 0.005
+        caliper = 0.3
 
-        matched_data = perform_three_way_matching(data, output_var,matching_vars,fact_vars,treatment_values=('CN','AD','FTD'),caliper=caliper)
-        matched_data = matched_data.drop_duplicates(subset='id')
+        #matched_data = perform_three_way_matching(data, output_var,matching_vars,fact_vars,treatment_values=('CN','AD'),caliper=caliper)
+        #matched_data = matched_data.drop_duplicates(subset='id')
 
         # Save tables and matched data
         table_before = TableOne(data,list(set(vars) - set([output_var,'id'])),fact_vars,groupby=output_var, pval=True, nonnormal=[])
 
-        table = TableOne(matched_data,list(set(vars) - set([output_var,'id'])),fact_vars,groupby=output_var, pval=True, nonnormal=[])
+        #table = TableOne(matched_data,list(set(vars) - set([output_var,'id'])),fact_vars,groupby=output_var, pval=True, nonnormal=[])
         print(table_before)
-        print(table)
+        #print(table)
 
-        matched_data.to_csv(Path(data_dir,f'{filename.split(".")[0]}_matched_{target_var}.csv'.replace('__','_')), index=False)
-        table_before.to_csv(Path(data_dir,f'table_before_{filename.split(".")[0]}_{target_var}.csv'.replace('__','_')))
-        table.to_csv(Path(data_dir,f'table_matched_{filename.split(".")[0]}_{target_var}.csv'.replace('__','_')))
+        #matched_data.to_csv(Path(data_dir,f'{filename.split(".")[0]}_matched_{target_var}.csv'.replace('__','_')), index=False)
+        table_before.to_csv(Path(data_dir,f'table_before_{filename.split(".")[0]}_{target_var}' + '_'.join(groups) + '.csv'.replace('__','_')))
+        #table.to_csv(Path(data_dir,f'table_matched_{filename.split(".")[0]}_{target_var}.csv'.replace('__','_')))

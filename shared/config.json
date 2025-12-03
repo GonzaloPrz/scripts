@@ -1,68 +1,58 @@
 {
-    "project_name": "arequipa",
-    "stats": "count_mean_ratio",
+    "project_name": "affective_pitch",
+    "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds": 5.0,
+    "n_folds_outer": 5.0,
+    "n_folds_inner": 5.0,
     "n_iter": 20.0,
-    "n_iter_features": 20.0,
-    "feature_sample_ratio": 0.5,
+    "feature_selection": true,
+    "init_points": 20.0,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
-    "n_models": 0,
     "n_boot": 1000.0,
-    "bayesian": false,
-    "filter_outliers": false,
-    "early_fusion": false,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
-    "overwrite": true,
+    "filter_outliers": false,
+    "early_fusion": false,
+    "overwrite": false,
     "parallel": true,
-    "n_seeds_test": 1.0,
+    "n_seeds_test": 0,
     "bootstrap_method": "bca",
-    "bayes": false,
-    "add_dem": false,
-    "regress_out": false,
     "round_values": false,
-    "cut_values": false,
+    "add_dem": false,
+    "cut_values": -1.0,
+    "regress_out": false,
     "test_size": 0.0,
-    "data_file": "data_matched_group.csv",
+    "data_file": "mean_pitch_features.csv",
     "tasks": [
-        "craft__fugu__lamina2"
+        "Fugu"
     ],
     "single_dimensions": [
-        "mlu__universal_dependencies__verbosity__word_properties__talking_intervals"
+        "NEG",
+        "NEU",
+        "POS"
     ],
-    "scoring_metrics": "roc_auc",
-    "problem_type": "clf",
     "y_labels": [
         "group"
     ],
-    "avoid_stats": [
-        "variability",
-        "max",
-        "std",
-        "skewness",
-        "min",
-        "kurtosis",
-        "median"
-    ],
-    "stat_folder": "count_mean_ratio",
+    "avoid_stats": [],
+    "stat_folder": "",
     "random_seeds_train": [
-        3.0,
-        9.0,
-        27.0,
-        81.0,
-        243.0,
-        729.0,
-        2187.0,
-        6561.0,
-        19683.0,
-        59049.0
+        3,
+        9,
+        27,
+        81,
+        243,
+        729,
+        2187,
+        6561,
+        19683,
+        59049
     ],
     "random_seeds_test": [
         ""
@@ -70,5 +60,8 @@
     "random_seeds_shuffle": [
         ""
     ],
-    "kfold_folder": "5_folds"
+    "bayes": true,
+    "problem_type": "clf",
+    "kfold_folder": "5_folds_5_folds",
+    "scoring_metric": "norm_expected_cost"
 }

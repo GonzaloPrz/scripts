@@ -28,7 +28,7 @@ overwrite = bool(config["overwrite"])
 filter_outliers = bool(config['filter_outliers'])
 round_values = bool(config['round_values'])
 cut_values = bool(config['cut_values'] > 0)
-regress_out = bool(config['regress_out'])
+regress_out = len(config['covariates']) > 0
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):

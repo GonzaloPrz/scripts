@@ -6,6 +6,6 @@ base_dir = Path(Path.home(),'data','affective_pitch') if 'Users/gp' in str(Path.
 data = pd.read_csv(Path(base_dir,'updated_data_24-09-2025.csv'))
 
 filtered_data = data.loc[[group in ['CN','FTD','AD'] for group in data['group']]]
-filtered_data = filtered_data[['id','group','site','age','sex']]
+filtered_data = filtered_data[['id','group','site','age','sex','education']]
 
 filtered_data.to_csv(Path(base_dir,'filtered_data.csv'), index=False)

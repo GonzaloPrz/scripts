@@ -19,6 +19,7 @@ from xgboost import XGBRegressor as xgboostr
 import itertools,pickle,sys, json
 import logging,sys,os,argparse
 from psrcal.calibration import AffineCalLogLoss
+from sklearn.preprocessing import LabelEncoder
 
 sys.path.append(str(Path(Path.home(),'scripts_generales'))) if 'Users/gp' in str(Path.home()) else sys.path.append(str(Path(Path.home(),'gonza','scripts_generales')))
 
@@ -31,7 +32,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='arequipa',type=str,help='Project name')
+    parser.add_argument('--project_name', default='affective_pitch',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
@@ -51,14 +52,14 @@ def parse_args():
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
     parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
+    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
     parser.add_argument('--round_values',type=int,default=0,help='Whether to round predicted values for regression or not')
     parser.add_argument('--add_dem',type=int,default=0,help='Whether to add demographic features or not')
     parser.add_argument('--cut_values',type=float,default=-1,help='Cut values above a given threshold')
-    parser.add_argument('--regress_out',type=int,default=0,help='Whether to regress out demographic variables from target variable or not')
+    parser.add_argument('--regress_out',type=list,default=[],help='List of demographic variables to regress out from target variable')
     return parser.parse_args()
 
 def load_configuration(args):
@@ -91,7 +92,7 @@ def load_configuration(args):
         round_values = bool(args.round_values),
         add_dem = bool(args.add_dem),
         cut_values = float(args.cut_values),
-        regress_out = bool(args.regress_out)
+        regress_out = list(args.regress_out)
     )
 
     return config
@@ -102,6 +103,7 @@ project_name = config['project_name']
 add_dem = config['add_dem']
 round_values = config['round_values']
 cut_values = config['cut_values']
+regress_out = config['regress_out']
 
 logging.info('Configuration loaded. Starting training...')
 logging.info('Training completed.')
@@ -122,9 +124,15 @@ tasks = main_config['tasks'][project_name]
 test_size = main_config['test_size'][project_name]
 single_dimensions = main_config['single_dimensions'][project_name]
 data_file = main_config['data_file'][project_name]
-thresholds = main_config['thresholds'][project_name]
+try:
+    thresholds = main_config['thresholds'][project_name]
+except:
+    trhesholds = [None]
 
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+try:
+    cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+except:
+    cmatrix = None
 
 config['test_size'] = float(test_size)
 config['data_file'] = data_file
@@ -198,6 +206,9 @@ for task in tasks:
             if len(config["avoid_stats"]) > 0:
                 features = [col for col in features if all(f'_{x}' not in col for x in config['avoid_stats'])]
             
+            covariates = list(set(regress_out).intersection(set(all_data.columns)))
+            config['covariates'] = covariates
+
             if config['add_dem']:
                 for col in set(['sex','age','education','handedness']).intersection(set(all_data.columns)):
                     
@@ -226,7 +237,10 @@ for task in tasks:
             if config['problem_type'] == 'reg' and config['filter_outliers']:
                 all_data = all_data[np.abs((all_data[y_label] - all_data[y_label].mean()) / all_data[y_label].std()) < 2]
 
+            #convert y_label to categories
             y = data.pop(y_label)
+
+            y = pd.Series(LabelEncoder().fit_transform(y) if config['problem_type'] == 'clf' else y,name=y_label)
 
             if data.shape[0] == 0:
                 continue
@@ -330,7 +344,7 @@ for task in tasks:
 
                 subfolders = [
                     task, dimension,
-                    config['kfold_folder'], f'{y_label}_res' if config['regress_out'] and config['problem_type'] == 'reg' else y_label, config['stat_folder'],scoring_metric,
+                    config['kfold_folder'], f'{y_label}_res' if len(covariates) > 0 and config['problem_type'] == 'reg' else y_label, config['stat_folder'],scoring_metric,
                     'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                     'filter_outliers' if config['filter_outliers'] and config['problem_type'] == 'reg' else '','rounded' if round_values else '','cut' if cut_values > 0 else '',
                     'shuffle' if config['shuffle_labels'] else ''
@@ -439,7 +453,8 @@ for task in tasks:
                                                                                         calmethod=calmethod,
                                                                                         calparams=calparams,
                                                                                         round_values=round_values,
-                                                                                        regress_out=config['regress_out'])
+                                                                                        covariates=covariates
+                                                                                        )
                 
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(parents=True, exist_ok=True)
                     with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '','config.json'),'w') as f:
