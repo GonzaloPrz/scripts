@@ -172,18 +172,9 @@
                                             ["bio"]
                                     },
                                     "Proyecto_Ivo": {
-                                                "Animales": ["properties",
-                                                    "timing"],
-                                                "P": ["properties",
-                                                    "timing"],
-                                                "Animales__P": ["properties",
-                                                    "timing"],
-                                                "grandmean": ["properties",
-                                                    "timing"],
-                                                "nps": ["executive",
-                                                    "mmse"],
+                                                "Animales__P": ["properties"],
+                                                "nps": ["executive"],
                                                 "brain": ["norm_brain_lit"],
-                                                "AAL": ["norm_AAL"],
                                                 "connectivity": ["networks"]
                                     },
 
