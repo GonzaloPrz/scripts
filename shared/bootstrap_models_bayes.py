@@ -38,9 +38,12 @@ else:
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
-y_labels = main_config['y_labels'][project_name]
-test_size = main_config['test_size'][project_name]
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+y_labels = config['y_labels']
+test_size = config['test_size']
+try:
+    cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+except KeyError:
+    cmatrix = None
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -195,7 +198,7 @@ for task in tasks:
                         for i, metric in enumerate(metrics_names_):
                             est = point_estimates[i]
                             ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
-                            result_row[metric] = f"{est:.5f}, ({ci_low:.5f}, {ci_high:.5f})"
+                            result_row[metric] = f"{est:.2f}, ({ci_low:.2f}, {ci_high:.2f})"
                         
                         if all_results.empty:
                             all_results = pd.DataFrame(result_row,index=[0])

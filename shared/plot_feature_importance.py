@@ -9,10 +9,10 @@ sns.set_theme(style="white")  # white background without grid
 plt.rcParams.update({
     "font.family": "Arial",
     "axes.titlesize": 20,
-    "axes.labelsize": 24,
-    "xtick.labelsize": 20,
-    "ytick.labelsize": 20,
-    "legend.fontsize":40
+    "axes.labelsize": 20,
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16,
+    "legend.fontsize":14
     })
 
 results_dir = Path(Path.home(),'results') if 'Users/gp' in str(Path.home()) else Path('D','CNC_Audio','gonza','results')
@@ -24,7 +24,7 @@ with open(Path(__file__).parent / 'config.json', 'r') as f:
 project_name = config['project_name']
 
 project_name = config["project_name"]
-scoring = config["scoring_metrics"]
+scoring = 'roc_auc'
 kfold_folder = config["kfold_folder"]
 stat_folder = config["stat_folder"]
 bootstrap_method = config["bootstrap_method"]
@@ -37,8 +37,11 @@ except:
 n_boot = int(config["n_boot"])
 bayes = bool(config["bayes"])
 
-tasks = config['tasks']
-dimensions = config['single_dimensions']
+#tasks = config['tasks']
+tasks = ['Animales__P']
+#dimensions = config['single_dimensions']
+dimensions = ['properties']
+
 y_labels = config['y_labels']
 
 def _path_no_empty(*parts):
@@ -58,7 +61,7 @@ def load_feature_importance(results_dir: Path, project_name: str, task: str, dim
     - hyp_opt, feature_selection: add these folders if True
     - filename: CSV filename
     """
-    folder_parts = [results_dir, project_name, 'feature_importance', task, dimension, y_label, stat_folder, scoring, bootstrap_method]
+    folder_parts = [results_dir, project_name, 'feature_importance_bayes' if config['bayes'] else 'feature_importance',task, dimension, y_label, scoring,stat_folder,bootstrap_method]
     if hyp_opt:
         folder_parts.append('hyp_opt')
     if feature_selection:
@@ -70,12 +73,12 @@ def load_feature_importance(results_dir: Path, project_name: str, task: str, dim
     return pd.read_csv(file_path)
 
 
-def bar_plot_feature_importance(feature_importance, feature_col='feature', importance_col='importance',
+def bar_plot_feature_importance(feature_importance, feature_col='Feature', importance_col='Importance', hue_col = 'Task',
                                 top_n: int = 10, sort_desc: bool = True, horizontal: bool = True,
-                                figsize=(10, 6), cmap: str = 'Blues', title: str = None,
+                                figsize=(10, 6), cmap: str = None, title: str = None,
                                 xlabel: str = 'Importance', ylabel: str = 'Feature',
                                 ax=None, save_path: str = None, show: bool = True, normalize: bool = False,
-                                reverse_palette: bool = True, bar_color: str = '#1f77b4'):
+                                reverse_palette: bool = True):
     """Create a bar plot (horizontal by default) for feature importance.
 
     - feature_importance: pd.DataFrame or CSV path
@@ -107,8 +110,8 @@ def bar_plot_feature_importance(feature_importance, feature_col='feature', impor
         importance_col = numeric_cols[0]
 
     # Keep only relevant columns
-    fi = fi[[feature_col, importance_col]].dropna()
-    fi = fi.groupby(feature_col, as_index=False)[importance_col].mean()
+    fi = fi[[hue_col, feature_col, importance_col]].dropna()
+    #fi = fi.groupby(feature_col, as_index=False)[importance_col].mean()
 
     if normalize:
         total = fi[importance_col].sum()
@@ -151,17 +154,11 @@ def bar_plot_feature_importance(feature_importance, feature_col='feature', impor
     sns.despine(ax=ax, offset=0)
 
     if horizontal:
-        if bar_color:
-            sns.barplot(x=importance_col, y=feature_col, data=fi, color=bar_color, ax=ax)
-        else:
-            sns.barplot(x=importance_col, y=feature_col, data=fi, palette=palette, ax=ax)
+        sns.barplot(x=importance_col, y=feature_col, data=fi, palette=palette, ax=ax,hue=hue_col)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
     else:
-        if bar_color:
-            sns.barplot(x=feature_col, y=importance_col, data=fi, color=bar_color, ax=ax)
-        else:
-            sns.barplot(x=feature_col, y=importance_col, data=fi, palette=palette, ax=ax)
+        sns.barplot(x=feature_col, y=importance_col, data=fi, palette=palette, ax=ax,hue=hue_col)
         ax.set_ylabel(xlabel)
         ax.set_xlabel(ylabel)
         plt.xticks(rotation=45, ha='right')
@@ -181,13 +178,13 @@ def bar_plot_feature_importance(feature_importance, feature_col='feature', impor
 
 if __name__ == '__main__':
     # example usage: iterate config combinations and plot the top 10 features
-    sns.set_palette('Blues')
+    #sns.set_palette('Blues')
 
     for task, dimension, y_label in itertools.product(tasks, dimensions, y_labels):
         try:
             fi = load_feature_importance(results_dir, project_name, task, dimension, y_label, stat_folder, scoring, bootstrap_method,
                                          hyp_opt=hyp_opt, feature_selection=feature_selection,
-                                         filename='feature_importance_lr_top10.csv')
+                                         filename='feature_importance.csv')
         except FileNotFoundError as e:
             print(e)
             continue
@@ -196,7 +193,7 @@ if __name__ == '__main__':
         folder_parts = [results_dir, project_name, 'plots', 'feature_importance', task, dimension, y_label]
         out_dir = _path_no_empty(*folder_parts)
         out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / 'feature_importance_top10.png'
-        bar_plot_feature_importance(fi, top_n=10, normalize=False, title=title, save_path=out_file, show=False)
+        out_file = out_dir / 'feature_importance.png'
+        bar_plot_feature_importance(fi, top_n=5, normalize=False, title=title, save_path=out_file, show=False, cmap=["#ebb45c","#D973C7"],horizontal=True)
         print(f"Saved plot: {out_file}")
     

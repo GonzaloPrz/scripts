@@ -55,7 +55,7 @@
                 ],
                 "Proyecto_Ivo": [
                     "nps",
-                    "Animales",
+                    "Animales__P",
                     "brain",
                     "connectivity"
                 ],
@@ -172,6 +172,7 @@
                                             ["bio"]
                                     },
                                     "Proyecto_Ivo": {
+                                                "Animales": ["properties"],
                                                 "Animales__P": ["properties"],
                                                 "nps": ["executive"],
                                                 "brain": ["norm_brain_lit"],

@@ -70,10 +70,13 @@ y_labels = main_config['y_labels'][project_name]
 metrics_names = main_config["metrics_names"][problem_type]
 data_file = main_config["data_file"][project_name]
 
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+try:
+    cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+except:
+    cmatrix = None
 
 for scoring in scoring_metrics:
-    best_models_file = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_calibrated_bayes.csv'.replace('__','_')
+    best_models_file = f'best_best_models_{scoring}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_calibrated_bayes.csv'.replace('__','_')
     if not hyp_opt:
         best_models_file = best_models_file.replace('_hyp_opt','')
     if not feature_selection:
@@ -99,8 +102,8 @@ for scoring in scoring_metrics:
                 continue
 
             # Load data for both models
-            IDs1, outputs1, y_dev1 = utils._load_data(results_dir,tasks[0],dimensions[0],y_label,best1.model_type,'',config, bayes=True, scoring=scoring)
-            IDs2, outputs2, y_dev2 = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
+            IDs1, outputs1, y_dev1,_,_,_ = utils._load_data(results_dir,tasks[0],dimensions[0],y_label,best1.model_type,'',config, bayes=True, scoring=scoring)
+            IDs2, outputs2, y_dev2,_,_,_ = utils._load_data(results_dir, tasks[1], dimensions[1], y_label, best2.model_type, '', config, bayes=True, scoring=scoring)
 
             # Align outputs based on IDs
             common_IDs = np.intersect1d(IDs1, IDs2)

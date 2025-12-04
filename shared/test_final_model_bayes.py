@@ -50,7 +50,11 @@ else:
 
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
-thresholds = main_config['thresholds'][project_name]
+try:
+    thresholds = main_config['thresholds'][project_name]
+except KeyError:
+    thresholds =[None]
+
 data_file = main_config["data_file"][project_name]
 
 try:

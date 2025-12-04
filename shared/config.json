@@ -1,8 +1,8 @@
 {
     "project_name": "Proyecto_Ivo",
     "stats": "",
-    "shuffle_labels": false,
-    "shuffle_all": true,
+    "shuffle_labels": true,
+    "shuffle_all": false,
     "stratify": true,
     "calibrate": false,
     "n_folds_outer": 3.0,
@@ -11,14 +11,14 @@
     "feature_selection": true,
     "init_points": 50.0,
     "n_seeds_train": 10.0,
-    "n_seeds_shuffle": 0.0,
+    "n_seeds_shuffle": 10.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
     "n_boot": 1000.0,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
     "filter_outliers": false,
-    "early_fusion": true,
+    "early_fusion": false,
     "overwrite": false,
     "parallel": true,
     "n_seeds_test": 0,
@@ -31,11 +31,14 @@
     "data_file": "all_data.csv",
     "tasks": [
         "nps",
-        "Animales",
+        "Animales__P",
         "brain",
         "connectivity"
     ],
     "single_dimensions": {
+        "Animales": [
+            "properties"
+        ],
         "Animales__P": [
             "properties"
         ],
@@ -70,7 +73,16 @@
         ""
     ],
     "random_seeds_shuffle": [
-        ""
+        3.0,
+        9.0,
+        27.0,
+        81.0,
+        243.0,
+        729.0,
+        2187.0,
+        6561.0,
+        19683.0,
+        59049.0
     ],
     "bayes": true,
     "covariates": [],

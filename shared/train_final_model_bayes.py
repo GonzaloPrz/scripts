@@ -60,8 +60,16 @@ else:
 main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 
 data_file = main_config['data_file'][project_name]
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
-thresholds = main_config['thresholds'][project_name]
+
+try:
+    cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+except KeyError:
+    cmatrix = None
+
+try:
+    thresholds = main_config['thresholds'][project_name]
+except KeyError:
+    thresholds =[None]
 
 try:
     covars = main_config['covars'][project_name] if problem_type == 'reg' else []

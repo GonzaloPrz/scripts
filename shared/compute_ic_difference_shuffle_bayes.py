@@ -68,9 +68,12 @@ main_config = json.load(Path(Path(__file__).parent,'main_config.json').open())
 metrics_names = main_config["metrics_names"][problem_type]
 data_file = main_config["data_file"][project_name]
 
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
-
-best_models_file_shuffled = f'best_best_models_{scoring}_{kfold_folder}_{scaler_name}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
+try:
+    cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+except:
+    cmatrix = None
+    
+best_models_file_shuffled = f'best_best_models_{scoring}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_shuffled_calibrated_bayes.csv'.replace('__','_')
 if not hyp_opt:
     best_models_file_shuffled = best_models_file_shuffled.replace('_hyp_opt','')
 if not feature_selection:
@@ -100,9 +103,9 @@ for r, row in best_models.iterrows():
 
     # Load data for both models
     config['shuffle_labels'] = False
-    outputs1, y_dev1 = utils._load_data(results_dir,task,dimension,y_label,best.model_type,'',config, bayes=True, scoring=scoring)
+    _, outputs1, y_dev1,_,_,_ = utils._load_data(results_dir,task,dimension,y_label,best.model_type,'',config, bayes=True, scoring=scoring)
     config['shuffle_labels'] = True
-    outputs2, y_dev2 = utils._load_data(results_dir, task, dimension, y_label, best_shuffled.model_type, '', config, bayes=True, scoring=scoring)
+    _, outputs2, y_dev2,_,_,_ = utils._load_data(results_dir, task, dimension, y_label, best_shuffled.model_type, '', config, bayes=True, scoring=scoring)
 
     # Ensure the datasets are comparable
     try:
@@ -159,7 +162,7 @@ for r, row in best_models.iterrows():
         est = point_estimates[i]
         distribution = res.bootstrap_distribution[i] if est > 0 else -res.bootstrap_distribution[i]
         ci_low, ci_high = res.confidence_interval.low[i], res.confidence_interval.high[i]
-        result_row[metric] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
+        result_row[metric] = f"{est:.2f}, ({ci_low:.2f}, {ci_high:.2f})"
         result_row[f'p_value_{metric}'] = 2*np.round(percentileofscore(distribution,0) / 100.0,3)
     
     if all_results.empty:

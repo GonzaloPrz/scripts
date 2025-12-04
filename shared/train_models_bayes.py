@@ -32,15 +32,15 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='affective_pitch',type=str,help='Project name')
+    parser.add_argument('--project_name', default='Proyecto_Ivo',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=float, default=5, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=float, default=5, help='Number of folds for cross validation (inner loop)')
-    parser.add_argument('--n_iter', type=int, default=20, help='Number of hyperparameter iterations')
-    parser.add_argument('--init_points', type=int, default=20, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_folds_outer', type=float, default=3, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=float, default=11, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
+    parser.add_argument('--init_points', type=int, default=50, help='Number of random initial points to test during Bayesian optimization')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
     parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
@@ -51,8 +51,8 @@ def parse_args():
     parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap iterations for testing')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
-    parser.add_argument('--overwrite',type=int,default=1,help='Whether to overwrite past results or not')
+    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
+    parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
     parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
@@ -164,7 +164,6 @@ models_dict = {'clf':{
                     'lr':LR,
                     'knnc':KNNC,
                     'xgb':xgboost,
-                    'svc':SVC,
                     #'qda':QDA,
                     #'lda': LDA
                     },
@@ -458,7 +457,7 @@ for task in tasks:
                                                                                         calmethod=calmethod,
                                                                                         calparams=calparams,
                                                                                         round_values=round_values,
-                                                                                        covariates=covariates
+                                                                                        covariates=covariates if isinstance(covariates,pd.DataFrame) else None,
                                                                                         )
                 
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(parents=True, exist_ok=True)
@@ -467,22 +466,22 @@ for task in tasks:
                 
                     all_models.to_csv(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '',f'all_models_{model_key}.csv'),index=False)
                     result_files = {
-                        'X_train.pkl': X_train_,
-                        'y_train.pkl': y_train_,
-                        'IDs_train.pkl': ID_train_,
-                        'y_dev.pkl': y_dev,
-                        'IDs_dev.pkl': IDs_dev,
-                        f'outputs_{model_key}.pkl': outputs_best}
+                        'X_train.npy': X_train_,
+                        'y_train.npy': y_train_,
+                        'IDs_train.npy': ID_train_,
+                        'y_dev.npy': y_dev,
+                        'IDs_dev.npy': IDs_dev,
+                        f'outputs_{model_key}.npy': outputs_best}
                     
                     if test_size > 0:
                         result_files.update({
-                            'X_test.pkl': X_test_,
-                            'y_test.pkl': y_test_,
-                            'IDs_test.pkl': ID_test_,
+                            'X_test.npy': X_test_,
+                            'y_test.npy': y_test_,
+                            'IDs_test.npy': ID_test_,
                         })
                     for fname, obj in result_files.items():
                         with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', fname), 'wb') as f:
-                            pickle.dump(obj, f)
+                            np.save(f, obj)
                     
                     with open(Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '', 'config.json'), 'w') as f:
                         json.dump(config, f, indent=4)
