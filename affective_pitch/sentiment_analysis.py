@@ -45,4 +45,4 @@ for r, row in transcripts.iterrows():
     transcripts.at[r,'Fugu__sentiment__ratio_NEG'] = sum([1 for sent in sentiments if sent == 'NEG']) / len(sentences)
     transcripts.at[r,'Fugu__sentiment__ratio_NEU'] = sum([1 for sent in sentiments if sent == 'NEU']) / len(sentences)
 
-transcripts.to_csv(Path(base_dir,'transcripts_fugu_matched_group.csv'),index=False)
+transcripts.to_csv(Path(base_dir,'transcripts_fugu_matched_group_sentiment.csv'),index=False)
