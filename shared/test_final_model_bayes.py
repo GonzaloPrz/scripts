@@ -25,6 +25,7 @@ late_fusion = False
 config = json.load(Path(Path(__file__).parent,'config.json').open())
 
 project_name = config["project_name"]
+id_col = config['id_col']
 scaler_name = config['scaler_name']
 stat_folder = config['stat_folder']
 kfold_folder = config['kfold_folder']
@@ -41,6 +42,7 @@ overwrite = bool(config["overwrite"])
 scoring = config['scoring_metric']
 problem_type = config['problem_type']
 regress_out = bool(config['regress_out']) if problem_type == 'reg' else False
+y_labels = config['y_labels']
 
 home = Path(os.environ.get("HOME", Path.home()))
 if "Users/gp" in str(home):
@@ -63,7 +65,11 @@ except:
     covars = []
     
 metrics_names_ = main_config['metrics_names'][problem_type]
-cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+
+try:
+    cmatrix = CostMatrix(np.array(main_config["cmatrix"][project_name])) if main_config["cmatrix"][project_name] is not None else None
+except:
+    cmatrix = None
 
 ##---------------------------------PARAMETERS---------------------------------##
 data_dir = Path(Path.home(),'data',project_name) if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data',project_name)
@@ -75,6 +81,7 @@ correction = 'fdr_bh'
 
 covariates = pd.read_csv(Path(data_dir,data_file))[[config["id_col"]]+covars]
 
+covariates[id_col] = covariates[id_col].astype(str)
 method = 'pearson'
 
 filename = f'best_best_models_{scoring}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes_corr_{covars[-1]}.csv'.replace('__','_') if len(covars) > 0 else f'best_best_models_{scoring}_{kfold_folder}_{stat_folder}_{config["bootstrap_method"]}_hyp_opt_feature_selection_filter_outliers_round_cut_shuffled_calibrated_bayes.csv'.replace('__','_')
@@ -109,24 +116,38 @@ for r, row in best_models.iterrows():
 
     print(task,dimension,model_type,y_label)
     try:
-        trained_model = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'model_{model_type}.pkl'),'rb'))
-        trained_scaler = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'scaler_{model_type}.pkl'),'rb'))
-        trained_imputer = pickle.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'imputer_{model_type}.pkl'),'rb'))
+        trained_model = np.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'model_{model_type}.npy'),'rb'),allow_pickle=True)
+        trained_scaler = np.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'scaler_{model_type}.npy'),'rb'),allow_pickle=True)
+        trained_imputer = np.load(open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'imputer_{model_type}.npy'),'rb'),allow_pickle=True)
     except:
         continue
 
-    path_to_results = Path(save_dir,task,dimension,kfold_folder,y_label,stat_folder,'bayes',scoring,'hyp_opt','feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
-
-    X_train = pickle.load(open(Path(path_to_results,random_seed_test,'X_train.pkl'),'rb'))
-    y_train = pickle.load(open(Path(path_to_results,random_seed_test,'y_train.pkl'),'rb'))
-    IDs_train = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_train.pkl'),'rb'))
-
-    X_test = pickle.load(open(Path(path_to_results,random_seed_test,'X_test.pkl'),'rb'))
-    y_test = pickle.load(open(Path(path_to_results,random_seed_test,'y_test.pkl'),'rb'))
-    IDs_test = pickle.load(open(Path(path_to_results,random_seed_test,'IDs_test.pkl'),'rb'))
-    params = trained_model.get_params()
-    features = trained_model.feature_names_in_
+    path_to_results = Path(save_dir,task,dimension,kfold_folder,y_label,stat_folder,scoring,'hyp_opt','feature_selection' if feature_selection else '', 'filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','filter_outliers' if filter_outliers and problem_type == 'reg' else '','shuffle' if shuffle_labels else '',"shuffle" if shuffle_labels else "")
     
+    data_train = pd.read_csv(Path(path_to_results,'data_train.csv'))
+    columns_train = list(set(data_train.columns)  - set(y_labels + ['id']))
+
+    X_train = np.load(open(Path(path_to_results,random_seed_test,'X_train.npy'),'rb'),allow_pickle=True)
+    y_train = np.load(open(Path(path_to_results,random_seed_test,'y_train.npy'),'rb'),allow_pickle=True)
+    IDs_train = np.load(open(Path(path_to_results,random_seed_test,'IDs_train.npy'),'rb'),allow_pickle=True)
+    
+    X_test = pd.read_csv(Path(path_to_results,random_seed_test,'data_test.csv'))
+    columns_test = list(set(data_train.columns)  - set(y_labels + ['id']))
+
+    columns = list(set(columns_train) & set(columns_test))
+
+    y_test = np.load(open(Path(path_to_results,random_seed_test,'y_test.npy'),'rb'),allow_pickle=True)
+    IDs_test = np.load(open(Path(path_to_results,random_seed_test,'IDs_test.npy'),'rb'),allow_pickle=True)
+    params = trained_model.get_params()
+
+    features = list(set(trained_model.feature_names_in_).intersection(set(columns_test)))
+
+    if not isinstance(X_train,pd.DataFrame):
+        X_train = pd.DataFrame(data=X_train,columns=columns_train)    
+    
+    if not isinstance(X_test,pd.DataFrame):
+        X_test = pd.DataFrame(data=X_test,columns=columns_test)
+
     if 'probability' in params.keys():
         params['probability'] = True
 
@@ -140,8 +161,8 @@ for r, row in best_models.iterrows():
     except:
         continue
     subfolders = [
-            task, dimension, config['scaler_name'],
-            config['kfold_folder'], y_label, config['stat_folder'],'bayes',scoring,
+            task, dimension,
+            config['kfold_folder'], y_label, config['stat_folder'],scoring,
             'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
             'filter_outliers' if config['filter_outliers'] and problem_type == 'reg' else '',
             'shuffle' if config['shuffle_labels'] else '',random_seed_test
@@ -149,7 +170,7 @@ for r, row in best_models.iterrows():
 
     path_to_save = results_dir.joinpath(*[str(s) for s in subfolders if s])
     
-    pickle.dump(outputs,open(Path(path_to_save,f'outputs_test_{model_type}.pkl'),'wb'))
+    np.save(open(str(Path(path_to_save,f'outputs_test_{model_type}.npy')),'wb'),outputs)
     # Prepare data for bootstrap: a tuple of index arrays to resample
     data_indices = (np.arange(y_test.shape[-1]),)
 
@@ -195,7 +216,7 @@ for r, row in best_models.iterrows():
         best_models.loc[r,f'{metric}_holdout'] = f"{est:.3f}, ({ci_low:.3f}, {ci_high:.3f})"
     
     if problem_type == 'reg':
-        predictions = pd.DataFrame({'id':IDs_test.values.flatten(),'y_pred':outputs.flatten(),'y_true':y_test.values.flatten()})
+        predictions = pd.DataFrame({'id':IDs_test.flatten(),'y_pred':outputs.flatten(),'y_true':y_test.flatten()})
     else:
         _, y_pred = utils.get_metrics_clf(outputs, y_test, [], cmatrix=cmatrix, priors=None, threshold=None)
         predictions = {'id':IDs_test.values.flatten() if isinstance(IDs_test,pd.Series) else IDs_test,'y_pred':y_pred.flatten(),'y_true':y_test.values.flatten() if isinstance(y_test,pd.Series) else y_test.flatten()}
@@ -229,14 +250,10 @@ for r, row in best_models.iterrows():
 
         Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '', random_seed_test).mkdir(exist_ok=True,parents=True)
 
-        with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.pkl'),'wb') as f:
+        with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.npy'),'wb') as f:
             pickle.dump(predictions,f)
         predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed_test,f'predictions_test.csv'),index=False)
     
-        if all([shapiro(predictions['y_pred'])[1] > 0.05,shapiro(predictions['y_true'])[1] > 0.05]):
-            method = 'pearson'
-        else:
-            method = 'spearman'
 
         try:
             results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)

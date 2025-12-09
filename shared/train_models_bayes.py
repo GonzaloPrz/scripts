@@ -32,16 +32,17 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Train models with hyperparameter optimization and feature selection'
     )
-    parser.add_argument('--project_name', default='Proyecto_Ivo',type=str,help='Project name')
+    parser.add_argument('--project_name', default='crossling_mci',type=str,help='Project name')
     parser.add_argument('--stats', type=str, default='', help='Stats to be considered (default = all)')
     parser.add_argument('--shuffle_labels', type=int, default=0, help='Shuffle labels flag (1 or 0)')
     parser.add_argument('--stratify', type=int, default=1, help='Stratification flag (1 or 0)')
     parser.add_argument('--calibrate', type=int, default=0, help='Whether to calibrate models')
-    parser.add_argument('--n_folds_outer', type=float, default=3, help='Number of folds for cross validation (outer loop)')
-    parser.add_argument('--n_folds_inner', type=float, default=11, help='Number of folds for cross validation (inner loop)')
-    parser.add_argument('--n_iter', type=int, default=15, help='Number of hyperparameter iterations')
-    parser.add_argument('--init_points', type=int, default=50, help='Number of random initial points to test during Bayesian optimization')
+    parser.add_argument('--n_folds_outer', type=float, default=5, help='Number of folds for cross validation (outer loop)')
+    parser.add_argument('--n_folds_inner', type=float, default=5, help='Number of folds for cross validation (inner loop)')
+    parser.add_argument('--n_iter', type=int, default=20, help='Number of hyperparameter iterations')
+    parser.add_argument('--init_points', type=int, default=20, help='Number of random initial points to test during Bayesian optimization')
     parser.add_argument('--feature_selection',type=int,default=1,help='Whether to perform feature selection with RFE or not')
+    parser.add_argument('--fill_na',type=int,default=0,help='Values to fill nan with. Default (=0) means no filling (imputing instead)')
     parser.add_argument('--n_seeds_train',type=int,default=10,help='Number of seeds for cross-validation training')
     parser.add_argument('--n_seeds_shuffle',type=int,default=1,help='Number of seeds for shuffling')
     parser.add_argument('--scaler_name', type=str, default='StandardScaler', help='Scaler name')
@@ -51,9 +52,9 @@ def parse_args():
     parser.add_argument('--n_boot_test',type=int,default=1000,help='Number of bootstrap iterations for testing')
     parser.add_argument('--shuffle_all',type=int,default=1,help='Whether to shuffle all models or only the best ones')
     parser.add_argument('--filter_outliers',type=int,default=0,help='Whether to filter outliers in regression problems')
-    parser.add_argument('--early_fusion',type=int,default=0,help='Whether to perform early fusion')
+    parser.add_argument('--early_fusion',type=int,default=1,help='Whether to perform early fusion')
     parser.add_argument('--overwrite',type=int,default=0,help='Whether to overwrite past results or not')
-    parser.add_argument('--parallel',type=int,default=1,help='Whether to parallelize processes or not')
+    parser.add_argument('--parallel',type=int,default=0,help='Whether to parallelize processes or not')
     parser.add_argument('--n_seeds_test',type=int,default=1,help='Number of seeds for testing')
     parser.add_argument('--bootstrap_method',type=str,default='bca',help='Bootstrap method [bca, percentile, basic]')
     parser.add_argument('--round_values',type=int,default=0,help='Whether to round predicted values for regression or not')
@@ -75,6 +76,7 @@ def load_configuration(args):
         n_folds_inner = float(args.n_folds_inner),
         n_iter = float(args.n_iter),
         feature_selection = bool(args.feature_selection),
+        fill_na = int(args.fill_na),
         init_points = float(args.init_points),
         n_seeds_train = float(args.n_seeds_train) if args.n_folds_outer!= -1 else float(1),
         n_seeds_shuffle = float(args.n_seeds_shuffle) if args.shuffle_labels else float(0),
@@ -104,6 +106,7 @@ add_dem = config['add_dem']
 round_values = config['round_values']
 cut_values = config['cut_values']
 regress_out = config['regress_out']
+fill_na = config['fill_na'] if config['fill_na'] != 0 else None
 
 logging.info('Configuration loaded. Starting training...')
 logging.info('Training completed.')
@@ -145,7 +148,7 @@ config['tasks'] = tasks
 config['single_dimensions'] = single_dimensions    
 
 config['y_labels'] = y_labels
-config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
+config['avoid_stats'] = list(set(['min','max','median','skewness','kurtosis','std','mean','stddev']) - set(config['stats'].split('_'))) if config['stats'] != '' else []
 config['stat_folder'] = '_'.join(sorted(config['stats'].split('_')))
 
 config['random_seeds_train'] = [int(3**x) for x in np.arange(1, config['n_seeds_train']+1)]
@@ -171,8 +174,8 @@ models_dict = {'clf':{
                 'reg':{'lasso':Lasso,
                     'ridge':Ridge,
                     'elastic':ElasticNet,
-                    'knnr':KNNR,
-                   'svr':SVR,
+                   #'knnr':KNNR,
+                   #'svr':SVR,
                     #'xgb':xgboostr
                     }
 }
@@ -202,7 +205,11 @@ for task in tasks:
             dimensions = [single_dimensions_]
 
         for dimension in dimensions:            
-            all_data = pd.read_csv(Path(data_dir,data_file))
+            try:
+                all_data = pd.read_csv(Path(data_dir,data_file))
+            except:
+                all_data = pd.read_csv(Path(data_dir,data_file),encoding='latin1')
+
             all_data = all_data.loc[:, ~all_data.columns.str.match(r'^Unnamed')]
 
             features = [col for col in all_data.columns if any(f'{x}__{y}__' in col for x,y in itertools.product(task.split('__'),dimension.split('__'))) and 'timestamp' not in col]
@@ -225,18 +232,23 @@ for task in tasks:
             
             print(task,dimension)
             data = all_data[features + [y_label, config['id_col']]]
+            data.dropna(axis=1,how='all',inplace=True)
             data.dropna(subset=y_label,inplace=True)
             if cut_values > 0:
                 data = data[data[y_label] <= cut_values]
             
             data = data.reset_index(drop=True)
     
-            if len(np.unique(data[y_label])) > 4:
+            if len(np.unique(data[y_label])) > 3:
                 config['problem_type'] = 'reg'
                 scoring_metric = 'r2'
             else:
                 config['problem_type'] = 'clf'
                 scoring_metric = 'roc_auc' if len(np.unique(data[y_label])) == 2 else 'norm_expected_cost'
+
+            if config['project_name'] == 'crossling_mci':
+                config['problem_type'] = 'reg'
+                scoring_metric = 'r2'
 
             if config['problem_type'] == 'reg' and config['filter_outliers']:
                 all_data = all_data[np.abs((all_data[y_label] - all_data[y_label].mean()) / all_data[y_label].std()) < 2]
@@ -458,6 +470,7 @@ for task in tasks:
                                                                                         calparams=calparams,
                                                                                         round_values=round_values,
                                                                                         covariates=covariates if isinstance(covariates,pd.DataFrame) else None,
+                                                                                        fill_na = fill_na
                                                                                         )
                 
                     Path(path_to_save,f'random_seed_{int(random_seed_test)}' if config['test_size'] else '').mkdir(parents=True, exist_ok=True)

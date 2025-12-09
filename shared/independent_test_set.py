@@ -20,8 +20,10 @@ y_labels = config["y_labels"]
 tasks = config["tasks"]
 bayes = config['bayes']
 hyp_opt = config["n_iter"] > 0
-feature_selection = config["n_iter_features"] > 0
-
+try:
+    feature_selection = config["n_iter_features"] > 0
+except:
+    feature_selection = config['feature_selection']
 problem_type = config['problem_type']
 id_col = config['id_col']
 
@@ -58,13 +60,13 @@ for y_label, task in itertools.product(y_labels, tasks):
         ID = data.pop(id_col)
         y = data.pop(y_label)
 
-        path_to_save = Path(results_dir, task, dimension, scaler_name,kfold_folder,y_label,stat_folder,'bayes' if bayes else '',config['scoring_metric'] if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '')
+        path_to_save = Path(results_dir, task, dimension,kfold_folder,y_label,stat_folder,config['scoring_metric'] if bayes else '','hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '')
         
         path_to_save.mkdir(parents=True, exist_ok=True)
 
-        with open(Path(path_to_save, 'X_test.pkl'), 'wb') as f:
-            pickle.dump(data,f)
-        with open(Path(path_to_save, 'y_test.pkl'), 'wb') as f:
-            pickle.dump(y.values,f)
-        with open(Path(path_to_save, 'IDs_test.pkl'), 'wb') as f:
-            pickle.dump(ID.values,f)
+        data.to_csv(Path(path_to_save,'data_test.csv'),index=False)
+        
+        with open(str(Path(path_to_save, 'y_test.npy')), 'wb') as f:
+            np.save(f,y.values)
+        with open(str(Path(path_to_save, 'IDs_test.npy')), 'wb') as f:
+            np.save(f,ID.values)

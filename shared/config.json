@@ -1,24 +1,25 @@
 {
-    "project_name": "Proyecto_Ivo",
+    "project_name": "crossling_mci",
     "stats": "",
-    "shuffle_labels": true,
-    "shuffle_all": false,
+    "shuffle_labels": false,
+    "shuffle_all": true,
     "stratify": true,
     "calibrate": false,
-    "n_folds_outer": 3.0,
-    "n_folds_inner": 11.0,
-    "n_iter": 15.0,
+    "n_folds_outer": 5.0,
+    "n_folds_inner": 5.0,
+    "n_iter": 20.0,
     "feature_selection": true,
-    "init_points": 50.0,
+    "fill_na": 0,
+    "init_points": 20.0,
     "n_seeds_train": 10.0,
-    "n_seeds_shuffle": 10.0,
+    "n_seeds_shuffle": 0.0,
     "scaler_name": "StandardScaler",
     "id_col": "id",
     "n_boot": 1000.0,
     "n_boot_test": 1000.0,
     "n_boot_train": 0.0,
     "filter_outliers": false,
-    "early_fusion": false,
+    "early_fusion": true,
     "overwrite": false,
     "parallel": true,
     "n_seeds_test": 0,
@@ -28,32 +29,19 @@
     "cut_values": -1.0,
     "regress_out": [],
     "test_size": 0.0,
-    "data_file": "all_data.csv",
+    "data_file": "data_french.csv",
     "tasks": [
-        "nps",
-        "Animales__P",
-        "brain",
-        "connectivity"
+        "positive",
+        "negative"
     ],
-    "single_dimensions": {
-        "Animales": [
-            "properties"
-        ],
-        "Animales__P": [
-            "properties"
-        ],
-        "nps": [
-            "executive"
-        ],
-        "brain": [
-            "norm_brain_lit"
-        ],
-        "connectivity": [
-            "networks"
-        ]
-    },
+    "single_dimensions": [
+        "all"
+    ],
     "y_labels": [
-        "target"
+        "NPI_Anxiety_Severity",
+        "NPI_Depression_Severity",
+        "NPI_Apathy_Severity",
+        "NPI_Agitation_Severity"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -73,20 +61,11 @@
         ""
     ],
     "random_seeds_shuffle": [
-        3.0,
-        9.0,
-        27.0,
-        81.0,
-        243.0,
-        729.0,
-        2187.0,
-        6561.0,
-        19683.0,
-        59049.0
+        ""
     ],
     "bayes": true,
     "covariates": [],
-    "problem_type": "clf",
-    "kfold_folder": "3_folds_11_folds",
-    "scoring_metric": "roc_auc"
+    "problem_type": "reg",
+    "kfold_folder": "5_folds_5_folds",
+    "scoring_metric": "r2"
 }

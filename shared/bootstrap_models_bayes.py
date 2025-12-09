@@ -121,17 +121,12 @@ for task in tasks:
                             if len(row) > 0:
                                 continue
                         
-                        if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.pkl",config,bayes=True,scoring=scoring).exists():
+                        if not utils._build_path(results_dir,task,dimension,y_label,random_seed,f"outputs_{model_type}.npy",config,bayes=True,scoring=scoring).exists():
                             continue
                         
                         _,outputs, y_dev,_,_,_ = utils._load_data(results_dir,task,dimension,y_label,model_type,random_seed,config,bayes=True,scoring=scoring)
 
-                        if len(np.unique(y_dev)) > 4:
-                            problem_type = 'reg'
-                            scoring = 'r2'
-                        else:
-                            problem_type = 'clf'
-                            scoring = 'roc_auc' if np.unique(y_dev).shape[0] == 2 else 'norm_expected_cost'
+                        problem_type = config['problem_type']
                         
                         metrics_names = main_config["metrics_names"][problem_type]
                         scoring_col = f'{scoring}_extremo'

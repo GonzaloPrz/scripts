@@ -45,7 +45,9 @@ for r, row in transcripts.iterrows():
             sr = audio.frame_rate
             audio.export(audio_path, format="wav") 
         audio, sr = sf.read(audio_path)
-    for s, sentence in enumerate(sentences):
+    s = 0
+    for sentence in sentences:
+        
         if len(sentence.split(' ')) < 5:
             continue
 
@@ -69,8 +71,10 @@ for r, row in transcripts.iterrows():
             end_sample = int(end_time * sr)
             sentence_audio = audio[start_sample:end_sample]
 
-            sentence_filename = f"{row['id']}_Fugu_sentence_{s+1}.wav"
+            sentence_filename = f"{row['id']}_Fugu__sentence_{s+1}.wav"
             sentence_output_path = Path(output_dir, sentiments[s],sentence_filename)
             sf.write(sentence_output_path, sentence_audio, sr)
             sentence_output_path = Path(output_dir, 'ALL',sentence_filename)
             sf.write(sentence_output_path, sentence_audio, sr)
+            
+            s += 1

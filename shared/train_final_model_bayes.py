@@ -150,30 +150,28 @@ for threshold in thresholds:
 
             for random_seed in random_seeds:
                 
-                y_dev = pickle.load(open(Path(path_to_results,random_seed,'y_dev.pkl'),'rb'))
-                X_train = pickle.load(open(Path(path_to_results,random_seed,'X_train.pkl'),'rb'))
-                y_train = pickle.load(open(Path(path_to_results,random_seed,'y_train.pkl'),'rb'))
-                outputs_dev = pickle.load(open(Path(path_to_results,random_seed,f'outputs_{model_type}.pkl'),'rb'))
+                y_dev = np.load(open(Path(path_to_results,random_seed,'y_dev.npy'),'rb'),allow_pickle=True)
+                X_train = np.load(open(Path(path_to_results,random_seed,'X_train.npy'),'rb'),allow_pickle=True)
+                y_train = np.load(open(Path(path_to_results,random_seed,'y_train.npy'),'rb'),allow_pickle=True)
+                outputs_dev = np.load(open(Path(path_to_results,random_seed,f'outputs_{model_type}.npy'),'rb'),allow_pickle=True)
                 
-                IDs = pickle.load(open(Path(path_to_results,random_seed,'IDs_dev.pkl'),'rb'))
+                IDs = np.load(open(Path(path_to_results,random_seed,'IDs_dev.npy'),'rb'),allow_pickle=True)
 
-                if len(np.unique(y_train)) > 4:
+                if problem_type == 'reg':
                     y_pred = np.round(outputs_dev,decimals=0) if config['round_values'] else outputs_dev
                     predictions = pd.DataFrame({'id':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_dev.flatten()})
-                    problem_type = 'reg'
                 else:
                     _, y_pred = utils.get_metrics_clf(outputs_dev, y_dev, [], cmatrix=cmatrix, priors=None, threshold=threshold)
                     predictions = {'id':IDs.flatten(),'y_pred':y_pred.flatten(),'y_true':y_dev.flatten()}
                     for c in range(outputs_dev.shape[-1]):
                         predictions[f'outputs_class_{c}'] = outputs_dev[:,:,c].flatten()
                     predictions = pd.DataFrame(predictions)
-                    problem_type = 'clf'
                     
                 predictions = predictions.drop_duplicates('id')
 
                 Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '', random_seed).mkdir(exist_ok=True,parents=True)
 
-                with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.pkl'),'wb') as f:
+                with open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.npy'),'wb') as f:
                     pickle.dump(predictions,f)
                 predictions.to_csv(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'predictions_dev.csv'),index=False)
 
@@ -196,8 +194,6 @@ for threshold in thresholds:
                     #else:
                     #    method = 'spearman'
                     
-                    method = 'pearson'
-
                     if len(covars) != 0: 
                         results = partial_corr(data=predictions,x='y_pred',y='y_true',covar=covars,method=method)
                         n, r, ci, p = results.loc[method,'n'], results.loc[method,'r'], results.loc[method,'CI95%'], results.loc[method,'p-val']
@@ -243,7 +239,7 @@ for threshold in thresholds:
                         continue
                     plt.close()
 
-                if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','rounded' if round_values else '','cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl').exists() and not overwrite:
+                if Path(results_dir,f'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','rounded' if round_values else '','cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.npy').exists() and not overwrite:
                     print('Model already exists')
                     continue
                 
@@ -330,9 +326,9 @@ for threshold in thresholds:
                 else:
                     print(task,dimension,f'No feature importance available for {model_type}')
 
-                pickle.dump(model.model,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.pkl'),'wb'))
-                pickle.dump(model.scaler,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'scaler_{model_type}.pkl'),'wb'))
-                pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'imputer_{model_type}.pkl'),'wb'))  
+                pickle.dump(model.model,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'model_{model_type}.npy'),'wb'))
+                pickle.dump(model.scaler,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'scaler_{model_type}.npy'),'wb'))
+                pickle.dump(model.imputer,open(Path(results_dir,'final_models_bayes',task,dimension,y_label,stat_folder,scoring,config["bootstrap_method"],'hyp_opt' if hyp_opt else '','feature_selection' if feature_selection else '','filter_outliers' if filter_outliers else '','rounded' if round_values else '', 'cut' if cut_values else '','shuffle' if shuffle_labels else '',random_seed,f'imputer_{model_type}.npy'),'wb'))  
 
         if problem_type == 'reg':
             best_models = pd.concat((best_models,corr_results), axis=1) 

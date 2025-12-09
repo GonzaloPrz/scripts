@@ -21,18 +21,27 @@ for r, row in transcripts.iterrows():
     doc = nlp(transcript)
     sentences = [sent.text.strip() for sent in doc.sents if len(sent.text.strip())>0]
 
-    sentiments = np.zeros(len(sentences),dtype=object)
-    probas_pos = np.zeros(len(sentences),dtype=float)
-    probas_neg = np.zeros(len(sentences),dtype=float)
-    probas_neu = np.zeros(len(sentences),dtype=float)
+    sentiments = np.full(len(sentences),fill_value=np.nan,dtype=object)
+    probas_pos = np.full(len(sentences),fill_value=np.nan,dtype=object)
+    probas_neg = np.full(len(sentences),fill_value=np.nan,dtype=object)
+    probas_neu = np.full(len(sentences),fill_value=np.nan,dtype=object)
 
     for s,sentence in enumerate(sentences):
+        if len(sentence.split(' ')) < 5:
+            continue
+
         sentiment = analyzer.predict(sentence)
         sentiments[s] = sentiment.output
         probas_pos[s] = sentiment.probas['POS']
         probas_neg[s] = sentiment.probas['NEG']
         probas_neu[s] = sentiment.probas['NEU']
     
+    #Eliminate nan values
+    sentiments = np.array([sentiments[i] for i in range(len(sentiments)) if not pd.isna(sentiments[i])])
+    probas_pos = np.array([probas_pos[i] for i in range(len(probas_pos)) if not pd.isna(probas_pos[i])])
+    probas_neg = np.array([probas_neg[i] for i in range(len(probas_neg)) if not pd.isna(probas_neg[i])])
+    probas_neu = np.array([probas_neu[i] for i in range(len(probas_neu)) if not pd.isna(probas_neu[i])])
+
     transcripts.at[r,'sentiments'] = str(sentiments)
     transcripts.at[r,'pos_proba'] = str(probas_pos)
     transcripts.at[r,'neg_proba'] = str(probas_neg)
