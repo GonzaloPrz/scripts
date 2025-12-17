@@ -362,7 +362,7 @@ for task in tasks:
 
                 subfolders = [
                     task, dimension,
-                    config['kfold_folder'], f'{y_label}_res' if len(covariates) > 0 and config['problem_type'] == 'reg' else y_label, config['stat_folder'],scoring_metric,
+                    config['kfold_folder'], f'{y_label}_res' if len(covariates) > 0 else y_label, config['stat_folder'],scoring_metric,
                     'hyp_opt' if config['n_iter'] > 0 else '','feature_selection' if config['feature_selection'] else '',
                     'filter_outliers' if config['filter_outliers'] and config['problem_type'] == 'reg' else '','rounded' if round_values else '','cut' if cut_values > 0 else '',
                     'shuffle' if config['shuffle_labels'] else ''
