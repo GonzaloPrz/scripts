@@ -2,6 +2,8 @@
     "y_labels": {
                 "crossling_mci":["NPI_Anxiety_Severity","NPI_Depression_Severity","NPI_Apathy_Severity","NPI_Agitation_Severity"],
                 "affective_pitch_CN_AD": ["group"],
+                "affective_pitch_CN_FTD": ["group"],
+                "affective_pitch_AD_FTD": ["group"],
                 "53_ceac":["depression"],
                 "tell_classifier": ["target"],
                 "MCI_classifier_unbalanced": ["group","bio__bio__ptau217"],
@@ -39,6 +41,8 @@
     "tasks": {
                 "crossling_mci":["positive","negative"],
                 "affective_pitch_CN_AD": ["Fugu"],
+                "affective_pitch_CN_FTD": ["Fugu"],
+                "affective_pitch_AD_FTD": ["Fugu"],
                 "53_ceac":["phq__cachorro"],
                 "tell_classifier": ["MOTOR-LIBRE"],
                 "MCI_classifier_unbalanced": [
@@ -109,7 +113,8 @@
     "single_dimensions": {
                     "crossling_mci":["all"],
                     "affective_pitch_CN_AD": ["ALL","NEG","NEU","POS","sentiment"],
-
+                    "affective_pitch_CN_FTD": ["ALL","NEG","NEU","POS","sentiment"],
+                    "affective_pitch_AD_FTD": ["ALL","NEG","NEU","POS","sentiment"],
                     "53_ceac":{"phq":["gemini"],
                                 "cachorro":["phq9__sentiment__verbosity"],
                                 "pais":["phq9__sentiment__verbosity"],
@@ -205,6 +210,8 @@
     "data_file": {
                 "crossling_mci":"data_french.csv",
                 "affective_pitch_CN_AD": "mean_pitch_features_CN_AD.csv",
+                "affective_pitch_CN_FTD": "mean_pitch_features_CN_FTD.csv",
+                "affective_pitch_AD_FTD": "mean_pitch_features_AD_FTD.csv",
                 "impact_dementia":"all_data.csv",
                 "53_ceac": "all_data.csv",
                 "tell_classifier": "data_MOTOR-LIBRE.csv",
