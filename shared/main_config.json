@@ -59,6 +59,7 @@
                 ],
                 "Proyecto_Ivo": [
                     "nps",
+                    "AAL",
                     "Animales__P",
                     "brain",
                     "connectivity"
@@ -177,11 +178,10 @@
                                             ["bio"]
                                     },
                                     "Proyecto_Ivo": {
-                                                "Animales": ["properties"],
                                                 "Animales__P": ["properties"],
                                                 "nps": ["executive"],
-                                                "brain": ["norm_brain_lit"],
-                                                "connectivity": ["networks"]
+                                                "brain": ["norm_brain_lit","norm_AAL"],
+                                                "connectivity": ["networks","selected_areas"]
                                     },
 
                     "arequipa": ["verbosity__word_properties__talking_intervals",
@@ -217,7 +217,7 @@
                 "tell_classifier": "data_MOTOR-LIBRE.csv",
                 "MCI_classifier_unbalanced": "data_matched_unbalanced_group.csv",
                 "MCI_classifier": "data_matched_group.csv",
-                "Proyecto_Ivo": "all_data.csv",
+                "Proyecto_Ivo": "all_data_with_means.csv",
                 "arequipa": "data_matched_group.csv",
                 "GERO_Ivo": "all_data.csv",
                 "MPLS": "all_data.csv",
