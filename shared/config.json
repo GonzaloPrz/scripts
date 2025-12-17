@@ -1,5 +1,5 @@
 {
-    "project_name": "crossling_mci",
+    "project_name": "affective_pitch_AD_FTD",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
@@ -9,7 +9,7 @@
     "n_folds_inner": 5.0,
     "n_iter": 20.0,
     "feature_selection": true,
-    "fill_na": 0,
+    "fill_na": -10,
     "init_points": 20.0,
     "n_seeds_train": 10.0,
     "n_seeds_shuffle": 0.0,
@@ -27,21 +27,42 @@
     "round_values": false,
     "add_dem": false,
     "cut_values": -1.0,
-    "regress_out": [],
+    "regress_out": [
+        "[",
+        "s",
+        "e",
+        "x",
+        ",",
+        "a",
+        "g",
+        "e",
+        ",",
+        "e",
+        "d",
+        "u",
+        "c",
+        "a",
+        "t",
+        "i",
+        "o",
+        "n",
+        "]"
+    ],
+    "regress_out_method": "linear",
     "test_size": 0.0,
-    "data_file": "data_french.csv",
+    "data_file": "mean_pitch_features_AD_FTD.csv",
     "tasks": [
-        "positive",
-        "negative"
+        "Fugu"
     ],
     "single_dimensions": [
-        "all"
+        "ALL",
+        "NEG",
+        "NEU",
+        "POS",
+        "sentiment"
     ],
     "y_labels": [
-        "NPI_Anxiety_Severity",
-        "NPI_Depression_Severity",
-        "NPI_Apathy_Severity",
-        "NPI_Agitation_Severity"
+        "group"
     ],
     "avoid_stats": [],
     "stat_folder": "",
@@ -65,7 +86,7 @@
     ],
     "bayes": true,
     "covariates": [],
-    "problem_type": "reg",
+    "problem_type": "clf",
     "kfold_folder": "5_folds_5_folds",
-    "scoring_metric": "r2"
+    "scoring_metric": "roc_auc"
 }
