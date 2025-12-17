@@ -60,7 +60,7 @@ def parse_args():
     parser.add_argument('--round_values',type=int,default=0,help='Whether to round predicted values for regression or not')
     parser.add_argument('--add_dem',type=int,default=0,help='Whether to add demographic features or not')
     parser.add_argument('--cut_values',type=float,default=-1,help='Cut values above a given threshold')
-    parser.add_argument('--regress_out',type=list,default=[],help='List of demographic variables to regress out from target variable')
+    parser.add_argument('--regress_out',type=str,default='',help='List of demographic variables to regress out from target variable, separated by "_"')
     parser.add_argument('--regress_out_method',type=str,default='linear',help='Whether to perform linear or non-linear regress-out')
     return parser.parse_args()
 
@@ -95,7 +95,7 @@ def load_configuration(args):
         round_values = bool(args.round_values),
         add_dem = bool(args.add_dem),
         cut_values = float(args.cut_values),
-        regress_out = list(args.regress_out),
+        regress_out = sorted(list(args.regress_out.split('_')),
         regress_out_method = str(args.regress_out_method)
     )
 
