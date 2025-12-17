@@ -5,7 +5,7 @@
 
 "lda":{"tol":[1e-5,1e-1]},
 
-"qda":{"reg_param":[0.0,1.0],
+"qda":{"reg_param":[1e-5,1.0],
        "tol":[1e-5,1e-1]},
        
 "knnc":{"n_neighbors":[1,40]},
