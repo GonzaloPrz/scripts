@@ -95,7 +95,7 @@ def load_configuration(args):
         round_values = bool(args.round_values),
         add_dem = bool(args.add_dem),
         cut_values = float(args.cut_values),
-        regress_out = sorted(list(args.regress_out.split('_')),
+        regress_out = sorted(list(args.regress_out.split('_'))),
         regress_out_method = str(args.regress_out_method)
     )
 
