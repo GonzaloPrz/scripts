@@ -169,8 +169,8 @@ models_dict = {'clf':{
                     'lr':LR,
                     'knnc':KNNC,
                     'xgb':xgboost,
-                    #'qda':QDA,
-                    #'lda': LDA
+                    'qda':QDA,
+                    'lda': LDA
                     },
                 
                 'reg':{'lasso':Lasso,
