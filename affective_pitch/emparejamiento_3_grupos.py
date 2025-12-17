@@ -20,7 +20,7 @@ filenames = [
              'transcripts_fugu_matched_group.csv'
             ]
 
-groups = ['AD','CN']
+groups = ['AD','FTD']
 
 for filename in filenames:
     try:
