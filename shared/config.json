@@ -1,5 +1,5 @@
 {
-    "project_name": "affective_pitch_AD_FTD",
+    "project_name": "affective_pitch_CN_FTD",
     "stats": "",
     "shuffle_labels": false,
     "shuffle_all": true,
@@ -28,29 +28,11 @@
     "add_dem": false,
     "cut_values": -1.0,
     "regress_out": [
-        "[",
-        "s",
-        "e",
-        "x",
-        ",",
-        "a",
-        "g",
-        "e",
-        ",",
-        "e",
-        "d",
-        "u",
-        "c",
-        "a",
-        "t",
-        "i",
-        "o",
-        "n",
-        "]"
+        ""
     ],
     "regress_out_method": "linear",
     "test_size": 0.0,
-    "data_file": "mean_pitch_features_AD_FTD.csv",
+    "data_file": "mean_pitch_features_CN_FTD.csv",
     "tasks": [
         "Fugu"
     ],
