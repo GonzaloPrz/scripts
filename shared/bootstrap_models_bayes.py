@@ -20,7 +20,7 @@ project_name = config["project_name"]
 kfold_folder = config['kfold_folder']
 shuffle_labels = config['shuffle_labels']
 stat_folder = config['stat_folder']
-hyp_opt = True if int(config['n_iter']) > 0 else False
+hyp_opt = bool(config['n_iter'])
 feature_selection = bool(config['feature_selection'])
 n_boot = int(config["n_boot"])
 calibrate = bool(config["calibrate"])
@@ -249,12 +249,12 @@ for scoring in np.unique(scorings):
                 for y_label in y_labels_:
                     best_best_models_ = all_results[(all_results['task'] == task) & (all_results['y_label'] == y_label) & (all_results['dimension'] == dimension) & (all_results['random_seed_test'].astype(str) == str(random_seed_test))]
 
-                    if best_best_models_.shape[0] == 0:
-                        continue
+                    #if best_best_models_.shape[0] == 0:
+                    #    continue
                     try:
-                        best_best_models_[scoring_col] = best_best_models_[scoring].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+                        best_best_models_[scoring_col] = best_best_models_[scoring].apply(lambda x: float(x.split(', ')[0]))
                     except:
-                        best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split('(')[1].replace(')','').split(', ')[extremo]))
+                        best_best_models_[scoring_col] = best_best_models_[f'{scoring}_score'].apply(lambda x: float(x.split(', ')[0]))
 
                     best_best_models_.dropna(subset=[scoring_col], inplace=True)
                     

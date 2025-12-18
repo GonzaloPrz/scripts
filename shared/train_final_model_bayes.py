@@ -248,7 +248,8 @@ for threshold in thresholds:
 
                 all_models = pd.read_csv(Path(path_to_results,random_seed,f'all_models_{model_type}.csv'))
                 
-                features = [col for col in all_models.columns if f'{task}__' in col]
+                features = [col for col in all_models.columns if any(f'{single_task}__' in col for single_task in task.split('__'))]
+                
                 if not isinstance(X_train, pd.DataFrame):
                     X_train = pd.DataFrame(X_train, columns=features)
                 
