@@ -17,7 +17,7 @@ for sentiment in ['ALL','POS','NEG','NEU']:
 
     features = np.unique([col.split('__')[3] for col in pitch_data.columns if col.startswith('Fugu__sentence')])
 
-    mean_data = pd.DataFrame(columns=['id'] + [f'Fugu__{sentiment}__{feature}' for feature in features]
+    mean_data = pd.DataFrame(columns=['id'] + [f'Fugu__{sentiment}__{feature}' for feature in features] if sentiment != 'ALL' else []
                              + [f'Fugu__{sentiment}__{feature}_{s}' for feature,s in itertools.product(features,['POS','NEG','NEU'])] if sentiment == 'ALL' else [])
 
     for feature in features:
