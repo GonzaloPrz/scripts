@@ -5,9 +5,9 @@ from scipy.stats import skew, kurtosis
 
 sentiments = ['pos','neg','neu']
 stats = ['mean','std','min','max','median','skewness','kutrosis']
-
+segmentation = 'phrases'
 base_dir = Path(Path.home(),'data','affective_pitch') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','affective_pitch')
-transcripts = pd.read_csv(Path(base_dir,'transcripts_fugu_matched_group_sentiment_windows.csv'))
+transcripts = pd.read_csv(Path(base_dir,f'transcripts_fugu_matched_group_sentiment_{segmentation}.csv'))
 
 output_rows = []
 for r, row in transcripts.iterrows():
@@ -32,4 +32,4 @@ for r, row in transcripts.iterrows():
 
 output_df = pd.merge(transcripts,pd.DataFrame(output_rows))
 
-output_df.to_csv(Path(base_dir,'transcripts_fugu_matched_group_sentiment_windows.csv'), index=False)
+output_df.to_csv(Path(base_dir,f'transcripts_fugu_matched_group_sentiment_{segmentation}.csv'), index=False)
