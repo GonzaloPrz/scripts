@@ -3,7 +3,7 @@ from pathlib import Path
 
 base_dir = Path(Path.home(),'data','affective_pitch') if 'Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','affective_pitch')
 
-filename = 'mean_phrases'
+filename = 'mean_windows'
 
 data = pd.read_csv(Path(base_dir,f'{filename}.csv'))
 

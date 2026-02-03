@@ -5,9 +5,9 @@ import itertools
 
 data_dir = Path(Path.home(),'data','affective_pitch') if '/Users/gp' in str(Path.home()) else Path('D:','CNC_Audio','gonza','data','affective_pitch')
 
-segmentations = ['windows','phrases']
+segmentations = ['windows']
 
-feature_sets = ['energy_pitch','timing']
+feature_sets = ["embeddings",'energy_pitch','timing',]
 
 for segmentation in segmentations:
     all_data = pd.DataFrame()
@@ -25,7 +25,7 @@ for segmentation in segmentations:
 
             data.columns = [col.replace('Fugu_','Fugu__').replace('_pysent','').replace('___','__') for col in data.columns]
 
-            features = np.unique([col.split('__')[3] for col in data.columns if col.startswith(f'Fugu__{segmentation[:-1]}') and all(x not in col for x in ['nsg','query'])])
+            features = np.unique([col.split('__')[-1] for col in data.columns if col.startswith(f'Fugu__{segmentation[:-1]}') and all(x not in col for x in ['msg','query'])])
 
             mean_data = pd.DataFrame(columns=['id'] + [f'Fugu__{sentiment}__{feature}' for feature in features] if sentiment != 'ALL' else []
                                     + [f'Fugu__{sentiment}__{feature}_{s}' for feature,s in itertools.product(features,['POS','NEG','NEU'])] if sentiment == 'ALL' else [])
